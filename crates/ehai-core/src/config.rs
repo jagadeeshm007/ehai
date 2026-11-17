@@ -196,6 +196,9 @@ pub enum TrackerKind {
     GithubProjects,
     Linear,
     Jira,
+    /// Offline fallback: JSON file at `~/.ehai/tracker.json`. All PM flows work;
+    /// no PR linking, no GitHub auth required.
+    Local,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, JsonSchema)]

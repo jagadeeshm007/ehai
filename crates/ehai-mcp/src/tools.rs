@@ -14,7 +14,8 @@ use std::path::PathBuf;
 use ehai_core::config::ComplianceMode;
 use ehai_guard::{audit, Guard, Outcome};
 use ehai_planner::{breakdown::Breakdown, prd::Prd, report, triage};
-use ehai_tracker::github::{self, Client, GithubProjects};
+use ehai_tracker::any::AnyTracker;
+use ehai_tracker::github::{self, Client};
 use ehai_tracker::{sync, Filter, Kind, NewItem, Priority, Size, Status, Tracker};
 use rmcp::handler::server::wrapper::Parameters;
 use rmcp::{tool, tool_router, Json};
@@ -658,9 +659,20 @@ impl EhaiServer {
         .map_err(|e| e.to_string())
     }
 
-    fn tracker(&self) -> Result<GithubProjects, String> {
-        let client = self.github_client()?;
-        github::from_config(&self.ctx.config, client).map_err(|e| e.to_string())
+    fn tracker(&self) -> Result<AnyTracker, String> {
+        use ehai_core::config::TrackerKind;
+        match self.ctx.config.tracker.kind {
+            TrackerKind::Local => {
+                let t = ehai_tracker::local::LocalTracker::new(&self.ctx.home);
+                Ok(AnyTracker::Local(t))
+            }
+            _ => {
+                let client = self.github_client()?;
+                github::from_config(&self.ctx.config, client)
+                    .map(AnyTracker::Github)
+                    .map_err(|e| e.to_string())
+            }
+        }
     }
 
     /// The team for the connected project (cached; `refresh` forces a recheck).

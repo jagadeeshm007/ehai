@@ -84,6 +84,8 @@ pub struct Answers {
     pub sandbox: String,
     pub onboard_repo: bool,
     pub tracker: Option<ProjectChoice>,
+    /// `true` when the user chose local storage because gh is absent.
+    pub use_local_tracker: bool,
 }
 
 pub fn run(
@@ -327,17 +329,26 @@ pub fn ask(
             (_, Some(t)) => Some(ProjectChoice::Create(t.clone())),
             _ => None,
         },
+        use_local_tracker: false,
     };
     let ask_tracker = !args.no_tracker
         && args.tracker_project.is_none()
         && args.tracker_create.is_none()
         && d.github.as_ref().is_some_and(|g| g.scope_ok != Some(false));
+    // When gh is absent (and no GITHUB_TOKEN supplied), offer "install gh or
+    // use local storage?" rather than silently skipping the tracker question.
+    let ask_gh_missing = !args.no_tracker
+        && d.gh.is_none()
+        && d.github.is_none()
+        && std::env::var_os("GITHUB_TOKEN").is_none()
+        && std::env::var_os("GH_TOKEN").is_none();
 
     // Questions in order; each is skipped when a flag (or detection) answered it.
     #[derive(Clone, Copy)]
     enum Q {
         Role,
         Harnesses,
+        GhMissing,
         Tracker,
         Compliance,
         Sandbox,
@@ -347,7 +358,9 @@ pub fn ask(
     if args.harnesses.is_empty() && !d.harnesses.is_empty() {
         todo.push(Q::Harnesses);
     }
-    if ask_tracker {
+    if ask_gh_missing {
+        todo.push(Q::GhMissing);
+    } else if ask_tracker {
         todo.push(Q::Tracker);
     } else if args.role.is_none() && admin_of_configured(d, config) == Some(true) {
         // tracker already connected and known to be administered by the
@@ -385,6 +398,25 @@ pub fn ask(
                 p.multiselect("Which tools should I set up?", &choices)
                     .map(|v| a.harnesses = v)
             }
+            Q::GhMissing => p
+                .select(
+                    "GitHub CLI (gh) not found — it is needed for GitHub Projects sync.",
+                    &[
+                        Choice::new("local", "Use local storage (all PM flows work offline)")
+                            .hint("stores items in ~/.ehai/tracker.json; add GitHub later with `ehai tracker set github`")
+                            .default(),
+                        Choice::new(
+                            "install",
+                            "Install gh first (https://cli.github.com) and re-run init",
+                        )
+                        .hint("required for GitHub Projects, PR linking, and team sync"),
+                    ],
+                )
+                .map(|v| {
+                    if v == "local" {
+                        a.use_local_tracker = true;
+                    }
+                }),
             Q::Tracker => {
                 let g = d
                     .github
@@ -605,6 +637,19 @@ fn apply(
         })?;
     }
 
+    if a.use_local_tracker {
+        ok &= retrying(p, "Set up local tracker", &mut || {
+            config::edit_file(&global, |t| {
+                config::set(t, "tracker", "kind", "local");
+            })
+            .map(|()| "~/.ehai/tracker.json".to_string())
+            .map_err(|e| StepError {
+                message: e.to_string(),
+                fix: Some(format!("check that {} is writable", global.display())),
+            })
+        })?;
+    }
+
     if let Some(choice) = &a.tracker {
         match crate::tracker::client() {
             Ok((client, _)) => {
@@ -729,6 +774,7 @@ mod tests {
                 sandbox: "restricted".into(),
                 onboard_repo: true,
                 tracker: None,
+                use_local_tracker: false,
             }
         );
         let out = String::from_utf8(p.into_inner()).unwrap();
@@ -855,6 +901,7 @@ mod tests {
             sandbox: "off".into(),
             onboard_repo: true,
             tracker: None,
+            use_local_tracker: false,
         };
         let mut p = PlainPrompter::new(Vec::new());
         assert!(apply(&mut p, home.path(), &Config::default(), &d, &a).unwrap());

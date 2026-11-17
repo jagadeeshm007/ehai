@@ -120,6 +120,25 @@
 - Verified against synthetic fixtures for every stack in spec §13 (RN Expo, bare RN, Vite React, Next.js, Go API, FastAPI, pnpm monorepo) reaching "ready", plus property-style coverage: ports never collide across 20 parallel worktrees, materialised env files never show up in `git status`, a missing package manager is reported as skipped rather than failing the whole sync.
 - Coverage wasn't independently measured with `cargo-llvm-cov` (not installed in this environment); each module carries its own unit tests and the fixtures suite exercises the full `sync()` path per stack.
 
+### M5 — POC engine (2026-11-17)
+- `ehai-stack`: detects stack per-app (RN Expo/bare, React web/Next.js/Vite/CRA, Go, Python); extracts design tokens (Tailwind config, CSS variables, MUI/Chakra/shadcn themes; NativeWind/restyle/tamagui for RN). Writes `.ehai/cache/design-profile.json`, invalidated by file hash. Inventories components, routes/nav stacks, state management, test frameworks, formatters, commit style, PR templates.
+- `ehai-poc`: full POC lifecycle — `poc_new` (branch `ehai/poc/<feature>/poc-<n>`, worktree via `ehai-env`, design context), `poc_iterate` (new branch from parent), `poc_list`, `poc_discard` (archive tag + worktree removal), `poc_compare` (side-by-side HTML gallery + diff summary), `poc_open` (start dev server on allocated port), screenshot capture via Chrome CLI (`--headless --screenshot`), degrade gracefully when Chrome is absent.
+- Manifest at `.ehai/pocs/<feature>/manifest.json`: id, parent(s), parts, prompt, feedback, status, screenshots, port, created_at, env snapshot hash.
+- MCP tools: `poc_new`, `poc_iterate`, `poc_list`, `poc_discard`, `poc_compare`, `poc_open` (6 tools total). Design context returned to the AI for code generation; ehai never generates the React/RN code directly.
+- Sandbox: `SandboxMode::Restricted` checks that every worktree lives under `~/.ehai/worktrees`; off-path worktrees are blocked before any file write.
+- CLI: `ehai poc new|iterate|list|discard|compare|open`.
+- Verified: worktrees created outside the repo; env files never staged; ports unique across concurrent POCs; screenshot degrades cleanly when Chrome is absent.
+
+### M6 — Compose + promote + preferences + role-aware output (2026-11-17)
+- `poc_compose`: synthesises a new POC from multiple parents by reading their diffs and rebuilding the requested parts; lineage records `parts: [(parent_n, description)]` per parent POC. Not a cherry-pick.
+- `poc_promote`: opens a GitHub PR from the POC branch to the default branch; sets `status = Promoted`; always requires explicit `--yes` confirmation or `needs_input` via MCP. Blocked by sandbox in Restricted mode.
+- `ehai-prefs`: flat `[[entries]]` TOML store (`~/.ehai/prefs/user.toml` global, `<repo>/.ehai/prefs/project.toml` per-repo, gitignored by default). Fields: key, value, scope, source (explicit/observed), confidence, first_seen, last_seen. Repo entries override global by key. `to_context_text()` injects a compact block into every POC/planning prompt. `ehai://prefs` MCP resource returns role + project_admin + learned prefs.
+- MCP tools added: `poc_compose`, `poc_promote`, `prefs_list`, `prefs_set`, `prefs_delete` (5 new tools).
+- Role-aware PM output: `do_save_prd` and `do_status` include `role` and `presentation_hint` fields so Claude can tailor its response format for PM vs dev.
+- `ehai-tracker`: `create_pull_request` (REST `POST /repos/.../pulls`); 422 (branch already has open PR) mapped to a clear `Error::Api`.
+- CLI: `ehai poc compose|promote`; `ehai prefs list|set|delete`.
+- Known gap: per-worktree harness-scoped sandbox settings (§9A, last bullet) — fixed before M8.
+
 ### M7 — All harness adapters (2026-11-17)
 - 7 new harness adapters: Codex CLI, Gemini CLI, Cursor, OpenCode, VS Code, Windsurf, AGENTS.md (universal).
 - Shared `json_mcp.rs` module handles read/backup/patch/write for the 5 JSON-based adapters.
@@ -130,11 +149,17 @@
 - Config paths verified against official docs and recorded in ADR-0026.
 - 25 adapter tests: 25 passed, 0 failed.
 
-## Next — M5: POC engine
-- `ehai-poc`/`ehai-stack`: design-token extraction (web + RN), worktree lifecycle (branch, worktree via `ehai-env`), manifest, preview + screenshots, new/iterate/compare/discard.
+### Pre-M8 fixes (2026-11-17)
+
+- **Local tracker** (`ehai-tracker::local::LocalTracker`): offline fallback storing items in `~/.ehai/tracker.json` (or `EHAI_LOCAL_TRACKER`). Implements the full `Tracker` trait: create/update/list/get/status/comment/link_pr/assign/unassign. `ensure_schema` is a no-op (schemaless JSON). PR links and comments are appended to the item body. `ehai-id` footer preserved across all mutations. Atomic write via `write_atomic`; in-process `Mutex` guards concurrent MCP calls. 7 unit tests.
+- **`AnyTracker` enum** (`ehai-tracker::any`): type-erased dispatcher implementing `Tracker` over `GithubProjects | LocalTracker` via `async fn` delegation, so `sync::sync` and other generic callers work with either backend without `async_trait` or heap boxing.
+- **MCP `tracker()` method**: now checks `config.tracker.kind` — `TrackerKind::Local` returns `AnyTracker::Local`, everything else goes through the GitHub client. All 5 PM tool call sites (`do_sync`, schema, `do_triage`, `do_assign`, `do_comment`) work with both backends unchanged.
+- **`ehai init` wizard**: detects missing `gh` / no `GITHUB_TOKEN` / no `GH_TOKEN` and asks "Use local storage (all PM flows work offline)" vs "Install gh first". Choosing local writes `tracker.kind = "local"` to config and shows the step in the apply checklist.
+- **`TrackerKind::Local`** added to `ehai-core::config`.
+
+## Next — M8: Distribution
 
 ## Open questions
-- OAuth device flow needs an ehai OAuth App client id (ADR-0017). Who registers it, and under which org?
-- `MINISIGN_KEY` secret: generate with `minisign -G -W` and add it to `jagadeeshm007/ehai` before the first tag.
-- Claude desktop: are ZIP skill uploads wanted in addition to the MCP prompts (ADR-0022)?
+- `MINISIGN_KEY` secret: generate with `minisign -G -W -p ~/.ehai/minisign.pub -s ~/.ehai/minisign.key` and add the secret key contents to `jagadeeshm007/ehai` → Settings → Secrets → `MINISIGN_KEY`. The public key must be embedded in `ehai-update` (M8) for signature verification on the client side. The release workflow hard-fails if the secret is absent, so this must be done before tagging `v0.1.0-alpha.1`.
+- Claude desktop: MCP prompts are sufficient (ADR-0022). No ZIP skill package needed.
 - The interactive wizard path (cliclack on a real TTY) is exercised manually. Automated tests cover the same logic through the plain/scripted prompter.
