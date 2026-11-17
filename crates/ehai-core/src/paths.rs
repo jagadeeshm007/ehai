@@ -32,6 +32,20 @@ pub fn audit_dir(home: &Path) -> PathBuf {
     home.join("audit")
 }
 
+pub fn prefs_dir(home: &Path) -> PathBuf {
+    home.join("prefs")
+}
+
+/// Generated harness files (plugins, marketplaces) live under here.
+pub fn adapters_dir(home: &Path) -> PathBuf {
+    home.join("adapters")
+}
+
+/// Per-repo state dir (`<repo>/.ehai`).
+pub fn repo_dir(repo_root: &Path) -> PathBuf {
+    repo_root.join(".ehai")
+}
+
 /// Nearest `.ehai.toml` walking up from `start`.
 pub fn find_repo_config(start: &Path) -> Option<PathBuf> {
     start

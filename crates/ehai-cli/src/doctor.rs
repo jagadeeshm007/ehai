@@ -3,10 +3,11 @@
 
 use std::io;
 use std::path::Path;
-use std::process::Command;
 
+use ehai_adapters::Status;
 use ehai_core::Config;
 
+use crate::sys::tool_version;
 use crate::ui::{Prompter, StepError, StepResult};
 
 const MIN_GIT: (u32, u32) = (2, 20); // reliable `git worktree` support
@@ -46,6 +47,30 @@ pub fn run(
             .unwrap_or_else(|| "not found (optional; used to reuse GitHub auth)".into()))
     })?;
 
+    if let Ok(cfg) = config {
+        let ctx = crate::adapter_ctx(home, cfg);
+        let enabled = ehai_adapters::all()
+            .into_iter()
+            .filter(|h| cfg.adapters.enabled.iter().any(|e| e == h.id()));
+        for h in enabled {
+            let name = h.display_name();
+            ok &= p.step(&format!("{name} adapter"), &mut || match h.status(&ctx) {
+                Status::Installed => Ok("installed".into()),
+                Status::Unavailable => Err(fail(
+                    format!("{name} not found"),
+                    &format!(
+                        "install {name}, or run `{} init` to change harnesses",
+                        cfg.brand.name
+                    ),
+                )),
+                Status::NotInstalled => Err(fail(
+                    "not installed",
+                    &format!("run `{} adapters install {}`", cfg.brand.name, h.id()),
+                )),
+            })?;
+        }
+    }
+
     p.outro(if ok {
         "All checks passed"
     } else {
@@ -59,18 +84,6 @@ fn fail(message: impl Into<String>, fix: &str) -> StepError {
         message: message.into(),
         fix: Some(fix.into()),
     }
-}
-
-fn tool_version(bin: &str, args: &[&str]) -> Option<String> {
-    let out = Command::new(bin).args(args).output().ok()?;
-    out.status.success().then(|| {
-        String::from_utf8_lossy(&out.stdout)
-            .lines()
-            .next()
-            .unwrap_or_default()
-            .trim()
-            .to_string()
-    })
 }
 
 fn check_git() -> StepResult {

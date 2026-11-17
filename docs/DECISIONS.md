@@ -81,3 +81,60 @@ Checked against crates.io and GitHub releases on 2026-11-17:
 - GitHub Actions: checkout v7, upload-artifact v7, download-artifact v8, rust-cache v2, install-action v2, action-gh-release v3, cargo-deny-action v2.
 
 Re-check before bumping.
+
+## ADR-0011 — MCP server: rmcp 3.10 over stdio, panic guard per handler
+**Date:** 2026-11-17 · **Status:** accepted
+
+- **SDK:** `rmcp` 3.10, the official Rust SDK, with features `server`, `macros` and `transport-io`. Its default handler accepts every known protocol version (2024-11-05 … 2026-07-28), so older harnesses still negotiate.
+- **Server lifetime:** `ehai mcp` serves stdio on a current-thread tokio runtime and exits cleanly when the client closes stdin. There is no daemon.
+- **Panic guard:** every handler body runs through `ehai_mcp::guard`, which uses `tokio::spawn` and converts `JoinError::is_panic` into a structured error. One bad request can't kill the session.
+- **Prefs resource URI:** `ehai://prefs` is fixed. The brand renames the MCP *server*, never the URIs, because internal identifiers stay `ehai` (spec §2.4).
+- **Verified:** real Claude Code 2.1.179 shows `plugin:ehai:ehai … ✔ Connected` in `claude mcp list`.
+
+## ADR-0012 — Claude Code adapter: a local marketplace with one plugin that bundles the MCP server
+**Date:** 2026-11-17 · **Status:** accepted
+**Sources:** code.claude.com/docs/en/plugins-reference, /plugin-marketplaces and /skills, fetched 2026-11-17. Checked against Claude Code CLI 2.1.179.
+
+- **Plugin layout:**
+  - `ehai` generates `~/.ehai/adapters/claude-code/.claude-plugin/marketplace.json`.
+  - The marketplace (`<brand>-local`) lists a single plugin (`<brand>`).
+  - The plugin holds `.mcp.json` (pointing at `<abs exe> mcp`) and `skills/<name>/SKILL.md`. Skills replace legacy `commands/`, as the docs recommend.
+- **Install path:** `claude plugin marketplace add <dir>`, then `claude plugin install <brand>@<brand>-local --scope user`.
+  - We chose this over `claude mcp add --scope user`: one install registers both the MCP server and the skills, and one `marketplace remove` reverses both.
+  - It's idempotent: each step runs only if `--json` listings show it's missing.
+- **Plugin versioning:** the docs suggest local-path plugins load in place, but 2.1.179 copies them into a **versioned cache**, and `plugin update` is a no-op when the version is unchanged. So `plugin.json` `version` = `<ehai version>+<FNV-1a hash of generated content>`. Changed content gets a new version, and install then runs `marketplace update` + `plugin update`. This was verified live: changing the role in `init` refreshed the installed skill.
+- **Brand rename:** marketplaces whose path is our root but whose name differs are removed before the new one is added.
+- **Reserved names:** `Brand::validate` rejects names Claude Code refuses for plugins (`claude`, `claude-*`, `anthropic-*`, `cc-plugin-*`).
+- **Test strategy:**
+  - Unit tests use a fake `claude` shell script, injected via `EHAI_CLAUDE_BIN`.
+  - The live check used `CLAUDE_CONFIG_DIR=<tmp>` so the real user config was never touched.
+  - `claude plugin validate` passes on both manifests.
+
+## ADR-0013 — `ehai init` scope and behaviour
+**Date:** 2026-11-17 · **Status:** accepted
+
+- **Questions:** role, harnesses (pre-checked), compliance, sandbox, and repo-profile confirmation. That's ≤ 5, tested.
+- **Tracker question:** moved to **M2**, where it can list the user's GitHub Projects live. Asking for the tracker kind alone now would be a wasted question.
+- **No half-applied state:** nothing is written until all answers are in, so cancelling leaves nothing behind. Apply steps are idempotent, so rerunning `init` resumes.
+- **Esc vs Ctrl-C:** cliclack reports both as the same `Interrupted`. A cancel opens "Go back / Quit": Esc then Enter goes back, and a second cancel quits with exit 130 and "Nothing was changed".
+- **Retry:** a failed apply step offers "Retry?" defaulting to **no**, so `--yes` and non-TTY runs never loop.
+- **Flags:** every question has one (`--role --harness --compliance --sandbox --no-repo`), and a flag skips its question.
+- **Re-running:** existing config values become the defaults.
+- **Chosen harnesses** are stored in `adapters.enabled`. `doctor` verifies, and `adapters regenerate` refreshes, only those.
+
+## ADR-0014 — When repo onboarding runs
+**Date:** 2026-11-17 · **Status:** accepted
+
+- **Spec:** says onboarding runs "the first time ehai runs in a new repo (via any command)".
+- **M1:** it runs from `ehai init` and `ehai repo init`.
+  - `ehai mcp` must never prompt, because stdout is the protocol channel.
+  - `doctor`, `config` and `adapters` are non-interactive.
+  - The auto-trigger will hook into the interactive commands as they arrive (M3+).
+- **What it writes:** `<repo>/.ehai/profile.toml` `[detected]` is rewritten on each scan. Other tables (team decisions) are preserved.
+- **Local state:** a `.ehai/.gitignore` keeps it out of git without editing the repo's own `.gitignore`.
+- **Secrets:** env files are recorded by **name only**, never read.
+
+## ADR-0015 — External commands always have a timeout
+**Date:** 2026-11-17 · **Status:** accepted
+
+`ehai_core::process::output` spawns, drains stdout and stderr on threads (so a full pipe can't deadlock), and kills the process after a timeout. It covers `gh`, `git --version` and `claude` calls (120 s). Retries with backoff will be added for network calls in M2.

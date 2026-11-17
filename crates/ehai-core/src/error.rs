@@ -6,7 +6,7 @@ pub type Result<T, E = Error> = std::result::Result<T, E>;
 pub enum Error {
     #[error("could not determine home directory; set EHAI_HOME")]
     NoHome,
-    #[error("invalid brand name {0:?}: use 2-32 chars, lowercase letters, digits or '-', starting with a letter")]
+    #[error("invalid brand name {0:?}: use 2-32 chars, lowercase letters, digits or '-', starting with a letter, not reserved (claude-*, anthropic-*)")]
     InvalidBrand(String),
     #[error("failed to parse {path}: {source}")]
     Parse {
@@ -16,6 +16,8 @@ pub enum Error {
     },
     #[error("invalid config: {0}")]
     Invalid(String),
+    #[error("git {args} failed: {stderr}")]
+    Git { args: String, stderr: String },
     #[error("I/O error on {path}: {source}")]
     Io {
         path: PathBuf,
@@ -25,7 +27,7 @@ pub enum Error {
 }
 
 impl Error {
-    pub(crate) fn io(path: impl Into<PathBuf>) -> impl FnOnce(std::io::Error) -> Error {
+    pub fn io(path: impl Into<PathBuf>) -> impl FnOnce(std::io::Error) -> Error {
         let path = path.into();
         move |source| Error::Io { path, source }
     }

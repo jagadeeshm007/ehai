@@ -124,3 +124,97 @@ fn schema_is_valid_json() {
     let v: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
     assert!(v["properties"]["compliance"].is_object());
 }
+
+#[test]
+fn init_non_interactive_writes_config_and_repo_profile() {
+    let env = Env::new();
+    // a git repo with a Vite app as the cwd
+    let g = |args: &[&str]| {
+        assert!(std::process::Command::new("git")
+            .args(args)
+            .current_dir(env.cwd.path())
+            .status()
+            .unwrap()
+            .success())
+    };
+    g(&["init", "-q"]);
+    std::fs::write(
+        env.cwd.path().join("package.json"),
+        r#"{"dependencies":{"react":"19"},"devDependencies":{"vite":"6"}}"#,
+    )
+    .unwrap();
+
+    let out = env
+        .cmd()
+        .args([
+            "init",
+            "--yes",
+            "--role",
+            "pm",
+            "--compliance",
+            "strict",
+            "--harness",
+            "none",
+        ])
+        .output()
+        .unwrap();
+    let s = stdout(&out);
+    assert!(s.contains("You're ready."), "{s}");
+    assert!(s.contains("/ehai:help"), "pm next steps shown: {s}");
+
+    let cfg = std::fs::read_to_string(env.home.path().join("config.toml")).unwrap();
+    assert!(cfg.contains("role = \"pm\""), "{cfg}");
+    assert!(cfg.contains("mode = \"strict\""), "{cfg}");
+    let profile = std::fs::read_to_string(env.cwd.path().join(".ehai/profile.toml")).unwrap();
+    assert!(profile.contains("vite-react"), "{profile}");
+
+    // rerun is idempotent
+    let again = env
+        .cmd()
+        .args(["init", "--yes", "--harness", "none"])
+        .output()
+        .unwrap();
+    assert!(again.status.success(), "{}", stdout(&again));
+    let cfg2 = std::fs::read_to_string(env.home.path().join("config.toml")).unwrap();
+    assert!(
+        cfg2.contains("role = \"pm\""),
+        "kept previous role as default: {cfg2}"
+    );
+}
+
+#[test]
+fn adapters_list_and_unknown_id() {
+    let env = Env::new();
+    let out = env.cmd().args(["adapters", "list"]).output().unwrap();
+    assert!(out.status.success());
+    assert!(stdout(&out).contains("claude-code"));
+    let bad = env
+        .cmd()
+        .args(["adapters", "install", "vim"])
+        .output()
+        .unwrap();
+    assert!(!bad.status.success());
+    assert!(String::from_utf8_lossy(&bad.stderr).contains("available: claude-code"));
+}
+
+#[test]
+fn repo_init_writes_profile_and_requires_a_repo() {
+    let env = Env::new();
+    let out = env.cmd().args(["repo", "init", "--yes"]).output().unwrap();
+    assert!(!out.status.success());
+    assert!(String::from_utf8_lossy(&out.stderr).contains("not inside a git repository"));
+
+    assert!(std::process::Command::new("git")
+        .args(["init", "-q"])
+        .current_dir(env.cwd.path())
+        .status()
+        .unwrap()
+        .success());
+    std::fs::create_dir_all(env.cwd.path().join("api")).unwrap();
+    std::fs::write(env.cwd.path().join("api/go.mod"), "module api\n").unwrap();
+    let out = env.cmd().args(["repo", "init", "--yes"]).output().unwrap();
+    let s = stdout(&out);
+    assert!(out.status.success(), "{s}");
+    assert!(s.contains("api → Go"), "{s}");
+    assert!(env.cwd.path().join(".ehai/profile.toml").is_file());
+}

@@ -38,7 +38,12 @@ impl Brand {
             && n.starts_with(|c: char| c.is_ascii_lowercase())
             && n.chars()
                 .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-');
-        if ok {
+        // Claude Code refuses plugin names that pass as Anthropic's own.
+        let reserved = ["claude", "anthropic", "anthropics"]
+            .iter()
+            .any(|r| n == r || n.starts_with(&format!("{r}-")))
+            || n.starts_with("cc-plugin-");
+        if ok && !reserved {
             Ok(())
         } else {
             Err(Error::InvalidBrand(n.clone()))
@@ -47,6 +52,11 @@ impl Brand {
 
     pub fn mcp_server_name(&self) -> &str {
         &self.name
+    }
+
+    /// Name of the generated local plugin marketplace, e.g. `ehai-local`.
+    pub fn marketplace_name(&self) -> String {
+        format!("{}-local", self.name)
     }
 
     /// e.g. `ehai:` as in `/ehai:plan`.

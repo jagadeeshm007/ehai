@@ -6,7 +6,9 @@ use clap::{Parser, Subcommand};
 use ehai_core::{paths, Config, LoadOptions};
 
 mod doctor;
+mod init;
 mod logging;
+mod sys;
 mod ui;
 
 pub const VERSION_LINE: &str = concat!(
@@ -45,9 +47,37 @@ enum Command {
         #[arg(long)]
         post_update: bool,
     },
+    /// Guided setup: detect your tools, ask a few questions, wire everything up.
+    Init(init::InitArgs),
+    /// Repo onboarding.
+    #[command(subcommand)]
+    Repo(RepoCmd),
+    /// Manage harness integrations (Claude Code, ...).
+    #[command(subcommand)]
+    Adapters(AdaptersCmd),
+    /// Run the MCP server on stdio (started by your AI harness, not by hand).
+    Mcp,
     /// Inspect configuration.
     #[command(subcommand)]
     Config(ConfigCmd),
+}
+
+#[derive(Subcommand)]
+enum RepoCmd {
+    /// Detect this repo's stack and conventions and save `.ehai/profile.toml`.
+    Init,
+}
+
+#[derive(Subcommand)]
+enum AdaptersCmd {
+    /// Show every adapter and whether it is installed.
+    List,
+    /// Generate and register one adapter (e.g. `claude-code`).
+    Install { id: String },
+    /// Unregister one adapter and delete its generated files.
+    Remove { id: String },
+    /// Re-render every enabled adapter (after an update or a brand change).
+    Regenerate,
 }
 
 #[derive(Subcommand)]
@@ -87,6 +117,91 @@ fn run() -> Result<ExitCode> {
     let config = Config::load(&opts);
 
     match cli.command {
+        Command::Mcp => {
+            let config = config?;
+            let ctx = ehai_mcp::Context {
+                brand: config.brand.name.clone(),
+                role: config.role.map(role_str),
+                home: home.clone(),
+            };
+            tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()?
+                .block_on(ehai_mcp::serve_stdio(ctx))?;
+            Ok(ExitCode::SUCCESS)
+        }
+        Command::Init(args) => {
+            let config = config?;
+            let cwd = std::env::current_dir()?;
+            let mut p = ui::prompter(cli.yes);
+            let ok = cancellable(init::run(p.as_mut(), &home, &cwd, &config, &args))?;
+            Ok(if ok {
+                ExitCode::SUCCESS
+            } else {
+                ExitCode::FAILURE
+            })
+        }
+        Command::Repo(RepoCmd::Init) => {
+            let cwd = std::env::current_dir()?;
+            let root = ehai_core::git::toplevel(&cwd).context("not inside a git repository")?;
+            let mut p = ui::prompter(cli.yes);
+            let scan = ehai_stack::RepoScan::scan(&root);
+            cancellable((|| {
+                p.intro(&format!(
+                    "{} repo init",
+                    config.as_ref().map_or("ehai", |c| c.brand.name.as_str())
+                ))?;
+                p.note(&root.display().to_string(), &scan.summary())?;
+                if p.confirm("Save this as the repo profile (.ehai/profile.toml)?", true)? {
+                    let path = scan.write_profile(&root).map_err(std::io::Error::other)?;
+                    p.outro(&format!("Saved {}", path.display()))?;
+                } else {
+                    p.outro("Nothing saved")?;
+                }
+                Ok(())
+            })())?;
+            Ok(ExitCode::SUCCESS)
+        }
+        Command::Adapters(cmd) => {
+            let config = config?;
+            let ctx = adapter_ctx(&home, &config);
+            let find = |id: &str| {
+                ehai_adapters::by_id(id).with_context(|| {
+                    let ids: Vec<_> = ehai_adapters::all().iter().map(|h| h.id()).collect();
+                    format!("unknown adapter `{id}`; available: {}", ids.join(", "))
+                })
+            };
+            match cmd {
+                AdaptersCmd::List => {
+                    for h in ehai_adapters::all() {
+                        let enabled = config.adapters.enabled.iter().any(|e| e == h.id());
+                        println!(
+                            "{:<12} {:<14} {:?}{}",
+                            h.id(),
+                            h.display_name(),
+                            h.status(&ctx),
+                            if enabled { " (enabled)" } else { "" }
+                        );
+                    }
+                }
+                AdaptersCmd::Install { id } => {
+                    let h = find(&id)?;
+                    println!("{}", h.install(&ctx)?);
+                    set_enabled(&home, &id, true)?;
+                }
+                AdaptersCmd::Remove { id } => {
+                    let h = find(&id)?;
+                    println!("{}", h.remove(&ctx)?);
+                    set_enabled(&home, &id, false)?;
+                }
+                AdaptersCmd::Regenerate => {
+                    for id in &config.adapters.enabled {
+                        println!("{}", find(id)?.install(&ctx)?);
+                    }
+                }
+            }
+            Ok(ExitCode::SUCCESS)
+        }
         Command::Doctor { post_update } => {
             let mut p = ui::prompter(cli.yes);
             let ok = doctor::run(p.as_mut(), &home, &config, post_update)?;
@@ -117,5 +232,64 @@ fn run() -> Result<ExitCode> {
             }
             Ok(ExitCode::SUCCESS)
         }
+    }
+}
+
+/// Inputs for rendering harness adapters from the effective config.
+pub fn adapter_ctx(home: &std::path::Path, config: &Config) -> ehai_adapters::Ctx {
+    ehai_adapters::Ctx {
+        brand: config.brand.clone(),
+        role: config.role.map(role_str),
+        home: home.to_path_buf(),
+        exe: std::env::current_exe()
+            .and_then(|p| p.canonicalize())
+            .unwrap_or_else(|_| PathBuf::from("ehai")),
+    }
+}
+
+fn role_str(r: ehai_core::config::Role) -> String {
+    use ehai_core::config::Role;
+    match r {
+        Role::Pm => "pm",
+        Role::Dev => "dev",
+        Role::Both => "both",
+    }
+    .into()
+}
+
+fn set_enabled(home: &std::path::Path, id: &str, on: bool) -> Result<()> {
+    ehai_core::config::edit_file(&paths::global_config(home), |t| {
+        let current: Vec<String> = t
+            .get("adapters")
+            .and_then(|a| a.get("enabled"))
+            .and_then(|e| e.as_array())
+            .map(|a| {
+                a.iter()
+                    .filter_map(|v| v.as_str().map(String::from))
+                    .collect()
+            })
+            .unwrap_or_default();
+        let mut next: Vec<String> = current.into_iter().filter(|e| e != id).collect();
+        if on {
+            next.push(id.into());
+        }
+        ehai_core::config::set(
+            t,
+            "adapters",
+            "enabled",
+            toml::Value::Array(next.into_iter().map(Into::into).collect()),
+        );
+    })?;
+    Ok(())
+}
+
+/// Esc/Ctrl-C in a prompt: say so plainly and exit 130 instead of printing an error.
+fn cancellable<T>(r: std::io::Result<T>) -> Result<T> {
+    match r {
+        Err(e) if e.kind() == std::io::ErrorKind::Interrupted => {
+            eprintln!("Cancelled. Nothing was changed.");
+            std::process::exit(130);
+        }
+        other => Ok(other?),
     }
 }

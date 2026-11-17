@@ -12,7 +12,14 @@ publish = false
 
 [workspace.dependencies]
 ehai-core = { path = "crates/ehai-core" }
+ehai-stack = { path = "crates/ehai-stack" }
+ehai-mcp = { path = "crates/ehai-mcp" }
+ehai-adapters = { path = "crates/ehai-adapters" }
+
+
 anyhow = "1.0.104"
+rmcp = { version = "3.10.0", features = ["server", "macros", "transport-io"] }
+tokio = { version = "1.54.1", features = ["rt", "macros", "io-std"] }
 clap = { version = "4.6.8", features = ["derive", "env"] }
 cliclack = "0.5.7"
 console = "0.16.6"

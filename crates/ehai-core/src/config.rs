@@ -25,6 +25,7 @@ pub struct Config {
     pub prefs: Prefs,
     pub update: Update,
     pub tracker: Tracker,
+    pub adapters: Adapters,
 }
 
 impl Default for Config {
@@ -38,6 +39,7 @@ impl Default for Config {
             prefs: Prefs::default(),
             update: Update::default(),
             tracker: Tracker::default(),
+            adapters: Adapters::default(),
         }
     }
 }
@@ -136,6 +138,14 @@ pub enum TrackerKind {
     Jira,
 }
 
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(default)]
+pub struct Adapters {
+    /// Harness adapters the user chose (`claude-code`, ...). `doctor` verifies and
+    /// `adapters regenerate` refreshes exactly these.
+    pub enabled: Vec<String>,
+}
+
 /// Inputs for [`Config::load`]. Kept explicit (no hidden env/cwd reads) so tests are hermetic.
 #[derive(Debug, Default, Clone)]
 pub struct LoadOptions {
@@ -181,6 +191,51 @@ impl Config {
     }
 }
 
+/// Edit a config file in place: lock, read raw table (keeping unknown keys), apply
+/// `f`, check the result still deserializes, then write atomically.
+pub fn edit_file(path: &Path, f: impl FnOnce(&mut Table)) -> Result<()> {
+    if let Some(dir) = path.parent() {
+        std::fs::create_dir_all(dir).map_err(Error::io(dir))?;
+    }
+    let _lock = migrate::lock(path)?;
+    let mut table = if path.is_file() {
+        migrate::migrate(read_table(path)?)
+    } else {
+        let mut t = Table::new();
+        t.insert(
+            "schema_version".into(),
+            Value::Integer(migrate::CURRENT_SCHEMA_VERSION.into()),
+        );
+        t
+    };
+    f(&mut table);
+    let check: Config = Value::Table(table.clone())
+        .try_into()
+        .map_err(|e: toml::de::Error| Error::Invalid(e.message().to_string()))?;
+    check.brand.validate()?;
+    let body = toml::to_string_pretty(&table).map_err(|e| Error::Invalid(e.to_string()))?;
+    migrate::write_atomic(path, body.as_bytes())
+}
+
+/// Set `section.key` (or a top-level `key` when `section` is empty) to `value`.
+pub fn set(table: &mut Table, section: &str, key: &str, value: impl Into<Value>) {
+    let target = if section.is_empty() {
+        table
+    } else {
+        match table
+            .entry(section)
+            .or_insert_with(|| Value::Table(Table::new()))
+        {
+            Value::Table(t) => t,
+            other => {
+                *other = Value::Table(Table::new());
+                other.as_table_mut().expect("just set to a table")
+            }
+        }
+    };
+    target.insert(key.into(), value.into());
+}
+
 pub fn read_table(path: &Path) -> Result<Table> {
     let text = std::fs::read_to_string(path).map_err(Error::io(path))?;
     text.parse::<Table>().map_err(|e| Error::Parse {
@@ -213,6 +268,7 @@ fn env_layer(env: &[(String, String)]) -> Table {
         "prefs",
         "update",
         "tracker",
+        "adapters",
     ];
     let mut out = Table::new();
     for (key, raw) in env {
@@ -356,6 +412,35 @@ mod tests {
             }),
             Err(Error::Invalid(_))
         ));
+    }
+
+    #[test]
+    fn edit_file_creates_and_preserves_unknown_keys() {
+        let d = tempfile::tempdir().unwrap();
+        let p = d.path().join("nested/config.toml");
+        edit_file(&p, |t| set(t, "", "role", "pm")).unwrap();
+        std::fs::write(
+            &p,
+            std::fs::read_to_string(&p).unwrap() + "future_key = 7\n",
+        )
+        .unwrap();
+        edit_file(&p, |t| set(t, "compliance", "mode", "strict")).unwrap();
+
+        let raw = read_table(&p).unwrap();
+        assert_eq!(raw["future_key"].as_integer(), Some(7));
+        assert_eq!(raw["schema_version"].as_integer(), Some(1));
+        let c = Config::load(&LoadOptions {
+            global: Some(p.clone()),
+            ..Default::default()
+        })
+        .unwrap();
+        assert_eq!(c.role, Some(Role::Pm));
+        assert_eq!(c.compliance.mode, ComplianceMode::Strict);
+
+        // invalid edits are refused and leave the file untouched
+        let before = std::fs::read_to_string(&p).unwrap();
+        assert!(edit_file(&p, |t| set(t, "compliance", "mode", "loose")).is_err());
+        assert_eq!(std::fs::read_to_string(&p).unwrap(), before);
     }
 
     #[test]

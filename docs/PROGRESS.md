@@ -23,14 +23,40 @@
   - Produces archives, SHA256SUMS, minisign, git-cliff notes, and marks pre-release tags as pre-releases.
 - Conventional-commit hook (`.githooks/commit-msg`), `cliff.toml`, `deny.toml`.
 
-## Next — M1: MCP + Claude Code + init wizard
-- `ehai-mcp`: rmcp stdio server, `ping` tool, `ehai://prefs` resource, panic-safe tool boundary.
-- Claude Code plugin adapter (local marketplace). **Verify the current plugin and MCP formats in the docs first.**
-- Native-question pattern in templates (`needs_input` fallback).
-- The full `ehai init` wizard, built on `ui::Prompter` (auto-detect, summary card, ≤ 5 questions, live checklist).
-- Repo onboarding (`ehai repo init`), role selection.
-- Esc-to-go-back in wizards. cliclack returns an error on Esc, so the wizard needs a step stack.
+### M1 — MCP + Claude Code + init wizard (2026-11-17)
+- `ehai-mcp`: rmcp 3.10 stdio server.
+  - `ping` tool and `ehai://prefs` resource.
+  - A per-handler panic guard, so a bad request never crashes the server.
+  - Clean exit when the client disconnects.
+- `ehai-adapters`: a `Harness` trait plus the Claude Code adapter.
+  - Generates a local marketplace whose plugin bundles the MCP server and skills (`/ehai:help`, `/ehai:prefs`).
+  - Install is idempotent, and the plugin version is content-hashed so updates are picked up.
+  - Handles brand renames, and `remove` reverses everything.
+  - Verified live with Claude Code 2.1.179: `claude plugin validate` passes and the MCP server shows ✔ Connected.
+- Templates: shared "ask the user" (native question UI + `needs_input`) and role blocks, rendered with the brand.
+- `ehai init` wizard:
+  - Auto-detects OS, git, gh + auth, harnesses, Claude desktop, Chrome and the repo.
+  - Shows a summary card, then asks ≤ 5 questions, each skippable by a flag.
+  - Esc goes back, and a cancel writes nothing.
+  - Applies with a live checklist and retry, then ends with next commands per role.
+- `ehai-stack`: repo scan.
+  - Apps and stacks: Expo/RN/Next/Vite/CRA/React/Go/FastAPI/Django/Flask.
+  - Package managers, design-system libraries, env file names, and conventions (tests, lint/format, commit style, PR template).
+- `ehai repo init` writes `.ehai/profile.toml`.
+- `ehai adapters list|install|remove|regenerate`. `doctor` now verifies the enabled adapters.
+- Core additions:
+  - `config::edit_file`, which preserves unknown keys and validates before writing
+  - a git wrapper
+  - a process runner with timeouts
+  - reserved brand names
+
+## Next — M2: Tracker
+- `Tracker` trait plus the GitHub Projects v2 adapter (GraphQL, reqwest + rustls), with contract tests (wiremock) and an opt-in live test (`EHAI_LIVE_GH=1`).
+- GitHub auth: `gh auth token` → `GITHUB_TOKEN`/`GH_TOKEN` → device flow, with the token in the keychain (`keyring`) or a 0600 file.
+- `ehai tracker set`, `ensure_schema`, and the idempotent sync engine (`ehai-id` footer).
+- Add the tracker + project question to `init`, with the project list fetched live and a "Create new" option (ADR-0013).
 
 ## Open questions
 - `MINISIGN_KEY` secret: generate with `minisign -G -W` and add it to `jagadeeshm943/ehai` before the first tag.
-- Should the Claude desktop integration use stdio or streamable HTTP? Decide in M1/M3 after checking the current docs.
+- Claude desktop integration (M3): stdio via `claude_desktop_config.json`, or streamable HTTP. Verify the current docs first.
+- The interactive wizard path (cliclack on a real TTY) is exercised manually. Automated tests cover the same logic through the plain/scripted prompter.

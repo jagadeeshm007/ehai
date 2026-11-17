@@ -1,0 +1,643 @@
+//! `ehai init`: detect everything first, show one summary card, ask only for the
+//! gaps, then apply with a live checklist (spec §5.0).
+//!
+//! Nothing is written until every question is answered, so cancelling at any
+//! question leaves no half-applied state. Apply steps are idempotent, so rerunning
+//! `init` after an interrupted apply simply resumes.
+
+use std::io;
+use std::path::{Path, PathBuf};
+
+use ehai_core::config::{self, ComplianceMode, Role, SandboxMode};
+use ehai_core::Config;
+use ehai_stack::RepoScan;
+
+use crate::ui::{Choice, Prompter, StepError};
+
+/// Answers that can be given as flags (CI / scripting). A flag skips its question.
+#[derive(Debug, Default, Clone, clap::Args)]
+pub struct InitArgs {
+    /// Your role: pm, dev or both.
+    #[arg(long, value_parser = ["pm", "dev", "both"])]
+    pub role: Option<String>,
+    /// Harness to wire up (repeatable), or `none`.
+    #[arg(long = "harness", value_name = "ID")]
+    pub harnesses: Vec<String>,
+    /// Compliance guard: off, warn or strict.
+    #[arg(long, value_parser = ["off", "warn", "strict"])]
+    pub compliance: Option<String>,
+    /// Sandbox for agent-driven work: off, restricted or container.
+    #[arg(long, value_parser = ["off", "restricted", "container"])]
+    pub sandbox: Option<String>,
+    /// Don't create a profile for the current repo.
+    #[arg(long)]
+    pub no_repo: bool,
+}
+
+/// Everything init detects up front.
+#[derive(Debug, Clone, Default)]
+pub struct Detected {
+    pub os: String,
+    pub git: Option<String>,
+    pub gh: Option<String>,
+    pub gh_auth: bool,
+    /// Supported harnesses found on this machine: (id, display name).
+    pub harnesses: Vec<(String, String)>,
+    /// Harnesses found without an adapter yet.
+    pub other_harnesses: Vec<String>,
+    pub claude_desktop: bool,
+    pub chrome: Option<PathBuf>,
+    pub repo: Option<(PathBuf, RepoScan)>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Answers {
+    pub role: String,
+    pub harnesses: Vec<String>,
+    pub compliance: String,
+    pub sandbox: String,
+    pub onboard_repo: bool,
+}
+
+pub fn run(
+    p: &mut dyn Prompter,
+    home: &Path,
+    cwd: &Path,
+    config: &Config,
+    args: &InitArgs,
+) -> io::Result<bool> {
+    let brand = &config.brand.name;
+    p.intro(&format!("{brand} {}", ehai_core::VERSION))?;
+    let detected = detect(p, cwd)?;
+    p.note("Here's what I found", &summary(&detected))?;
+    let answers = ask(p, &detected, config, args)?;
+    let ok = apply(p, home, config, &detected, &answers)?;
+    p.note("Try next", &next_commands(brand, &answers.role))?;
+    p.outro(if ok {
+        "You're ready."
+    } else {
+        "Done, with problems above — fix them and rerun init (it picks up where it left off)."
+    })?;
+    Ok(ok)
+}
+
+fn detect(p: &mut dyn Prompter, cwd: &Path) -> io::Result<Detected> {
+    use crate::sys;
+    let mut d = Detected {
+        os: format!("{} {}", std::env::consts::OS, std::env::consts::ARCH),
+        ..Default::default()
+    };
+    let os = d.os.clone();
+    p.step("System", &mut || Ok(os.clone()))?;
+    p.step("Git", &mut || {
+        d.git = sys::tool_version("git", &["--version"]);
+        d.git.clone().ok_or_else(|| StepError {
+            message: "not found".into(),
+            fix: Some("install git 2.20+".into()),
+        })
+    })?;
+    p.step("GitHub CLI", &mut || {
+        d.gh = sys::tool_version("gh", &["--version"]);
+        d.gh_auth = d.gh.is_some() && sys::gh_authenticated();
+        Ok(match (&d.gh, d.gh_auth) {
+            (Some(_), true) => "found, signed in".into(),
+            (Some(_), false) => "found, not signed in (run `gh auth login`)".into(),
+            (None, _) => "not found (optional)".into(),
+        })
+    })?;
+    p.step("AI harnesses", &mut || {
+        d.harnesses = ehai_adapters::all()
+            .iter()
+            .filter(|h| h.detect().is_some())
+            .map(|h| (h.id().to_string(), h.display_name().to_string()))
+            .collect();
+        d.other_harnesses = sys::other_harnesses()
+            .into_iter()
+            .map(String::from)
+            .collect();
+        let all: Vec<&str> = d
+            .harnesses
+            .iter()
+            .map(|(_, n)| n.as_str())
+            .chain(d.other_harnesses.iter().map(String::as_str))
+            .collect();
+        Ok(if all.is_empty() {
+            "none found".into()
+        } else {
+            all.join(", ")
+        })
+    })?;
+    p.step("Claude desktop & Chrome", &mut || {
+        d.claude_desktop = sys::claude_desktop_installed();
+        d.chrome = sys::chrome();
+        Ok(format!(
+            "desktop {}, chrome {}",
+            if d.claude_desktop {
+                "found"
+            } else {
+                "not found"
+            },
+            if d.chrome.is_some() {
+                "found"
+            } else {
+                "not found"
+            }
+        ))
+    })?;
+    p.step("Current repo", &mut || {
+        d.repo = ehai_core::git::toplevel(cwd).map(|root| {
+            let scan = RepoScan::scan(&root);
+            (root, scan)
+        });
+        Ok(match &d.repo {
+            Some((root, scan)) => format!("{} ({} apps)", root.display(), scan.apps.len()),
+            None => "not in a git repo".into(),
+        })
+    })?;
+    Ok(d)
+}
+
+pub fn summary(d: &Detected) -> String {
+    let yes_no = |b: bool| if b { "yes" } else { "no" };
+    let mut lines = vec![
+        format!("System        {}", d.os),
+        format!("Git           {}", d.git.as_deref().unwrap_or("missing")),
+        format!(
+            "GitHub CLI    {}",
+            match (&d.gh, d.gh_auth) {
+                (Some(_), true) => "signed in",
+                (Some(_), false) => "installed, not signed in",
+                (None, _) => "not installed (optional)",
+            }
+        ),
+    ];
+    let hs: Vec<&str> = d.harnesses.iter().map(|(_, n)| n.as_str()).collect();
+    lines.push(format!(
+        "Harnesses     {}",
+        if hs.is_empty() {
+            "none supported found".into()
+        } else {
+            hs.join(", ")
+        }
+    ));
+    if !d.other_harnesses.is_empty() {
+        lines.push(format!(
+            "              also found: {} (support coming soon)",
+            d.other_harnesses.join(", ")
+        ));
+    }
+    lines.push(format!("Claude app    {}", yes_no(d.claude_desktop)));
+    lines.push(format!(
+        "Chrome        {} (POC screenshots)",
+        yes_no(d.chrome.is_some())
+    ));
+    match &d.repo {
+        Some((root, scan)) => {
+            lines.push(format!("Repo          {}", root.display()));
+            for a in &scan.apps {
+                lines.push(format!("              {} → {:?}", a.path, a.stack));
+            }
+        }
+        None => lines.push("Repo          none (run init inside a repo to onboard it)".into()),
+    }
+    lines.join("\n")
+}
+
+/// The question round. A flag answers its question; Esc goes back one question.
+pub fn ask(
+    p: &mut dyn Prompter,
+    d: &Detected,
+    config: &Config,
+    args: &InitArgs,
+) -> io::Result<Answers> {
+    let mut a = Answers {
+        role: args.role.clone().unwrap_or_else(|| {
+            config
+                .role
+                .map_or("both", |r| match r {
+                    Role::Pm => "pm",
+                    Role::Dev => "dev",
+                    Role::Both => "both",
+                })
+                .into()
+        }),
+        harnesses: if args.harnesses.is_empty() {
+            preselect_harnesses(d, config)
+        } else {
+            args.harnesses
+                .iter()
+                .filter(|h| *h != "none")
+                .cloned()
+                .collect()
+        },
+        compliance: args
+            .compliance
+            .clone()
+            .unwrap_or_else(|| mode_str(config.compliance.mode)),
+        sandbox: args
+            .sandbox
+            .clone()
+            .unwrap_or_else(|| sandbox_str(config.sandbox.mode)),
+        onboard_repo: d.repo.is_some() && !args.no_repo,
+    };
+
+    // Questions in order; each is skipped when a flag (or detection) answered it.
+    #[derive(Clone, Copy)]
+    enum Q {
+        Role,
+        Harnesses,
+        Compliance,
+        Sandbox,
+        Repo,
+    }
+    let mut todo = Vec::new();
+    if args.role.is_none() {
+        todo.push(Q::Role);
+    }
+    if args.harnesses.is_empty() && !d.harnesses.is_empty() {
+        todo.push(Q::Harnesses);
+    }
+    if args.compliance.is_none() {
+        todo.push(Q::Compliance);
+    }
+    if args.sandbox.is_none() {
+        todo.push(Q::Sandbox);
+    }
+    if a.onboard_repo {
+        todo.push(Q::Repo);
+    }
+
+    let mut i = 0;
+    while i < todo.len() {
+        let result = match todo[i] {
+            Q::Role => p
+                .select(
+                    "What's your role?",
+                    &[
+                        mark(
+                            Choice::new("pm", "Product manager")
+                                .hint("plain language, visuals first"),
+                            &a.role,
+                        ),
+                        mark(
+                            Choice::new("dev", "Developer").hint("concise, technical"),
+                            &a.role,
+                        ),
+                        mark(
+                            Choice::new("both", "Both")
+                                .hint("plain first, technical details after"),
+                            &a.role,
+                        ),
+                    ],
+                )
+                .map(|v| a.role = v),
+            Q::Harnesses => {
+                let choices: Vec<Choice> = d
+                    .harnesses
+                    .iter()
+                    .map(|(id, name)| {
+                        let c = Choice::new(id, name);
+                        if a.harnesses.contains(id) {
+                            c.default()
+                        } else {
+                            c
+                        }
+                    })
+                    .collect();
+                p.multiselect("Which tools should I set up?", &choices)
+                    .map(|v| a.harnesses = v)
+            }
+            Q::Compliance => p
+                .select(
+                    "How strict should the patient-data guard be?",
+                    &[
+                        mark(
+                            Choice::new("warn", "Warn")
+                                .hint("flag possible PHI and ask before writing"),
+                            &a.compliance,
+                        ),
+                        mark(
+                            Choice::new("strict", "Strict")
+                                .hint("block and redact PHI, synthetic data only"),
+                            &a.compliance,
+                        ),
+                        mark(Choice::new("off", "Off").hint("no checks"), &a.compliance),
+                    ],
+                )
+                .map(|v| a.compliance = v),
+            Q::Sandbox => p
+                .select(
+                    "How should agent-run commands be sandboxed?",
+                    &[
+                        mark(
+                            Choice::new("restricted", "Restricted")
+                                .hint("writes only inside the POC worktree"),
+                            &a.sandbox,
+                        ),
+                        mark(
+                            Choice::new("container", "Container")
+                                .hint("Docker/Podman, if installed"),
+                            &a.sandbox,
+                        ),
+                        mark(Choice::new("off", "Off").hint("no sandbox"), &a.sandbox),
+                    ],
+                )
+                .map(|v| a.sandbox = v),
+            Q::Repo => {
+                let (_, scan) = d
+                    .repo
+                    .as_ref()
+                    .expect("Repo question only when a repo exists");
+                p.note("This repo", &scan.summary())
+                    .and_then(|()| {
+                        p.confirm("Save this as the repo profile (.ehai/profile.toml)?", true)
+                    })
+                    .map(|v| a.onboard_repo = v)
+            }
+        };
+        match result {
+            Ok(()) => i += 1,
+            Err(e) if e.kind() == io::ErrorKind::Interrupted => {
+                // cliclack reports Esc and Ctrl-C alike; offer back, quit on a second cancel.
+                let back = p.select(
+                    "Cancelled",
+                    &[
+                        Choice::new("back", "Go back").default(),
+                        Choice::new("quit", "Quit without changing anything"),
+                    ],
+                );
+                match back.as_deref() {
+                    Ok("back") => i = i.saturating_sub(1),
+                    _ => return Err(io::ErrorKind::Interrupted.into()),
+                }
+            }
+            Err(e) => return Err(e),
+        }
+    }
+    Ok(a)
+}
+
+/// Mark the choice matching the current value as the default.
+fn mark(c: Choice, current: &str) -> Choice {
+    if c.value == current {
+        c.default()
+    } else {
+        c
+    }
+}
+
+/// Which detected harnesses start pre-checked in the "set up which tools?" question.
+fn preselect_harnesses(d: &Detected, config: &Config) -> Vec<String> {
+    // ponytail: every detected harness, minus ones the user previously left out
+    // when a prior init recorded choices. Smarter ranking can come from prefs (M6).
+    let previously_chosen = &config.adapters.enabled;
+    d.harnesses
+        .iter()
+        .map(|(id, _)| id.clone())
+        .filter(|id| previously_chosen.is_empty() || previously_chosen.contains(id))
+        .collect()
+}
+
+fn mode_str(m: ComplianceMode) -> String {
+    match m {
+        ComplianceMode::Off => "off",
+        ComplianceMode::Warn => "warn",
+        ComplianceMode::Strict => "strict",
+    }
+    .into()
+}
+
+fn sandbox_str(m: SandboxMode) -> String {
+    match m {
+        SandboxMode::Off => "off",
+        SandboxMode::Restricted => "restricted",
+        SandboxMode::Container => "container",
+    }
+    .into()
+}
+
+fn apply(
+    p: &mut dyn Prompter,
+    home: &Path,
+    config: &Config,
+    d: &Detected,
+    a: &Answers,
+) -> io::Result<bool> {
+    let mut ok = true;
+    let global = ehai_core::paths::global_config(home);
+    ok &= retrying(p, "Save settings", &mut || {
+        config::edit_file(&global, |t| {
+            config::set(t, "", "role", a.role.as_str());
+            config::set(t, "compliance", "mode", a.compliance.as_str());
+            config::set(t, "sandbox", "mode", a.sandbox.as_str());
+            config::set(
+                t,
+                "adapters",
+                "enabled",
+                toml::Value::Array(a.harnesses.iter().map(|h| h.as_str().into()).collect()),
+            );
+        })
+        .map(|()| global.display().to_string())
+        .map_err(|e| StepError {
+            message: e.to_string(),
+            fix: Some(format!("check that {} is writable", global.display())),
+        })
+    })?;
+
+    let mut updated = config.clone();
+    updated.role = match a.role.as_str() {
+        "pm" => Some(Role::Pm),
+        "dev" => Some(Role::Dev),
+        _ => Some(Role::Both),
+    };
+    let ctx = crate::adapter_ctx(home, &updated);
+    for id in &a.harnesses {
+        let Some(h) = ehai_adapters::by_id(id) else {
+            p.warn(&format!("unknown harness `{id}` skipped"))?;
+            continue;
+        };
+        ok &= retrying(p, &format!("Set up {}", h.display_name()), &mut || {
+            h.install(&ctx).map_err(|e| StepError {
+                fix: Some(match &e {
+                    ehai_adapters::Error::NotDetected(name) => {
+                        format!("install {name}, then rerun init")
+                    }
+                    _ => format!(
+                        "rerun `{} adapters install {id}` for details",
+                        updated.brand.name
+                    ),
+                }),
+                message: e.to_string(),
+            })
+        })?;
+    }
+
+    if let (true, Some((root, scan))) = (a.onboard_repo, &d.repo) {
+        ok &= retrying(p, "Save repo profile", &mut || {
+            scan.write_profile(root)
+                .map(|path| path.display().to_string())
+                .map_err(|e| StepError {
+                    message: e.to_string(),
+                    fix: None,
+                })
+        })?;
+    }
+    Ok(ok)
+}
+
+/// A checklist step that offers a retry on failure (default no, so `--yes` and
+/// non-interactive runs never loop).
+fn retrying(
+    p: &mut dyn Prompter,
+    label: &str,
+    work: &mut dyn FnMut() -> crate::ui::StepResult,
+) -> io::Result<bool> {
+    for _ in 0..3 {
+        if p.step(label, work)? {
+            return Ok(true);
+        }
+        if !p.confirm("Retry this step?", false)? {
+            break;
+        }
+    }
+    Ok(false)
+}
+
+fn next_commands(brand: &str, role: &str) -> String {
+    let lines = match role {
+        "pm" => [
+            format!("/{brand}:help      in Claude: what I can do for you"),
+            format!("/{brand}:prefs     in Claude: your role and preferences"),
+            format!("{brand} doctor     if anything looks off"),
+        ],
+        "dev" => [
+            format!("{brand} repo init  profile another repo"),
+            format!("/{brand}:help      in your harness: commands and status"),
+            format!("{brand} doctor     health check"),
+        ],
+        _ => [
+            format!("/{brand}:help      in Claude: what I can do"),
+            format!("{brand} repo init  profile a repo"),
+            format!("{brand} doctor     health check"),
+        ],
+    };
+    lines.join("\n")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ui::PlainPrompter;
+
+    fn detected(repo: Option<&Path>) -> Detected {
+        Detected {
+            os: "linux x86_64".into(),
+            git: Some("git version 2.53.0".into()),
+            gh: Some("gh version 2.74.0".into()),
+            gh_auth: true,
+            harnesses: vec![("claude-code".into(), "Claude Code".into())],
+            other_harnesses: vec!["Cursor".into()],
+            claude_desktop: true,
+            chrome: Some("/usr/bin/google-chrome".into()),
+            repo: repo.map(|r| (r.to_path_buf(), RepoScan::default())),
+        }
+    }
+
+    #[test]
+    fn defaults_prefill_every_answer() {
+        let mut p = PlainPrompter::new(Vec::new());
+        let a = ask(
+            &mut p,
+            &detected(Some(Path::new("/r"))),
+            &Config::default(),
+            &InitArgs::default(),
+        )
+        .unwrap();
+        assert_eq!(
+            a,
+            Answers {
+                role: "both".into(),
+                harnesses: vec!["claude-code".into()],
+                compliance: "warn".into(),
+                sandbox: "restricted".into(),
+                onboard_repo: true,
+            }
+        );
+        let out = String::from_utf8(p.into_inner()).unwrap();
+        assert_eq!(
+            out.lines().filter(|l| l.starts_with("? ")).count(),
+            5,
+            "at most 5 questions:\n{out}"
+        );
+    }
+
+    #[test]
+    fn scripted_answers_and_flags_skip_questions() {
+        let args = InitArgs {
+            sandbox: Some("off".into()),
+            ..Default::default()
+        };
+        let mut p = PlainPrompter::scripted(Vec::new(), &["pm", "", "strict"]);
+        let a = ask(&mut p, &detected(None), &Config::default(), &args).unwrap();
+        assert_eq!(a.role, "pm");
+        assert!(a.harnesses.is_empty(), "user unchecked every harness");
+        assert_eq!(a.compliance, "strict");
+        assert_eq!(a.sandbox, "off");
+        assert!(!a.onboard_repo);
+        let out = String::from_utf8(p.into_inner()).unwrap();
+        assert!(
+            !out.contains("sandboxed"),
+            "flag skipped the sandbox question"
+        );
+    }
+
+    #[test]
+    fn existing_config_becomes_the_default() {
+        let cfg = Config {
+            role: Some(Role::Dev),
+            compliance: config::Compliance {
+                mode: ComplianceMode::Strict,
+            },
+            ..Default::default()
+        };
+        let mut p = PlainPrompter::new(Vec::new());
+        let a = ask(&mut p, &detected(None), &cfg, &InitArgs::default()).unwrap();
+        assert_eq!((a.role.as_str(), a.compliance.as_str()), ("dev", "strict"));
+    }
+
+    #[test]
+    fn summary_card_snapshot() {
+        insta::assert_snapshot!(summary(&detected(None)));
+    }
+
+    #[test]
+    fn apply_writes_config_and_profile() {
+        let home = tempfile::tempdir().unwrap();
+        let repo = tempfile::tempdir().unwrap();
+        let mut d = detected(Some(repo.path()));
+        d.harnesses.clear();
+        let a = Answers {
+            role: "pm".into(),
+            harnesses: vec![],
+            compliance: "strict".into(),
+            sandbox: "off".into(),
+            onboard_repo: true,
+        };
+        let mut p = PlainPrompter::new(Vec::new());
+        assert!(apply(&mut p, home.path(), &Config::default(), &d, &a).unwrap());
+        let cfg = Config::load(&ehai_core::LoadOptions {
+            global: Some(ehai_core::paths::global_config(home.path())),
+            ..Default::default()
+        })
+        .unwrap();
+        assert_eq!(cfg.role, Some(Role::Pm));
+        assert_eq!(cfg.compliance.mode, ComplianceMode::Strict);
+        assert!(ehai_stack::profile_exists(repo.path()));
+    }
+
+    #[test]
+    fn next_commands_differ_by_role() {
+        assert_ne!(next_commands("ehai", "pm"), next_commands("ehai", "dev"));
+        assert!(next_commands("acme", "pm").contains("/acme:help"));
+    }
+}
