@@ -8,13 +8,17 @@ AI-SDLC ops engine: plan, track and prototype from any AI coding harness
 Usage: ehai [OPTIONS] <COMMAND>
 
 Commands:
-  doctor    Check that ehai and its environment are healthy
-  init      Guided setup: detect your tools, ask a few questions, wire everything up
-  repo      Repo onboarding
-  adapters  Manage harness integrations (Claude Code, ...)
-  mcp       Run the MCP server on stdio (started by your AI harness, not by hand)
-  config    Inspect configuration
-  help      Print this message or the help of the given subcommand(s)
+  doctor      Check that ehai and its environment are healthy
+  init        Guided setup: detect your tools, ask a few questions, wire everything up
+  repo        Repo onboarding
+  connect     Connect ehai to an AI harness (e.g. `ehai connect claude-code`)
+  disconnect  Disconnect ehai from an AI harness, or from all of them with `--all`
+  adapters    Manage harness integrations (Claude Code, ...)
+  self        Manage the ehai installation itself
+  uninstall   Remove ehai completely: harness integrations, PATH entry, ~/.ehai
+  mcp         Run the MCP server on stdio (started by your AI harness, not by hand)
+  config      Inspect configuration
+  help        Print this message or the help of the given subcommand(s)
 
 Options:
   -y, --yes            Accept defaults for every question (non-interactive)

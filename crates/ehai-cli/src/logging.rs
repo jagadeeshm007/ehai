@@ -7,10 +7,10 @@ use tracing_appender::non_blocking::WorkerGuard;
 use tracing_appender::rolling::{Builder, Rotation};
 use tracing_subscriber::{fmt, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer};
 
-pub fn init(logs_dir: &Path, verbose: u8) -> Option<WorkerGuard> {
-    let file = std::fs::create_dir_all(logs_dir)
-        .ok()
-        .and_then(|()| {
+pub fn init(logs_dir: Option<&Path>, verbose: u8) -> Option<WorkerGuard> {
+    let file = logs_dir
+        .filter(|d| std::fs::create_dir_all(d).is_ok())
+        .and_then(|logs_dir| {
             Builder::new()
                 .rotation(Rotation::DAILY)
                 .filename_prefix("ehai")
@@ -45,10 +45,10 @@ pub fn init(logs_dir: &Path, verbose: u8) -> Option<WorkerGuard> {
         .with(file_layer)
         .with(stderr_layer)
         .try_init();
-    if guard.is_none() {
+    if let (None, Some(dir)) = (&guard, logs_dir) {
         eprintln!(
             "warning: could not open log dir {}; file logging disabled",
-            logs_dir.display()
+            dir.display()
         );
     }
     guard

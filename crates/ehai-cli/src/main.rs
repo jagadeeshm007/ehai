@@ -8,6 +8,7 @@ use ehai_core::{paths, Config, LoadOptions};
 mod doctor;
 mod init;
 mod logging;
+mod selfcmd;
 mod sys;
 mod ui;
 
@@ -52,9 +53,28 @@ enum Command {
     /// Repo onboarding.
     #[command(subcommand)]
     Repo(RepoCmd),
+    /// Connect ehai to an AI harness (e.g. `ehai connect claude-code`).
+    Connect {
+        /// Harness id; see `ehai adapters list`.
+        #[arg(required = true)]
+        ids: Vec<String>,
+    },
+    /// Disconnect ehai from an AI harness, or from all of them with `--all`.
+    Disconnect {
+        /// Harness id; see `ehai adapters list`.
+        ids: Vec<String>,
+        /// Disconnect every harness.
+        #[arg(long, conflicts_with = "ids")]
+        all: bool,
+    },
     /// Manage harness integrations (Claude Code, ...).
     #[command(subcommand)]
     Adapters(AdaptersCmd),
+    /// Manage the ehai installation itself.
+    #[command(name = "self", subcommand)]
+    SelfCmd(SelfCmd),
+    /// Remove ehai completely: harness integrations, PATH entry, ~/.ehai.
+    Uninstall,
     /// Run the MCP server on stdio (started by your AI harness, not by hand).
     Mcp,
     /// Inspect configuration.
@@ -81,6 +101,12 @@ enum AdaptersCmd {
 }
 
 #[derive(Subcommand)]
+enum SelfCmd {
+    /// Copy this binary to ~/.ehai/bin and put it on your PATH.
+    Install,
+}
+
+#[derive(Subcommand)]
 enum ConfigCmd {
     /// Print the effective (merged) configuration.
     Show,
@@ -103,7 +129,9 @@ fn main() -> ExitCode {
 fn run() -> Result<ExitCode> {
     let cli = Cli::parse();
     let home = paths::ehai_home()?;
-    let _log_guard = logging::init(&paths::logs_dir(&home), cli.verbose);
+    // uninstall must not recreate ~/.ehai/logs while deleting it
+    let logs = (!matches!(cli.command, Command::Uninstall)).then(|| paths::logs_dir(&home));
+    let _log_guard = logging::init(logs.as_deref(), cli.verbose);
     tracing::info!(version = VERSION_LINE, home = %home.display(), "start");
 
     let global = paths::global_config(&home);
@@ -162,15 +190,85 @@ fn run() -> Result<ExitCode> {
             })())?;
             Ok(ExitCode::SUCCESS)
         }
+        Command::Connect { ids } => {
+            let config = config?;
+            let ctx = adapter_ctx(&home, &config);
+            for id in &ids {
+                let h = find_adapter(id)?;
+                println!("✔ {}: {}", h.display_name(), h.install(&ctx)?);
+                set_enabled(&home, id, true)?;
+            }
+            Ok(ExitCode::SUCCESS)
+        }
+        Command::Disconnect { ids, all } => {
+            let config = config?;
+            let ctx = adapter_ctx(&home, &config);
+            let every: Vec<String> = ehai_adapters::all()
+                .iter()
+                .map(|h| h.id().to_string())
+                .collect();
+            anyhow::ensure!(
+                all || !ids.is_empty(),
+                "name a harness to disconnect ({}) or pass --all",
+                every.join(", ")
+            );
+            let targets = if all { every } else { ids };
+            for id in &targets {
+                let h = find_adapter(id)?;
+                println!("✔ {}: {}", h.display_name(), h.remove(&ctx)?);
+                set_enabled(&home, id, false)?;
+            }
+            Ok(ExitCode::SUCCESS)
+        }
+        Command::SelfCmd(SelfCmd::Install) => {
+            let config = config?;
+            for line in selfcmd::install(&home, &config)? {
+                println!("✔ {line}");
+            }
+            // re-point enabled adapters at the installed binary
+            let ctx = adapter_ctx(&home, &config);
+            for id in &config.adapters.enabled {
+                println!("✔ {}", find_adapter(id)?.install(&ctx)?);
+            }
+            println!(
+                "Open a new terminal (or `source` your shell rc) to use `{}`.",
+                config.brand.name
+            );
+            Ok(ExitCode::SUCCESS)
+        }
+        Command::Uninstall => {
+            let brand = config
+                .as_ref()
+                .map_or("ehai".to_string(), |c| c.brand.name.clone());
+            if !cli.yes {
+                let mut p = ui::prompter(false);
+                let sure = cancellable(p.confirm(
+                    &format!(
+                        "Remove {brand} completely? This disconnects every harness, removes the PATH entry and deletes {}",
+                        home.display()
+                    ),
+                    false,
+                ))?;
+                if !sure {
+                    println!("Nothing removed. (Use --yes to skip this question.)");
+                    return Ok(ExitCode::FAILURE);
+                }
+            }
+            // a broken config must not block uninstall: fall back to defaults
+            let config = config.unwrap_or_default();
+            for line in selfcmd::remove_adapters(&home, &config) {
+                println!("✔ {line}");
+            }
+            for line in selfcmd::remove_files(&home, std::env::home_dir().as_deref())? {
+                println!("✔ {line}");
+            }
+            println!("{brand} is uninstalled. Repo profiles (.ehai/ inside your repos) are left in place.");
+            Ok(ExitCode::SUCCESS)
+        }
         Command::Adapters(cmd) => {
             let config = config?;
             let ctx = adapter_ctx(&home, &config);
-            let find = |id: &str| {
-                ehai_adapters::by_id(id).with_context(|| {
-                    let ids: Vec<_> = ehai_adapters::all().iter().map(|h| h.id()).collect();
-                    format!("unknown adapter `{id}`; available: {}", ids.join(", "))
-                })
-            };
+            let find = find_adapter;
             match cmd {
                 AdaptersCmd::List => {
                     for h in ehai_adapters::all() {
@@ -235,15 +333,25 @@ fn run() -> Result<ExitCode> {
     }
 }
 
+fn find_adapter(id: &str) -> Result<Box<dyn ehai_adapters::Harness>> {
+    ehai_adapters::by_id(id).with_context(|| {
+        let ids: Vec<_> = ehai_adapters::all().iter().map(|h| h.id()).collect();
+        format!("unknown harness `{id}`; available: {}", ids.join(", "))
+    })
+}
+
 /// Inputs for rendering harness adapters from the effective config.
 pub fn adapter_ctx(home: &std::path::Path, config: &Config) -> ehai_adapters::Ctx {
     ehai_adapters::Ctx {
         brand: config.brand.clone(),
         role: config.role.map(role_str),
         home: home.to_path_buf(),
-        exe: std::env::current_exe()
-            .and_then(|p| p.canonicalize())
-            .unwrap_or_else(|_| PathBuf::from("ehai")),
+        // Prefer the installed binary so harnesses keep working after `cargo clean`
+        // or when ehai was run from a download folder.
+        exe: Some(selfcmd::installed_exe(home))
+            .filter(|p| p.is_file())
+            .or_else(|| std::env::current_exe().and_then(|p| p.canonicalize()).ok())
+            .unwrap_or_else(|| PathBuf::from("ehai")),
     }
 }
 

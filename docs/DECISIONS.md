@@ -138,3 +138,24 @@ Re-check before bumping.
 **Date:** 2026-11-17 · **Status:** accepted
 
 `ehai_core::process::output` spawns, drains stdout and stderr on threads (so a full pipe can't deadlock), and kills the process after a timeout. It covers `gh`, `git --version` and `claude` calls (120 s). Retries with backoff will be added for network calls in M2.
+
+## ADR-0016 — `self install`, `connect`/`disconnect`, one-command `uninstall`
+**Date:** 2026-11-17 · **Status:** accepted
+
+- **`ehai self install`:**
+  - Copies the running binary to `~/.ehai/bin/ehai` (copy-then-rename, so it's safe while running).
+  - Adds the brand alias (`EHAI_NAME`/`brand.name`; a symlink on Unix).
+  - Writes a marked `# >>> ehai >>>` PATH block into the login shell's rc: bash → `.bashrc`, zsh → `.zshrc`, fish → `conf.d/ehai.fish`, otherwise `.profile`. A `.ehai-backup` is taken before the first edit.
+  - Re-points enabled adapters at the installed binary.
+  - The M8 one-line installer downloads a release and calls this.
+  - Windows: PATH is set by `install.ps1` (M8); `self install` prints the instruction.
+- **Adapter binary path:** `adapter_ctx` prefers `~/.ehai/bin/ehai` over `current_exe()`. Harnesses then survive `cargo clean` or a deleted download folder. This was the bug where M1's `init` pointed Claude Code at `target/debug/ehai`.
+- **`ehai connect <id>…` / `ehai disconnect <id>… | --all`:** friendly aliases for `adapters install/remove`. They also update `adapters.enabled`.
+- **`ehai uninstall [--yes]`:**
+  - Asks first, defaulting to *no*. A non-TTY run without `--yes` does nothing.
+  - Unregisters **every** adapter, not only the enabled ones.
+  - Strips the PATH blocks from all candidate rc files.
+  - Deletes only entries ehai owns inside `~/.ehai`, and refuses if `EHAI_HOME` is the user's home or has no parent. Unknown files are kept and reported.
+  - Skips file logging, so it doesn't recreate `~/.ehai/logs`.
+  - Repo `.ehai/` profiles are left alone: they belong to the repo and may be committed.
+- **Testing:** the rc-file location is passed in explicitly (`remove_files(home, user_home)`), so tests can never touch the developer's real dotfiles. A sandboxed-`HOME` lifecycle test proves that install → connect → disconnect → uninstall leaves no traces and restores `.bashrc` byte-for-byte.

@@ -16,3 +16,4 @@ aidlc/.aidlc-sessions/
 aidlc/spaces/*/intents/active-intent
 aidlc/spaces/*/intents/.aidlc-*
 **/aidlc/spaces/*/intents/**/.aidlc-engine/
+.ehai/

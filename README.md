@@ -7,11 +7,12 @@ AI-SDLC ops engine for health-tech teams:
 
 > **Status:** `0.1.0-alpha.1`, M1 (MCP server, Claude Code plugin, init wizard). See [docs/PROGRESS.md](docs/PROGRESS.md).
 
-## Build from source
+## Install from source
 ```bash
 cargo build --release
-./target/release/ehai --version
-./target/release/ehai doctor
+./target/release/ehai self install   # → ~/.ehai/bin/ehai + PATH entry
+# open a new terminal
+ehai init
 ```
 
 ## Commands (so far)
@@ -19,7 +20,11 @@ cargo build --release
 |---|---|
 | `ehai init` | Guided setup: detects your tools, asks ≤ 5 questions, wires up Claude Code |
 | `ehai repo init` | Detect this repo's stack/conventions → `.ehai/profile.toml` |
+| `ehai connect <harness>` | Connect a harness (e.g. `claude-code`) |
+| `ehai disconnect <harness>` / `--all` | Disconnect one or every harness |
 | `ehai adapters list\|install\|remove\|regenerate` | Manage harness integrations |
+| `ehai self install` | Put this binary on your PATH (`~/.ehai/bin`) |
+| `ehai uninstall` | Remove ehai completely: harness integrations, PATH entry, `~/.ehai` |
 | `ehai doctor` | Health checks, each failure with a fix hint |
 | `ehai config show` | Effective merged config |
 | `ehai config path` | Global and repo config locations |

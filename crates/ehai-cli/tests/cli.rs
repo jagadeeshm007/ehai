@@ -218,3 +218,112 @@ fn repo_init_writes_profile_and_requires_a_repo() {
     assert!(s.contains("api → Go"), "{s}");
     assert!(env.cwd.path().join(".ehai/profile.toml").is_file());
 }
+
+/// Full lifecycle in a sandboxed HOME with a fake `claude` CLI:
+/// self install → connect → disconnect → reconnect → uninstall leaves no traces.
+#[cfg(unix)]
+#[test]
+fn install_connect_disconnect_uninstall_leaves_no_traces() {
+    use std::os::unix::fs::PermissionsExt;
+    let env = Env::new();
+    let user_home = env.home.path().join("user");
+    let ehai_home = user_home.join(".ehai");
+    std::fs::create_dir_all(&user_home).unwrap();
+    let bashrc = user_home.join(".bashrc");
+    std::fs::write(&bashrc, "alias ll='ls -l'\n").unwrap();
+
+    let fake = env.home.path().join("fakebin/claude");
+    std::fs::create_dir_all(fake.parent().unwrap()).unwrap();
+    std::fs::write(
+        &fake,
+        r#"#!/bin/sh
+S="$(dirname "$0")"
+case "$*" in
+  "plugin marketplace list --json") cat "$S/mps.json" 2>/dev/null || echo "[]" ;;
+  "plugin list --json") cat "$S/plugins.json" 2>/dev/null || echo "[]" ;;
+  "plugin marketplace add "*) printf '[{"name":"ehai-local","path":"%s"}]' "$4" > "$S/mps.json" ;;
+  "plugin install "*) printf '[{"id":"%s"}]' "$3" > "$S/plugins.json" ;;
+  "plugin marketplace update "*|"plugin update "*) : ;;
+  "plugin marketplace remove "*) echo "[]" > "$S/mps.json"; echo "[]" > "$S/plugins.json" ;;
+  *) exit 1 ;;
+esac
+"#,
+    )
+    .unwrap();
+    std::fs::set_permissions(&fake, std::fs::Permissions::from_mode(0o755)).unwrap();
+
+    let run = |args: &[&str]| {
+        let out = env
+            .cmd()
+            .env("HOME", &user_home)
+            .env("EHAI_HOME", &ehai_home)
+            .env("SHELL", "/bin/bash")
+            .env("EHAI_CLAUDE_BIN", &fake)
+            .args(args)
+            .output()
+            .unwrap();
+        let s = stdout(&out);
+        assert!(
+            out.status.success(),
+            "{args:?}: {s}{}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+        s
+    };
+    let plugins =
+        || std::fs::read_to_string(fake.with_file_name("plugins.json")).unwrap_or_default();
+
+    run(&["self", "install"]);
+    run(&["self", "install"]);
+    assert!(ehai_home.join("bin/ehai").is_file());
+    let rc = std::fs::read_to_string(&bashrc).unwrap();
+    assert_eq!(rc.matches(">>> ehai >>>").count(), 1, "{rc}");
+    assert!(rc.contains(&ehai_home.join("bin").display().to_string()));
+
+    run(&["connect", "claude-code"]);
+    assert!(plugins().contains("ehai@ehai-local"));
+    let mcp =
+        std::fs::read_to_string(ehai_home.join("adapters/claude-code/plugins/ehai/.mcp.json"))
+            .unwrap();
+    assert!(
+        mcp.contains(".ehai/bin/ehai"),
+        "plugin points at the installed binary: {mcp}"
+    );
+
+    let s = run(&["disconnect", "claude-code"]);
+    assert!(s.contains("removed"), "{s}");
+    assert!(!plugins().contains("ehai@"));
+    assert!(
+        !run(&["config", "show"]).contains("claude-code"),
+        "disabled in config"
+    );
+
+    run(&["connect", "claude-code"]);
+    let s = run(&["uninstall", "--yes"]);
+    assert!(s.contains("uninstalled"), "{s}");
+    assert!(!plugins().contains("ehai@"), "harness disconnected");
+    assert!(!ehai_home.exists(), "~/.ehai gone");
+    assert_eq!(
+        std::fs::read_to_string(&bashrc).unwrap(),
+        "alias ll='ls -l'\n",
+        "rc restored"
+    );
+}
+
+#[test]
+fn uninstall_without_yes_in_non_tty_does_nothing() {
+    let env = Env::new();
+    std::fs::write(env.home.path().join("config.toml"), "").unwrap();
+    let out = env.cmd().arg("uninstall").output().unwrap();
+    assert!(!out.status.success());
+    assert!(stdout(&out).contains("Nothing removed"));
+    assert!(env.home.path().join("config.toml").exists());
+}
+
+#[test]
+fn disconnect_requires_an_id_or_all() {
+    let env = Env::new();
+    let out = env.cmd().arg("disconnect").output().unwrap();
+    assert!(!out.status.success());
+    assert!(String::from_utf8_lossy(&out.stderr).contains("--all"));
+}

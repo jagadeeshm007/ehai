@@ -50,6 +50,13 @@
   - a process runner with timeouts
   - reserved brand names
 
+### Post-M1 fixes (2026-11-17)
+- `ehai` was not on PATH, and the plugin pointed at `target/debug`.
+  - `ehai self install` now installs to `~/.ehai/bin` with a marked PATH block.
+  - Adapters prefer the installed binary.
+- `ehai connect <id>` / `ehai disconnect <id>|--all` connect and disconnect harnesses.
+- `ehai uninstall` removes everything in one command and is tested to leave no traces.
+
 ## Next — M2: Tracker
 - `Tracker` trait plus the GitHub Projects v2 adapter (GraphQL, reqwest + rustls), with contract tests (wiremock) and an opt-in live test (`EHAI_LIVE_GH=1`).
 - GitHub auth: `gh auth token` → `GITHUB_TOKEN`/`GH_TOKEN` → device flow, with the token in the keychain (`keyring`) or a 0600 file.

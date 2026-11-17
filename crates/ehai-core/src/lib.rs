@@ -1,5 +1,6 @@
 //! ehai core: configuration, paths, brand name, schema migrations.
 
+pub mod blocks;
 pub mod brand;
 pub mod config;
 pub mod error;
