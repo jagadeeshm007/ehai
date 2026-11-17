@@ -1,6 +1,6 @@
 # Plan — project-admin roles and the team list
 
-Status: **proposed** (waiting for approval) · 2026-11-17
+Status: **approved** · 2026-11-17
 
 ## Why
 
