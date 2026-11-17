@@ -88,7 +88,9 @@ jobs:
         with:
           tool: cargo-insta
       # Fails on mismatched, pending or orphaned snapshots.
-      - run: cargo insta test --workspace --locked --check --unreferenced=reject
+      # No --locked: cargo-insta's doctest runner doesn't accept it (lockfile
+      # integrity is already checked by the other jobs, which all use it).
+      - run: cargo insta test --workspace --check --unreferenced=reject
 
   shellcheck:
     runs-on: ubuntu-latest

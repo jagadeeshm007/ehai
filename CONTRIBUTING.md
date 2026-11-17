@@ -24,6 +24,13 @@ Use [Conventional Commits](https://www.conventionalcommits.org/): `type(scope)!:
 
 Release notes are generated from these messages by git-cliff (`cliff.toml`).
 
+## Cutting a release
+```bash
+just release 0.1.0-alpha.2   # bumps the version, regenerates CHANGELOG.md, commits, tags
+git push && git push --tags  # triggers .github/workflows/release.yml
+```
+Needs `git-cliff` on PATH. Modifying `install/install.sh`? Lint it first: `shellcheck install/install.sh` (also runs in CI).
+
 ## Docs
 - Update `docs/PROGRESS.md` at the end of each milestone.
 - Add an entry to `docs/DECISIONS.md` for every non-obvious choice.

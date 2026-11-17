@@ -301,6 +301,13 @@ mod tests {
                 .iter()
                 .map(|f| format!("=== {} ===\n{}", f.path, f.contents))
                 .collect();
+            // Normalize path separators and line endings: the fixture's `/h`
+            // fake home renders through Windows' PathBuf with backslashes,
+            // and Windows text writes can introduce CRLF — neither is a real
+            // difference in what gets generated, just how this one platform
+            // renders it, so normalize before comparing against the snapshot
+            // recorded on Unix.
+            let dump = dump.replace('\\', "/").replace("\r\n", "\n");
             insta::assert_snapshot!(format!("claude_code_{brand}"), dump);
         }
     }

@@ -6,11 +6,25 @@ AI-SDLC ops engine for health-tech teams.
 - **Developers** carry tasks through the dev lifecycle from any AI coding harness.
 - **Anyone** generates isolated UI/UX proof-of-concepts that match the app's design system.
 
-> **Status:** `0.1.0-alpha.1`, M7 complete — all harness adapters wired, full POC engine, PM flow, env provisioning, roles/team, PHI guard. See [docs/PROGRESS.md](docs/PROGRESS.md).
+> **Status:** `0.1.0-alpha.1`, M8 complete — self-update with signature verification and automatic rollback, one-line install, all harness adapters, full POC engine, PM flow, env provisioning, roles/team, PHI guard. See [docs/PROGRESS.md](docs/PROGRESS.md).
 
 ---
 
-## Install from source
+## Install
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/jagadeeshm007/ehai/main/install/install.sh | sh
+```
+
+Windows (PowerShell):
+
+```powershell
+irm https://raw.githubusercontent.com/jagadeeshm007/ehai/main/install/install.ps1 | iex
+```
+
+Downloads the right binary for your OS/arch, verifies its checksum and minisign signature, installs to `~/.ehai/bin`, adds it to your PATH, and runs `ehai init`. The repo is public, so no authentication is required; `gh`/`GITHUB_TOKEN` are used when present only to avoid unauthenticated API rate limits. `EHAI_CHANNEL=beta|stable` picks a different release channel (default `alpha`); `EHAI_NAME=<name>` installs under a different command name.
+
+### Install from source
 
 ```bash
 cargo build --release
@@ -19,7 +33,15 @@ cargo build --release
 ehai init
 ```
 
-> M8 will add signed release binaries + one-line install scripts for macOS, Linux, and Windows.
+### Updating
+
+```bash
+ehai update                 # check the configured channel, verify, swap in, auto-rollback if the post-update health check fails
+ehai update --channel beta  # or alpha | stable, one-off override
+ehai update --rollback      # restore the previous binary by hand
+```
+
+A background check (at most once a day) notifies you of a newer version without installing it; disable with `update.check = false` in config.
 
 ---
 
@@ -44,8 +66,9 @@ The wizard auto-detects OS, git, `gh` + auth, installed harnesses, Chrome, and t
 | `ehai init` | Guided setup wizard |
 | `ehai repo init` | Detect this repo's stack/conventions → `.ehai/profile.toml` |
 | `ehai doctor` | Health checks; each failure includes a fix hint |
-| `ehai doctor --post-update` | Post-update gate (non-zero triggers rollback in M8) |
+| `ehai doctor --post-update` | Post-update gate — a non-zero exit triggers automatic rollback |
 | `ehai self install` | Copy this binary to `~/.ehai/bin` and add to PATH |
+| `ehai update [--channel] [--rollback]` | Check, download, verify and swap in a newer release; roll back by hand |
 | `ehai uninstall` | Remove harness integrations, PATH entry, and `~/.ehai` |
 
 ### Harness adapters
