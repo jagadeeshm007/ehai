@@ -9,10 +9,30 @@ use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 const ARCHIVE_B64: &str = "H4sIAAAAAAAA/+3HwQmAMAxA0Z6dogsEK6LOEyXFIrSQpqDbqwdxgx407/Q/rRjAh10KU0vXmHrcox/fdu7uyQ2dqaJkQbbW/JTHjWAOEfmAJUWhKBl8YhDK0hillFIfdQJm5FkEAAgAAA==";
-const ASSET_NAME: &str = "ehai-fixture-x86_64-unknown-linux-musl.tar.gz";
-const SUMS: &str = "d1e7ee682e285d28700a8f6352988dddc16c18ea7009d68a4a96edc2d9a70aa5  ehai-fixture-x86_64-unknown-linux-musl.tar.gz\n";
-const SIG: &str = "untrusted comment: signature from minisign secret key\nRURPFNtEDrilkCSuLrfz08efY1bgDHCEOEV2aS8bcd3vj/PRntI61mwZoxoiB7lU+JAkZDhf1Ycy/r1wVcGdDNjx76RPA4lq/gs=\ntrusted comment: timestamp:1794940580\tfile:fixture_sums.txt\thashed\nlfe5jNqnt/xRxk3bwBfSrbfNUKPa7eoH1pVlkVO8tc0c5G/fxWd48QFxUaLYx4EPkvyZV9K1ZgtXZleZ0+F9DQ==\n";
 const TEST_PUBLIC_KEY: &str = "RWRPFNtEDrilkPDM9qUzffLRm1RI8Z8THD6r9yJLtmBBAgAFqY2ndGGr";
+
+/// Every target `ehai_update::current_target()` can return (spec's build
+/// matrix) — one `SHA256SUMS` line per target, all pointing at the same
+/// archive bytes, so the suite verifies correctly on whichever OS/arch CI
+/// actually runs it on, not just the one this fixture happened to be
+/// generated on.
+const TARGETS: &[&str] = &[
+    "x86_64-unknown-linux-musl",
+    "aarch64-unknown-linux-musl",
+    "x86_64-apple-darwin",
+    "aarch64-apple-darwin",
+    "x86_64-pc-windows-msvc",
+];
+
+fn asset_name(target: &str) -> String {
+    format!("ehai-fixture-{target}.tar.gz")
+}
+
+// One SHA256SUMS line per TARGETS entry (same hash — same archive bytes for
+// all), signed once with a throwaway test keypair (`minisign -G`/`-S`), not
+// the production release key.
+const SUMS: &str = "d1e7ee682e285d28700a8f6352988dddc16c18ea7009d68a4a96edc2d9a70aa5  ehai-fixture-x86_64-unknown-linux-musl.tar.gz\nd1e7ee682e285d28700a8f6352988dddc16c18ea7009d68a4a96edc2d9a70aa5  ehai-fixture-aarch64-unknown-linux-musl.tar.gz\nd1e7ee682e285d28700a8f6352988dddc16c18ea7009d68a4a96edc2d9a70aa5  ehai-fixture-x86_64-apple-darwin.tar.gz\nd1e7ee682e285d28700a8f6352988dddc16c18ea7009d68a4a96edc2d9a70aa5  ehai-fixture-aarch64-apple-darwin.tar.gz\nd1e7ee682e285d28700a8f6352988dddc16c18ea7009d68a4a96edc2d9a70aa5  ehai-fixture-x86_64-pc-windows-msvc.tar.gz\n";
+const SIG: &str = "untrusted comment: signature from minisign secret key\nRURPFNtEDrilkFNy0rbjpAtg9ZNwVWqH2+dXW+lBQ93chzlkyXwDlDQbjwPLp57RvN959CzOqAOASWMebZRT0YDTKqHZuu+OJgA=\ntrusted comment: timestamp:1794943763\tfile:SHA256SUMS\thashed\nBnvEMRCjg6zQgP48yhgLuGEjOtBBJNu9u6EsdiEmjnaKPH+WyFYbOqdv8OjNvixcc07OPfOBouSNWsCqWM/qDQ==\n";
 
 fn archive_bytes() -> Vec<u8> {
     base64::engine::general_purpose::STANDARD
@@ -21,11 +41,15 @@ fn archive_bytes() -> Vec<u8> {
 }
 
 fn assets_for(server: &MockServer) -> serde_json::Value {
-    serde_json::json!([
-        { "name": ASSET_NAME, "browser_download_url": format!("{}/download/archive", server.uri()) },
-        { "name": "SHA256SUMS", "browser_download_url": format!("{}/download/sums", server.uri()) },
-        { "name": "SHA256SUMS.minisig", "browser_download_url": format!("{}/download/sig", server.uri()) },
-    ])
+    let mut assets: Vec<serde_json::Value> = TARGETS
+        .iter()
+        .map(|t| {
+            serde_json::json!({ "name": asset_name(t), "browser_download_url": format!("{}/download/archive", server.uri()) })
+        })
+        .collect();
+    assets.push(serde_json::json!({ "name": "SHA256SUMS", "browser_download_url": format!("{}/download/sums", server.uri()) }));
+    assets.push(serde_json::json!({ "name": "SHA256SUMS.minisig", "browser_download_url": format!("{}/download/sig", server.uri()) }));
+    serde_json::Value::Array(assets)
 }
 
 /// Mounts `/releases` (tagged `v0.2.0`, pointing back at this same server's

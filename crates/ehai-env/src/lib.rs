@@ -216,13 +216,20 @@ fn ehai_stack_deps_install(worktree_root: &Path, app: &ehai_stack::App) -> Insta
     }
 }
 
+/// `EHAI_ENV_PATH` overrides `PATH` for this lookup only — lets a test force
+/// "no package manager on PATH" deterministically (not by gambling on which
+/// ones happen to be absent from whatever machine runs the suite) without
+/// mutating the real `PATH` env var, which `cargo test`'s default
+/// multi-threaded, single-process execution would race with every other
+/// test in the same binary.
 fn which(cmd: &str) -> Option<std::path::PathBuf> {
     let exe = if cfg!(windows) {
         format!("{cmd}.exe")
     } else {
         cmd.to_string()
     };
-    std::env::split_paths(&std::env::var_os("PATH")?).find_map(|dir| {
+    let path = std::env::var_os("EHAI_ENV_PATH").or_else(|| std::env::var_os("PATH"))?;
+    std::env::split_paths(&path).find_map(|dir| {
         let p = dir.join(&exe);
         p.is_file().then_some(p)
     })

@@ -213,7 +213,25 @@ fn materialized_env_files_are_never_staged() {
 
 #[test]
 fn install_deps_skips_gracefully_when_the_package_manager_is_missing() {
-    // yarn is not expected to be on this machine's PATH, unlike pnpm/npm/go/uv/pip.
+    // EHAI_ENV_PATH (not the real PATH) overrides where ehai-env's own
+    // package-manager lookup searches, so this doesn't depend on which tools
+    // happen to be installed on whatever machine runs the test (a prior
+    // version assumed `yarn` specifically was absent, which broke on CI
+    // runners that ship it) and, unlike mutating PATH itself, can't race
+    // other tests in this binary — nothing else reads EHAI_ENV_PATH, and
+    // git/sh/etc. still resolve normally via the real PATH.
+    struct RestoreEnvPath(Option<std::ffi::OsString>);
+    impl Drop for RestoreEnvPath {
+        fn drop(&mut self) {
+            match self.0.take() {
+                Some(p) => std::env::set_var("EHAI_ENV_PATH", p),
+                None => std::env::remove_var("EHAI_ENV_PATH"),
+            }
+        }
+    }
+    let _restore = RestoreEnvPath(std::env::var_os("EHAI_ENV_PATH"));
+    std::env::set_var("EHAI_ENV_PATH", "");
+
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path();
     write(root, ".gitignore", ".env*\n");
