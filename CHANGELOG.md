@@ -14,6 +14,7 @@
 - **tracker:** Local JSON tracker + init gh-missing flow
 - **update:** Self-update with verify + rollback, install scripts, release recipe
 - Plan_explore loop, Desktop skills ZIP, device migration, pref observations
+- Open-source generalization — MIT license, domain profiles, GitHub Pages docs
 
 ### Fixes
 - **tracker:** Use `Work type` field (GitHub reserves `Type`); per-field schema errors
