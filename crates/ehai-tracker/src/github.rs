@@ -302,6 +302,20 @@ async fn fetch_meta(c: &Client, owner: &str, number: u64) -> Result<Meta> {
     Ok(Meta { project_id, fields })
 }
 
+/// ehai's item-type field. Not `Type`: GitHub reserves that name for its built-in
+/// issue types. An existing single-select `Type` field is still used if present.
+pub const KIND_FIELD: &str = "Work type";
+
+/// Look a field up by name; for the item type, fall back to a legacy single-select `Type`.
+fn resolve_field<'a>(meta: &'a Meta, name: &str) -> Option<&'a Field> {
+    meta.fields.get(&name.to_lowercase()).or_else(|| {
+        (name == KIND_FIELD)
+            .then(|| meta.fields.get("type"))
+            .flatten()
+            .filter(|f| f.data_type == "SINGLE_SELECT")
+    })
+}
+
 /// Fields ehai manages: (name, option labels, option colours).
 fn managed_fields() -> [(
     &'static str,
@@ -324,7 +338,7 @@ fn managed_fields() -> [(
             Size::LABELS,
             &["GRAY", "BLUE", "GREEN", "YELLOW", "ORANGE"],
         ),
-        ("Type", Kind::LABELS, &["PURPLE", "BLUE", "GRAY", "RED"]),
+        (KIND_FIELD, Kind::LABELS, &["PURPLE", "BLUE", "GRAY", "RED"]),
     ]
 }
 
@@ -393,7 +407,7 @@ impl GithubProjects {
 
     /// Set a single-select field by label.
     async fn set_select(&self, meta: &Meta, item: &str, field: &str, label: &str) -> Result<()> {
-        let f = meta.fields.get(&field.to_lowercase()).ok_or_else(|| {
+        let f = resolve_field(meta, field).ok_or_else(|| {
             Error::Config(format!(
                 "project has no `{field}` field; run `ehai tracker schema`"
             ))
@@ -465,7 +479,7 @@ fn parse_item(n: &Value) -> Option<Item> {
         status: get("status").and_then(Status::from_label),
         priority: get("priority").and_then(Priority::from_label),
         size: get("size").and_then(Size::from_label),
-        kind: get("type").and_then(Kind::from_label),
+        kind: get("work type").or(get("type")).and_then(Kind::from_label),
         closed: c["closed"].as_bool().unwrap_or(false),
     })
 }
@@ -477,21 +491,27 @@ impl Tracker for GithubProjects {
         for (name, labels, colors) in managed_fields() {
             let wanted: Vec<(&str, &str)> =
                 labels.iter().copied().zip(colors.iter().copied()).collect();
-            match meta.fields.get(&name.to_lowercase()) {
+            match resolve_field(&meta, name) {
                 None => {
                     let options: Vec<Value> = wanted
                         .iter()
                         .map(|(n, c)| json!({ "name": n, "color": c, "description": "" }))
                         .collect();
-                    self.client
+                    let r = self
+                        .client
                         .graphql(
                             "CreateField",
                             q::CREATE_FIELD,
                             json!({ "project": meta.project_id, "name": name,
                                     "type": "SINGLE_SELECT", "options": options }),
                         )
-                        .await?;
-                    report.created_fields.push(name.to_string());
+                        .await;
+                    match r {
+                        Ok(_) => report.created_fields.push(name.to_string()),
+                        Err(e @ Error::Auth(_)) => return Err(e),
+                        // one bad field must not stop the others
+                        Err(e) => report.warnings.push(format!("`{name}` not created: {e}")),
+                    }
                 }
                 Some(f) if f.data_type != "SINGLE_SELECT" => report.warnings.push(format!(
                     "`{name}` exists as a {} field, so ehai can't manage it; rename it to let ehai create its own",
@@ -513,12 +533,17 @@ impl Tracker for GithubProjects {
                         .map(|o| json!({ "id": o.id, "name": o.name, "color": o.color, "description": o.description }))
                         .collect();
                     options.extend(missing.iter().map(|(n, c)| json!({ "name": n, "color": c, "description": "" })));
-                    self.client
+                    let r = self
+                        .client
                         .graphql("UpdateField", q::UPDATE_FIELD, json!({ "field": f.id, "options": options }))
-                        .await?;
-                    report
-                        .added_options
-                        .extend(missing.iter().map(|(n, _)| format!("{name}: {n}")));
+                        .await;
+                    match r {
+                        Ok(_) => report
+                            .added_options
+                            .extend(missing.iter().map(|(n, _)| format!("{name}: {n}"))),
+                        Err(e @ Error::Auth(_)) => return Err(e),
+                        Err(e) => report.warnings.push(format!("`{name}` options not added: {e}")),
+                    }
                 }
             }
         }
@@ -587,7 +612,7 @@ impl Tracker for GithubProjects {
                 ("Status", Some(status.label())),
                 ("Priority", n.priority.map(Priority::label)),
                 ("Size", n.size.map(Size::label)),
-                ("Type", n.kind.map(Kind::label)),
+                (KIND_FIELD, n.kind.map(Kind::label)),
             ],
         )
         .await;
@@ -621,7 +646,7 @@ impl Tracker for GithubProjects {
         for (field, label) in [
             ("Priority", p.priority.map(Priority::label)),
             ("Size", p.size.map(Size::label)),
-            ("Type", p.kind.map(Kind::label)),
+            (KIND_FIELD, p.kind.map(Kind::label)),
         ] {
             if let Some(label) = label {
                 self.set_select(&meta, id, field, label).await?;

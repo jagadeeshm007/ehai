@@ -64,7 +64,7 @@ labeled_enum!(
 labeled_enum!(Priority { P0 => "P0", P1 => "P1", P2 => "P2", P3 => "P3" });
 labeled_enum!(Size { Xs => "XS", S => "S", M => "M", L => "L", Xl => "XL" });
 labeled_enum!(
-    /// Work item type (`Type` field).
+    /// Work item type (`Work type` field; GitHub reserves `Type`).
     Kind { Epic => "Epic", Story => "Story", Task => "Task", Bug => "Bug" }
 );
 

@@ -155,7 +155,7 @@ pub fn connect_project(
     })?;
     let tracker = GithubProjects::new(client.clone(), owner, number, repo.map(String::from));
     let schema = p.step(
-        "Project fields (Status, Priority, Size, Type, Iteration)",
+        "Project fields (Status, Priority, Size, Work type, Iteration)",
         &mut || {
             block_on(tracker.ensure_schema())
                 .map(describe)

@@ -45,7 +45,7 @@ impl Tracker for MemoryTracker {
         }
         s.schema_done = true;
         Ok(SchemaReport {
-            created_fields: vec!["Priority".into(), "Size".into(), "Type".into()],
+            created_fields: vec!["Priority".into(), "Size".into(), "Work type".into()],
             ..Default::default()
         })
     }

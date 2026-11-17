@@ -198,3 +198,13 @@ Re-check before bumping.
   - With this question, init asks at most 6 questions ("about 5", spec §14).
 - **TLS:** reqwest 0.13's default rustls (aws-lc-rs + platform verifier, so corporate TLS proxies work). `deny.toml` now allows ISC, BSD-3-Clause, MIT-0 and CDLA-Permissive-2.0. No OpenSSL in the tree.
 - **Tests stay offline:** CLI tests set `EHAI_NO_GH=1` and point `EHAI_GITHUB_API` at a fake or a dead port, so they never reach real GitHub. The live test runs only with `EHAI_LIVE_GH=1` and uses draft items, so no issues land in any repo. It deletes its throwaway project afterwards.
+
+## ADR-0018 — Item type field is `Work type`; schema errors are per field
+**Date:** 2026-11-17 · **Status:** accepted · **Amends:** ADR-0017
+
+- **Found on a real project** (`jagadeeshm007` #2, "Team planning" template): GitHub refuses to create a field named `Type` ("Name cannot have a reserved value"); the name is kept for its built-in issue types.
+- **Field name:** ehai's field is now **`Work type`**. An existing *single-select* `Type` field is still read and written, so teams that already have one keep using it.
+- **Per-field errors:** `ensure_schema` now turns a failure on one field into a warning and carries on with the others. Auth errors still abort. Before this, one bad field stopped the run and left the rest unconfigured.
+- **Template projects:** they already ship Status (Backlog/Ready/In progress/In review/Done), Priority, Size and Iteration. ehai matches option names case-insensitively, so it only added the missing `Todo` status and `Work type`.
+- **Fake GitHub:** now models reserved field names, and can be made to fail a named field.
+- **Broken pipes:** `ehai … | head` used to panic on the closed pipe. A panic hook plus a check in `main` now make it exit quietly with status 0.

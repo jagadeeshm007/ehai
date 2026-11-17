@@ -277,3 +277,49 @@ async fn auth_and_scope_errors_are_actionable() {
         .unwrap_err();
     assert!(matches!(e, Error::Auth(_)), "{e}");
 }
+
+#[tokio::test]
+async fn work_type_field_avoids_reserved_name_and_reuses_legacy_type() {
+    // fresh project: ehai creates `Work type` (GitHub would reject `Type`)
+    let server = MockServer::start().await;
+    let fake = ehai_tracker::fake::mount(&server).await;
+    let t = GithubProjects::new(Client::new(&server.uri(), "t").unwrap(), "octo", 1, None);
+    let r = t.ensure_schema().await.unwrap();
+    assert!(r.created_fields.contains(&"Work type".to_string()), "{r:?}");
+    assert!(!fake.field_names().iter().any(|f| f == "Type"));
+
+    // a team that already has a single-select `Type` keeps using it
+    let server = MockServer::start().await;
+    let fake = ehai_tracker::fake::mount(&server).await;
+    fake.add_select_field("Type", &["Epic", "Story", "Task", "Bug"]);
+    let t = GithubProjects::new(Client::new(&server.uri(), "t").unwrap(), "octo", 1, None);
+    let r = t.ensure_schema().await.unwrap();
+    assert!(!r.created_fields.iter().any(|f| f == "Work type"), "{r:?}");
+    let item = t
+        .create_item(NewItem {
+            title: "x".into(),
+            kind: Some(Kind::Bug),
+            ..Default::default()
+        })
+        .await
+        .unwrap();
+    assert_eq!(item.kind, Some(Kind::Bug));
+}
+
+#[tokio::test]
+async fn one_failing_field_does_not_stop_the_others() {
+    let server = MockServer::start().await;
+    let fake = ehai_tracker::fake::mount(&server).await;
+    fake.fail_field("Priority");
+    let t = GithubProjects::new(Client::new(&server.uri(), "t").unwrap(), "octo", 1, None);
+    let r = t.ensure_schema().await.unwrap();
+    assert!(
+        r.warnings
+            .iter()
+            .any(|w| w.contains("`Priority` not created")),
+        "{r:?}"
+    );
+    for f in ["Size", "Work type", "Iteration"] {
+        assert!(r.created_fields.iter().any(|c| c == f), "{f}: {r:?}");
+    }
+}

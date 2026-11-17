@@ -384,11 +384,11 @@ async fn tracker_commands_against_fake_github() {
     assert!(ok, "{out}");
     assert!(out.contains("octo (via $GITHUB_TOKEN)"), "{out}");
     assert!(
-        out.contains("created Priority, Size, Type, Iteration"),
+        out.contains("created Priority, Size, Work type, Iteration"),
         "{out}"
     );
     let fields = fake.field_names();
-    for f in ["Status", "Priority", "Size", "Type", "Iteration"] {
+    for f in ["Status", "Priority", "Size", "Work type", "Iteration"] {
         assert!(fields.iter().any(|x| x == f), "{f} in {fields:?}");
     }
 
@@ -419,4 +419,23 @@ async fn tracker_commands_against_fake_github() {
 
     let (ok, out) = run(&["tracker", "set", "linear"]).await;
     assert!(!ok && out.contains("isn't available yet"), "{out}");
+}
+
+#[cfg(unix)]
+#[test]
+fn closed_stdout_pipe_exits_quietly() {
+    let env = Env::new();
+    // `ehai config schema | head -1`: the reader exits after one line
+    let mut child = std::process::Command::new(assert_cmd::cargo::cargo_bin("ehai"))
+        .args(["config", "schema"])
+        .env("EHAI_HOME", env.home.path())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .unwrap();
+    drop(child.stdout.take()); // close the read end before ehai writes
+    let out = child.wait_with_output().unwrap();
+    let err = String::from_utf8_lossy(&out.stderr);
+    assert!(!err.contains("panicked"), "{err}");
+    assert!(out.status.success(), "{err}");
 }

@@ -110,7 +110,7 @@ enum TrackerCmd {
     Set(tracker::SetArgs),
     /// Show the connected project and how many items it has.
     Status,
-    /// Create any missing project fields (Status, Priority, Size, Type, Iteration).
+    /// Create any missing project fields (Status, Priority, Size, Work type, Iteration).
     Schema,
 }
 
@@ -131,13 +131,35 @@ enum ConfigCmd {
 }
 
 fn main() -> ExitCode {
+    // `ehai … | head` closes stdout early. Exit quietly like other Unix tools
+    // instead of panicking. ponytail: one hook for every println!, rather than
+    // threading a writer through each command.
+    let default_hook = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |info| {
+        let msg = info
+            .payload()
+            .downcast_ref::<String>()
+            .map(String::as_str)
+            .unwrap_or_default();
+        if msg.contains("failed printing to stdout") && msg.contains("Broken pipe") {
+            std::process::exit(0);
+        }
+        default_hook(info);
+    }));
     match run() {
         Ok(code) => code,
+        Err(e) if is_broken_pipe(&e) => ExitCode::SUCCESS,
         Err(e) => {
             eprintln!("error: {e:#}");
             ExitCode::FAILURE
         }
     }
+}
+
+fn is_broken_pipe(e: &anyhow::Error) -> bool {
+    e.chain()
+        .filter_map(|c| c.downcast_ref::<std::io::Error>())
+        .any(|io| io.kind() == std::io::ErrorKind::BrokenPipe)
 }
 
 fn run() -> Result<ExitCode> {

@@ -37,6 +37,7 @@ struct State {
     items: Vec<FakeItem>,
     comments: Vec<String>,
     seeded: bool,
+    fail_field: Option<String>,
 }
 
 struct FakeField {
@@ -66,6 +67,28 @@ impl FakeGithub {
             .iter()
             .map(|i| i.title.clone())
             .collect()
+    }
+
+    /// Make creating the field `name` fail (simulates a GitHub-side error).
+    pub fn fail_field(&self, name: &str) {
+        self.0.lock().unwrap().fail_field = Some(name.into());
+    }
+
+    /// Add a field before ehai sees the project (e.g. a team's own `Type`).
+    pub fn add_select_field(&self, name: &str, options: &[&str]) {
+        let mut s = self.0.lock().unwrap();
+        s.seed();
+        let id = s.id("F");
+        let opts = options
+            .iter()
+            .map(|o| (s.id("O"), o.to_string(), "GRAY".to_string()))
+            .collect();
+        s.fields.push(FakeField {
+            id,
+            name: name.into(),
+            data_type: "SINGLE_SELECT".into(),
+            options: opts,
+        });
     }
 
     /// Names of the project's fields.
@@ -143,6 +166,18 @@ impl State {
                 "id": "PVT_1", "title": "Fake", "url": "https://github.com/orgs/octo/projects/1",
                 "fields": { "nodes": self.fields.iter().map(Self::field_json).collect::<Vec<_>>() } } } }),
             "CreateField" => {
+                let name = v["name"].as_str().unwrap();
+                // GitHub reserves these names for built-in fields
+                if ["type", "title", "status", "assignees", "labels"]
+                    .contains(&name.to_lowercase().as_str())
+                    && !self
+                        .fields
+                        .iter()
+                        .any(|f| f.name.eq_ignore_ascii_case(name))
+                    || self.fail_field.as_deref() == Some(name)
+                {
+                    return json!({ "__error": "Name cannot have a reserved value" });
+                }
                 let id = self.id("F");
                 let options = v["options"]
                     .as_array()
