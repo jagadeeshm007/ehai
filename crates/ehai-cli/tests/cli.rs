@@ -63,7 +63,9 @@ fn version_line() {
 #[test]
 fn help_is_stable() {
     let out = Env::new().cmd().arg("--help").output().unwrap();
-    insta::assert_snapshot!(stdout(&out));
+    // Normalize "ehai.exe" → "ehai" so the snapshot is identical on all OSes.
+    let text = stdout(&out).replace("ehai.exe", "ehai");
+    insta::assert_snapshot!(text);
 }
 
 #[test]
