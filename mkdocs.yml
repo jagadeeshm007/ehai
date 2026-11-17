@@ -57,8 +57,12 @@ nav:
   - Home: index.md
   - Guide:
       - Quickstart: guide/quickstart.md
+      - Setup & Connections: guide/setup.md
+      - Use Cases: guide/use-cases.md
       - Data Policy: guide/compliance.md
   - Reference:
+      - Skills: reference/skills.md
       - MCP Tools: reference/mcp-tools.md
       - Config: reference/config.md
+  - Contributing: CONTRIBUTING.md
   - Decisions: DECISIONS.md

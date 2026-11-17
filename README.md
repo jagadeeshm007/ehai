@@ -1,259 +1,726 @@
-# ehai
+# ehai — AI-SDLC Operations Engine
 
-AI-SDLC ops engine for any team.
+[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-0.1.0--alpha.1-orange.svg)](CHANGELOG.md)
+[![CI](https://github.com/jagadeeshm007/ehai/actions/workflows/ci.yml/badge.svg)](https://github.com/jagadeeshm007/ehai/actions/workflows/ci.yml)
+[![Docs](https://img.shields.io/badge/docs-jagadeeshm007.github.io%2Fehai-purple.svg)](https://jagadeeshm007.github.io/ehai/)
 
-- **PMs** plan requirements and push them to GitHub Projects (or local storage without GitHub).
-- **Developers** carry tasks through the dev lifecycle from any AI coding harness.
-- **Anyone** generates isolated UI/UX proof-of-concepts that match the app's design system.
+> **One tool. Every AI harness. Plan → track → ship.**
 
-> **Status:** `0.1.0-alpha.1`, M8 complete — self-update with signature verification and automatic rollback, one-line install, all harness adapters, full POC engine, PM flow, env provisioning, roles/team, PHI guard, PRD gap-finder loop (`plan_explore`), device migration (`ehai migration export/import`), Claude Desktop skills ZIP, preference learning. See [docs/PROGRESS.md](docs/PROGRESS.md).
-
----
-
-## Install
+ehai connects your AI coding tool to your project tracker and codebase, so product managers can go from idea to GitHub Project items without touching a terminal, and developers can carry tasks through the full dev lifecycle — branch, PR, done — without leaving their AI harness.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/jagadeeshm007/ehai/main/install/install.sh | sh
 ```
 
-Windows (PowerShell):
+---
 
-```powershell
+## Why ehai?
+
+| Without ehai | With ehai |
+|---|---|
+| Copy requirements from Notion into GitHub manually | `/ehai:plan` → PRD → breakdown → GitHub Project in one session |
+| Context-switch between JIRA, Slack, and your IDE | `/ehai:start #42` loads the task, creates the branch, sets In Progress |
+| Prototype in a branch that breaks main | `/ehai:poc new "..."` creates an isolated worktree that never touches main |
+| Paste PHI into a tracker comment by accident | Built-in data policy guard blocks it before it lands anywhere |
+| `npm install` fails in every fresh worktree | Auto-provisioned `.env`, deps, and ports on every POC |
+
+---
+
+## How it works
+
+```
+Your AI harness  ──→  ehai MCP server  ──→  GitHub Projects
+ (Claude Code,         (Rust binary,          Linear, Local
+  Codex, Cursor,        stdio transport,       tracker)
+  Gemini CLI…)          ~8ms per call)
+                              │
+                         Git worktrees
+                         Design tokens
+                         Data policy guard
+                         Preference store
+```
+
+The engine is a single static Rust binary. No Node, Python, or Docker required to run it. Harnesses talk to it via MCP over stdio — the same protocol Claude Desktop uses for all its integrations.
+
+---
+
+## Quickstart
+
+**Step 1 — Install**
+
+```bash
+# macOS / Linux
+curl -fsSL https://raw.githubusercontent.com/jagadeeshm007/ehai/main/install/install.sh | sh
+
+# Windows (PowerShell)
 irm https://raw.githubusercontent.com/jagadeeshm007/ehai/main/install/install.ps1 | iex
+
+# From source
+cargo build --release && ./target/release/ehai self install
 ```
 
-Downloads the right binary for your OS/arch, verifies its checksum and minisign signature, installs to `~/.ehai/bin`, adds it to your PATH, and runs `ehai init`. The repo is public, so no authentication is required; `gh`/`GITHUB_TOKEN` are used when present only to avoid unauthenticated API rate limits. `EHAI_CHANNEL=beta|stable` picks a different release channel (default `alpha`); `EHAI_NAME=<name>` installs under a different command name.
-
-### Install from source
-
-```bash
-cargo build --release
-./target/release/ehai self install   # → ~/.ehai/bin/ehai + PATH entry
-# open a new terminal
-ehai init
-```
-
-### Updating
-
-```bash
-ehai update                 # check the configured channel, verify, swap in, auto-rollback if the post-update health check fails
-ehai update --channel beta  # or alpha | stable, one-off override
-ehai update --rollback      # restore the previous binary by hand
-```
-
-A background check (at most once a day) notifies you of a newer version without installing it; disable with `update.check = false` in config.
-
----
-
-## Setup
+**Step 2 — Init** (runs in under 2 minutes, asks at most 5 questions)
 
 ```bash
 ehai init
 ```
 
-The wizard auto-detects OS, git, `gh` + auth, installed harnesses, Chrome, and the current repo. It asks at most 5 questions (role, harnesses, tracker, compliance mode, sandbox mode) and applies changes with a live checklist — including installing itself to `~/.ehai/bin` and adding that to your PATH, if it isn't already, so `ehai init` alone is enough even when run straight from a `cargo build` without a separate `self install` step.
+The wizard auto-detects your OS, installed AI harnesses, GitHub auth, and current repo. It wires up MCP, slash commands, and your tracker automatically.
 
-**No `gh`?** The wizard detects this and asks: install `gh` to unlock GitHub Projects sync, or continue with local storage. Local storage supports all PM flows; GitHub sync can be added later with `ehai tracker set github`.
-
----
-
-## Commands
-
-### Setup and health
-
-| Command | What it does |
-|---|---|
-| `ehai init` | Guided setup wizard |
-| `ehai repo init` | Detect this repo's stack/conventions → `.ehai/profile.toml` |
-| `ehai doctor` | Health checks; each failure includes a fix hint |
-| `ehai doctor --post-update` | Post-update gate — a non-zero exit triggers automatic rollback |
-| `ehai self install` | Copy this binary to `~/.ehai/bin` and add to PATH |
-| `ehai update [--channel] [--rollback]` | Check, download, verify and swap in a newer release; roll back by hand |
-| `ehai uninstall` | Remove harness integrations, PATH entry, and `~/.ehai` |
-
-### Harness adapters
-
-| Command | What it does |
-|---|---|
-| `ehai connect <id>` | Connect a harness: `claude-code`, `codex`, `gemini`, `cursor`, `vscode`, `opencode`, `windsurf`, `claude-desktop`, `agents-md` |
-| `ehai disconnect <id>` / `--all` | Disconnect one or all harnesses |
-| `ehai adapters list` | Show all adapters with detect / status |
-| `ehai adapters install <id>` | Install one adapter |
-| `ehai adapters remove <id>` | Remove one adapter |
-| `ehai adapters regenerate` | Re-render all installed adapters (run after brand rename or update) |
-
-### Tracker
-
-| Command | What it does |
-|---|---|
-| `ehai tracker set` | Pick/create a tracker (`github` or `local`) |
-| `ehai tracker status` | Show the connected project / local store |
-| `ehai tracker schema` | Add missing fields to the GitHub project |
-
-### PM workflow
-
-| Slash command | Harness | What it does |
-|---|---|---|
-| `/ehai:plan` | Any | Interview → PRD (problem, users, goals, flows, metrics, risks); auto-runs a gap-finder loop (up to 3 rounds) to deepen the PRD before breakdown |
-| `/ehai:breakdown` | Any | PRD → epics → stories → tasks with acceptance criteria |
-| `/ehai:sync` | Any | Push breakdown to tracker idempotently |
-| `/ehai:status` | Any | Progress report: % done per epic, blockers, stale items, open PRs |
-| `/ehai:triage` | Any | Classify and de-duplicate a bug report → tracker item |
-| `/ehai:assign` | Any | Assign a task to a team member |
-| `/ehai:prefs` | Any | View / edit learned preferences |
-| `/ehai:help` | Any | List all commands |
-
-### Developer workflow
-
-| Slash command | What it does |
-|---|---|
-| `/ehai:next` | Suggest the next task by priority and dependency |
-| `/ehai:start #id` | Create branch, load task context, set In Progress |
-| `/ehai:pr` | Draft PR description linked to issue + acceptance criteria |
-| `/ehai:done` | Verify acceptance criteria and move card |
-
-### POC engine
-
-| Command / slash command | What it does |
-|---|---|
-| `/ehai:poc new "<idea>"` / `ehai poc new` | Create `poc1`: isolated worktree, design context, dev server |
-| `/ehai:poc iterate <pocN> "<feedback>"` | Iterate → `pocN+1`, lineage recorded |
-| `/ehai:poc compose "<take X from poc1, Y from poc2>"` | Synthesise a new POC from multiple parents |
-| `/ehai:poc list` | Show all POCs for a feature |
-| `/ehai:poc compare [pocA pocB …]` | Side-by-side screenshot gallery + diff summary |
-| `/ehai:poc open <pocN>` | Start the POC's dev server |
-| `/ehai:poc promote <pocN>` | Open a PR to the default branch (requires explicit confirmation) |
-| `/ehai:poc discard <pocN>` | Archive as a git tag and remove the worktree |
-
-POCs live outside the repo (`~/.ehai/worktrees/<repo-id>/<feature>/poc-<n>`), never touch `main`, and are automatically provisioned with the right `.env`, dependencies, and a unique port.
-
-### Environment provisioning
-
-| Command | What it does |
-|---|---|
-| `ehai env sync [path]` | Provision a worktree: copy env files, install deps, allocate ports, run smoke check |
-| `ehai env check [path]` | Report missing `.env` keys vs `.env.example` |
-| `ehai env doctor [path]` | Run smoke check only |
-
-### Preferences and config
-
-| Command | What it does |
-|---|---|
-| `ehai prefs list` | Show all learned preferences |
-| `ehai prefs set <key> <value>` | Set a preference explicitly |
-| `ehai prefs delete <key>` | Remove a preference |
-| `ehai config show` | Effective merged configuration |
-| `ehai config path` | Location of global and repo config files |
-| `ehai config schema` | JSON schema for `config.toml` |
-| `ehai role` | Show your current role and how it was resolved |
-| `ehai team` | List the team (GitHub assignable users) |
-| `ehai migration export [file]` | Bundle config, prefs and the local tracker into one ZIP |
-| `ehai migration import <file> [--yes]` | Restore config, prefs and the local tracker on a new machine |
-
----
-
-## Trackers
-
-| Tracker | Setup | Features |
-|---|---|---|
-| `github` (default) | Requires `gh` or `GITHUB_TOKEN` with `project` scope | Full GitHub Projects v2 sync, PR linking, team, roles |
-| `local` | No external dependencies | All PM flows, full offline support; no PR linking |
-
-Switch: `ehai tracker set github` or `ehai tracker set local`.
-
-GitHub Projects needs the `project` scope: `gh auth refresh -s project`.
-
----
-
-## Harnesses
-
-ehai works from any AI coding tool. After `ehai init`, slash commands are available immediately.
-
-| Harness | Slash-command prefix | MCP config |
-|---|---|---|
-| Claude Code | `/ehai:` | user-scope MCP server + local plugin |
-| Claude desktop | `/ehai:` via Skills + MCP connector | `claude_desktop_config.json` + skills ZIP |
-| Codex CLI | `/ehai:` | `~/.codex/config.toml` + prompt files |
-| Gemini CLI | `/ehai:` | `~/.gemini/settings.json` + TOML commands |
-| Cursor | `/ehai:` | `~/.cursor/mcp.json` + rule files |
-| OpenCode | `/ehai:` | `~/.config/opencode/config.json` + prompt files |
-| VS Code / Copilot | `/ehai:` | user `mcp.json` (`servers` key) + prompt files |
-| Windsurf | `/ehai:` | `~/.codeium/windsurf/mcp_server_config.json` + workflows |
-| Any other | — | `~/AGENTS.md` reference card |
-
-**Claude Desktop setup (extra step):** after `ehai connect claude-desktop`, upload the generated skills ZIP via Claude Desktop → Settings → Skills:
+**Step 3 — Use it**
 
 ```
-~/.ehai/adapters/claude-desktop/ehai-skills.zip
+/ehai:plan  A notifications settings screen for mobile users
 ```
 
-This makes `/ehai:plan`, `/ehai:breakdown`, `/ehai:sync`, `/ehai:status`, and `/ehai:triage` available as first-class Skills in the Claude Desktop UI. The MCP connector alone gives you the tools; the Skills ZIP adds command discoverability.
+ehai interviews you, produces a full PRD, runs a gap-finder loop, and waits for your approval before generating a breakdown and syncing to your tracker.
 
 ---
 
-## Device migration
+## Use Cases
 
-Move your ehai setup to a new machine with one ZIP:
+### Product Managers
+
+**Idea → GitHub Project items in one session**
+
+```
+PM:  /ehai:plan  Users need to control which push notifications they receive
+     ↓ ehai asks 3-4 clarifying questions
+     ↓ produces PRD with Mermaid user flows
+     ↓ auto-runs gap check (missing metrics? missing edge cases?)
+
+PM:  /ehai:breakdown
+     ↓ PRD → 3 epics, 11 stories, acceptance criteria for each
+
+PM:  /ehai:sync
+     ↓ 11 items created in GitHub Projects, never duplicated on re-run
+```
+
+**Daily status report**
+
+```
+PM:  /ehai:status
+     → 68% done on Notifications epic (8/11 tasks)
+     → 2 items stale (no update in 5 days): #34, #41
+     → 1 open PR awaiting review: #22 "Notification toggle component"
+     → Risk: "iOS silent push cert expires in 14 days"
+```
+
+**Bug triage**
+
+```
+PM:  /ehai:triage  "App crashes when user has 0 notification prefs saved"
+     → Type: Bug  Priority: P1  Size: S
+     → Similar existing: #38 "Crash on empty prefs" — is this the same?
+PM:  New item
+     → Created #51 in tracker
+```
+
+---
+
+### Developers
+
+**Start a task**
+
+```
+Dev: /ehai:start #42
+     → Branch feat/42-notification-toggle created
+     → Task context loaded (acceptance criteria, design notes)
+     → Card set to In Progress
+```
+
+**Open a PR**
+
+```
+Dev: /ehai:pr
+     → PR description drafted with acceptance criteria checklist
+     → Links #42 in body
+     → Card moved to In Review
+```
+
+**Generate an isolated UI prototype**
+
+```
+Dev: /ehai:poc new "notification toggle screen"
+     → Worktree created at ~/.ehai/worktrees/<repo>/notifications/poc-1
+     → Design tokens extracted from your existing app (Tailwind, NativeWind, etc.)
+     → .env, node_modules, ports provisioned automatically
+     → Dev server started on port 3042
+     → Screenshot captured
+```
+
+**Iterate and compose**
+
+```
+Dev: /ehai:poc iterate poc-1 "Make the toggle bigger and add a subtitle"
+     → poc-2 created, lineage recorded
+
+Dev: /ehai:poc compose "Take the layout from poc-1, toggles from poc-2"
+     → poc-3 synthesised from both parents
+     → Side-by-side screenshot gallery: http://localhost:3043/compare
+```
+
+---
+
+### Operations
+
+**Health check**
 
 ```bash
-# on the old machine
-ehai migration export                     # → ehai-backup-YYYYMMDD.zip
-
-# on the new machine — after installing ehai
-ehai migration import ehai-backup-*.zip  # restores config, prefs, local tracker
-ehai adapters regenerate                  # re-wires harnesses with the new machine's paths
+ehai doctor
+# ✔ binary v0.1.0-alpha.1
+# ✔ config valid (global + repo)
+# ✔ GitHub auth (jagadeeshm007, project scope)
+# ✔ tracker reachable (My Project · 23 items)
+# ✔ Claude Code adapter installed
+# ✔ port registry clean
+# ✘ Gemini CLI adapter: config file not found at ~/.gemini/settings.json
+#   → run: ehai connect gemini
 ```
 
-The ZIP contains your `config.toml`, learned preferences (`prefs/user.toml`), and local tracker data. Harness adapter files are excluded because they contain machine-specific absolute paths — `adapters regenerate` rebuilds them correctly on the new machine.
+**Update**
+
+```bash
+ehai update                  # check configured channel, verify, swap, auto-rollback if health check fails
+ehai update --channel beta   # one-off channel override
+ehai update --rollback       # restore previous binary
+```
+
+**Logs and audit**
+
+```
+~/.ehai/logs/           JSON logs (rotated daily, 7-day retention)
+~/.ehai/audit/          Compliance decisions (kind + count only, never values)
+```
+
+**Move to a new machine**
+
+```bash
+# old machine
+ehai migration export            # → ehai-backup-20261118.zip
+
+# new machine (after installing ehai)
+ehai migration import ehai-backup-*.zip
+ehai adapters regenerate         # re-wires harnesses with new machine's paths
+```
 
 ---
 
-## Data policy
+## Connecting ehai to your services
 
-```toml
-# ~/.ehai/config.toml
-[compliance]
-mode = "warn"     # off | warn | strict
-profile = "tech"  # tech (default) | health | finance | gdpr
+### GitHub
+
+ehai needs a GitHub token with `project` scope to manage GitHub Projects.
+
+**Option A — gh CLI (recommended)**
+
+```bash
+gh auth login                          # first-time login
+gh auth refresh -s project             # add project scope if already logged in
 ```
 
-- `profile = "tech"`: detects SSN, email, phone, street address, DOB — universal digital PII.
-- `profile = "health"`: adds medical record numbers, insurance/member IDs, name near medical terms.
-- `profile = "finance"`: adds credit card numbers, IBAN, bank routing numbers.
-- `profile = "gdpr"`: adds EU passport patterns and data-subject language.
-- `warn`: surface findings and ask redact / keep / cancel before writing.
-- `strict`: auto-redact High-confidence findings; surface Low-confidence ones.
-- Applies to: tracker writes, PRDs, POC mock data, reports, logs.
-- Values are never logged — only kinds and counts (e.g. `ssn ×1, email ×2`).
-- Add custom patterns with `patterns = [{name = "my-id", regex = "\\bMY-\\d{6}\\b"}]`.
+ehai picks this up automatically via `gh auth token`.
+
+**Option B — Environment variable**
+
+```bash
+export GITHUB_TOKEN=ghp_xxxxxxxxxxxx   # or GH_TOKEN
+```
+
+**Option C — No GitHub account**
+
+Choose **local tracker** at `ehai init`. All PM flows work offline. Add GitHub later:
+
+```bash
+ehai tracker set github
+```
+
+**Verify**
+
+```bash
+ehai doctor        # shows "✔ GitHub auth" if everything is wired
+```
+
+---
+
+### Claude Code
+
+After `ehai init`, Claude Code is wired automatically. The MCP server runs as a user-scope server over stdio.
+
+**Manual wiring**
+
+```bash
+ehai connect claude-code
+# or via claude CLI directly:
+claude mcp add --scope user ehai -- ehai mcp
+```
+
+**Verify in Claude Code**
+
+```
+/ehai:help          # lists all commands
+/ehai:ping          # → {"ok": true, "version": "0.1.0-alpha.1"}
+```
+
+---
+
+### Claude Desktop
+
+```bash
+ehai connect claude-desktop
+# uploads settings to ~/Library/Application Support/Claude/claude_desktop_config.json
+# generates skills ZIP at ~/.ehai/adapters/claude-desktop/ehai-skills.zip
+```
+
+Then in Claude Desktop → Settings → Skills → Upload ZIP.
+
+This makes `/ehai:plan`, `/ehai:breakdown`, `/ehai:sync`, `/ehai:status`, and `/ehai:triage` available as first-class Skills in the Claude Desktop UI.
+
+---
+
+### OpenAI-compatible APIs
+
+ehai's engine is model-agnostic — it doesn't call any LLM directly. The AI reasoning happens inside your harness (Claude Code, Codex, Cursor, etc.). ehai only exposes MCP tools that the harness calls. So any harness that supports MCP and is connected to any OpenAI-compatible API works with ehai out of the box.
+
+Configure your harness's model/API endpoint as usual, then run `ehai init` or `ehai connect <harness>`.
+
+---
+
+### Other AI Harnesses
+
+| Harness | Command | Config location |
+|---|---|---|
+| Codex CLI | `ehai connect codex` | `~/.codex/config.toml` |
+| Gemini CLI | `ehai connect gemini` | `~/.gemini/settings.json` |
+| Cursor | `ehai connect cursor` | `~/.cursor/mcp.json` |
+| OpenCode | `ehai connect opencode` | `~/.config/opencode/config.json` |
+| VS Code / Copilot | `ehai connect vscode` | user `mcp.json` |
+| Windsurf | `ehai connect windsurf` | `~/.codeium/windsurf/mcp_server_config.json` |
+| Any other | `ehai connect agents-md` | `~/AGENTS.md` reference card |
+
+**List connected harnesses**
+
+```bash
+ehai adapters list
+```
+
+**Disconnect**
+
+```bash
+ehai disconnect cursor
+ehai disconnect --all
+```
+
+---
+
+## Skills & Slash Commands
+
+Skills are the user-facing layer. Each `/ehai:<command>` is a skill that calls one or more MCP tools and handles the question-answer loop for you.
+
+### PM Skills
+
+| Skill | Trigger | What happens |
+|---|---|---|
+| `plan` | `/ehai:plan [idea]` | Multi-turn interview → PRD (problem, users, goals, flows, metrics, risks) → auto gap-finder loop → awaits breakdown approval |
+| `breakdown` | `/ehai:breakdown` | PRD → epics → stories → tasks with Given/When/Then acceptance criteria → board preview → awaits sync approval |
+| `sync` | `/ehai:sync` | Push approved breakdown to tracker idempotently; never duplicates; uses `ehai-id` footer tag |
+| `status` | `/ehai:status` | % done per epic, blockers, stale items, open PRs, risk flags; outputs Markdown + Mermaid + optional HTML report |
+| `triage` | `/ehai:triage [report]` | Classify type/priority/size, duplicate detection against existing items, create tracker item |
+| `assign` | `/ehai:assign [request]` | Assign, reassign, or take a tracker item by name or number |
+| `prefs` | `/ehai:prefs` | View and edit your role and learned preferences |
+
+### Developer Skills
+
+| Skill | Trigger | What happens |
+|---|---|---|
+| `next` | `/ehai:next` | Suggests the next task by priority and unblocked dependencies |
+| `start` | `/ehai:start #id` | Creates `feat/<id>-<slug>` branch, loads task context + acceptance criteria, sets In Progress |
+| `pr` | `/ehai:pr` | Drafts PR description linking the issue, maps changes to acceptance criteria, adds checklist; moves card to In Review |
+| `done` | `/ehai:done` | Verifies acceptance criteria satisfied, moves card to Done |
+
+### POC Skills
+
+| Skill | Trigger | What happens |
+|---|---|---|
+| `poc new` | `/ehai:poc new "<idea>"` | Creates `poc-1`: isolated worktree, design context extracted, dev server started |
+| `poc iterate` | `/ehai:poc iterate <pocN> "<feedback>"` | Iterates → `pocN+1`; lineage recorded |
+| `poc compose` | `/ehai:poc compose "<take X from poc1, Y from poc2>"` | Synthesises a new POC from multiple parents; AI reads referenced diffs |
+| `poc list` | `/ehai:poc list` | Lists all POCs with status (draft / liked / rejected / promoted / archived) |
+| `poc compare` | `/ehai:poc compare [pocA pocB …]` | Side-by-side screenshot gallery + diff summary |
+| `poc open` | `/ehai:poc open <pocN>` | Starts the POC's dev server |
+| `poc promote` | `/ehai:poc promote <pocN>` | Opens a PR to the default branch after explicit confirmation |
+| `poc discard` | `/ehai:poc discard <pocN>` | Archives as git tag `ehai-archive/<feature>/<pocN>`, removes worktree |
+
+---
+
+## MCP Tools Reference
+
+The MCP server exposes tools that skills call automatically. You can also call them directly in any MCP-compatible client.
+
+### `ping`
+
+Health check for the MCP server.
+
+**Parameters:** none
+
+**Response**
+```json
+{ "status": "ok", "version": "0.1.0-alpha.1" }
+```
+
+---
+
+### `save_prd`
+
+Store a Product Requirements Document. Runs the data policy guard before writing. Automatically triggers `plan_explore` after a successful save.
+
+**Parameters**
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `prd` | `Prd` object | yes | The document (see PRD schema below) |
+| `repo_path` | string | no | Write `docs/prd/<slug>.md` here too; defaults to current repo |
+| `policy` | `"redact"` \| `"keep"` \| `"cancel"` | no | Answer to a pending sensitive-data question |
+
+**PRD object schema**
+
+| Field | Type | Required |
+|---|---|---|
+| `slug` | string | yes — URL-safe identifier |
+| `title` | string | yes |
+| `problem` | string | yes |
+| `users` | string[] | yes |
+| `goals` | string[] | yes |
+| `out_of_scope` | string[] | yes |
+| `flows` | `{name, steps[]}[]` | yes |
+| `metrics` | `{name, target}[]` | yes |
+| `risks` | `{description, mitigation}[]` | yes |
+
+**Response**
+```json
+{ "status": "ok", "slug": "notifications-mvp", "gaps": [] }
+```
+
+**When to use:** Call via `/ehai:plan`. Call directly when integrating ehai into a custom CI/agent workflow.
+
+---
+
+### `get_plan`
+
+Retrieve a saved PRD by slug.
+
+**Parameters**
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `prd` | string | yes | The PRD slug |
+
+**Response**
+```json
+{ "status": "ok", "prd": { ... } }
+```
+
+---
+
+### `list_plans`
+
+List all saved PRDs.
+
+**Parameters:** none
+
+**Response**
+```json
+{
+  "status": "ok",
+  "plans": [
+    { "slug": "notifications-mvp", "title": "Notification Preferences", "created_at": "2026-11-18" }
+  ]
+}
+```
+
+---
+
+### `save_breakdown`
+
+Store an epic/story/task breakdown linked to a PRD.
+
+**Parameters**
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `breakdown` | `Breakdown` object | yes | Epics with nested stories and tasks |
+| `policy` | `"redact"` \| `"keep"` \| `"cancel"` | no | Sensitive-data question answer |
+
+**Response**
+```json
+{ "status": "ok", "epics": 3, "stories": 11, "tasks": 28 }
+```
+
+---
+
+### `sync_plan`
+
+Push a breakdown to the connected tracker, idempotently.
+
+**Parameters**
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `prd` | string | yes | PRD slug whose breakdown to sync |
+| `apply` | boolean | no | `false` (default): dry-run preview. `true`: write to tracker |
+| `policy` | string | no | Sensitive-data question answer |
+
+**Response (dry run)**
+```json
+{ "status": "preview", "create": 8, "update": 3, "skip": 0 }
+```
+
+**Response (applied)**
+```json
+{ "status": "ok", "created": 8, "updated": 3, "skipped": 0 }
+```
+
+---
+
+### `status_report`
+
+Generate a progress report across all epics.
+
+**Parameters**
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `html` | boolean | no | Also write an HTML report to `~/.ehai/reports/`; returns its path |
+
+**Response**
+```json
+{
+  "status": "ok",
+  "epics": [
+    { "name": "Notification Preferences", "done": 8, "total": 11, "pct": 73 }
+  ],
+  "stale": ["#34", "#41"],
+  "open_prs": ["#22"],
+  "risks": ["iOS silent push cert expires in 14 days"]
+}
+```
+
+---
+
+### `triage`
+
+Classify a bug report or feature request and create a tracker item.
+
+**Parameters**
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `title` | string | yes | Short title for the item |
+| `description` | string | yes | Full description, steps to reproduce, or acceptance criteria |
+| `kind` | `"bug"` \| `"story"` \| `"task"` | yes | Item type |
+| `priority` | `"p0"` \| `"p1"` \| `"p2"` \| `"p3"` | yes | Severity |
+| `size` | `"xs"` \| `"s"` \| `"m"` \| `"l"` \| `"xl"` | no | Effort estimate |
+| `decision` | string | no | `"new"` or `"dup:<id>"` — answer to a duplicate question |
+| `policy` | string | no | Sensitive-data question answer |
+
+**Response**
+```json
+{ "status": "ok", "id": "ITEM-51", "url": "https://github.com/..." }
+```
+
+---
+
+### `plan_explore`
+
+Run a structured gap check on a PRD draft. Returns the top-5 gaps as questions. Called automatically after `save_prd`; call directly for a mid-session check.
+
+**Parameters**
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `slug` | string | yes | PRD slug to analyse |
+| `round` | integer | no | Current round number (1–3); stops after 3 |
+| `answers` | `{question_id, answer}[]` | no | Answers from a previous round to merge into the PRD |
+| `policy` | string | no | Sensitive-data question answer |
+
+**Response**
+```json
+{
+  "status": "ok",
+  "gaps": [
+    { "id": "g1", "description": "No error/edge-case flow", "question": "What happens when the user has no internet?" }
+  ],
+  "round": 1,
+  "complete": false
+}
+```
+
+---
+
+### `guard_check`
+
+Scan text for sensitive data. Never stores values — returns kinds and counts only.
+
+**Parameters**
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `text` | string | yes | Text to scan |
+
+**Response**
+```json
+{
+  "status": "ok",
+  "findings": [
+    { "kind": "ssn", "count": 1, "confidence": "High" },
+    { "kind": "email", "count": 2, "confidence": "High" }
+  ],
+  "redacted": "SSN [REDACTED:ssn] on file for [REDACTED:email] and [REDACTED:email]"
+}
+```
+
+---
+
+### `assign_task`
+
+Assign a tracker item to one or more team members.
+
+**Parameters**
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `item` | string | yes | `#18`, a URL, an ehai id, or part of the title |
+| `assignees` | string[] | yes | GitHub logins, or `"me"` for the caller |
+| `mode` | `"add"` \| `"replace"` \| `"remove"` | no | Default: `"add"` |
+
+**Response**
+```json
+{ "status": "ok", "item": "ITEM-18", "assignees": ["priya", "jagadeesh"] }
+```
+
+---
+
+### `comment_task`
+
+Post a comment on a tracker item, with optional @mentions.
+
+**Parameters**
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `item` | string | yes | Item reference |
+| `body` | string | yes | Comment body (Markdown supported) |
+| `mentions` | string[] | no | Logins to prepend as `@login` mentions |
+| `policy` | string | no | Sensitive-data question answer |
+
+**Response**
+```json
+{ "status": "ok", "comment_url": "https://github.com/..." }
+```
+
+---
+
+### `team`
+
+List the project team (GitHub assignable users, cached for up to 24 hours).
+
+**Parameters**
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `refresh` | boolean | no | Force a cache refresh |
+
+**Response**
+```json
+{ "status": "ok", "members": [{ "login": "priya", "name": "Priya Sharma", "role": "admin" }] }
+```
+
+---
+
+### `needs_input` response
+
+When a tool needs a user decision before proceeding, it returns:
+
+```json
+{
+  "status": "needs_input",
+  "header": "Sensitive data",
+  "question": "Found ssn ×1, email ×2. How should ehai handle this?",
+  "options": [
+    { "label": "Redact", "value": "redact", "description": "Replace with [REDACTED:kind]" },
+    { "label": "Keep", "value": "keep", "description": "Write as-is" },
+    { "label": "Cancel", "value": "cancel", "description": "Don't write anything" }
+  ],
+  "multi_select": false,
+  "retry_param": "policy"
+}
+```
+
+Call the same tool again with `retry_param` set to the chosen `value`.
 
 ---
 
 ## Configuration
 
-Precedence (narrower wins): defaults → `~/.ehai/config.toml` → `.ehai.toml` (repo) → `--config` flag → `EHAI_SECTION__KEY` env → CLI flags.
+Layered merge — narrower wins: `defaults < ~/.ehai/config.toml < .ehai.toml (repo) < EHAI_SECTION__KEY env < CLI flags`
 
 ```toml
-# ~/.ehai/config.toml example
+# ~/.ehai/config.toml
+
 [brand]
-name = "ehai"          # rename the binary and all slash commands
+name = "ehai"           # rename binary and all slash commands
 
 [compliance]
-mode = "warn"
+mode    = "warn"        # off | warn | strict
+profile = "tech"        # tech | health | finance | gdpr
+patterns = []           # [{name="my-id", regex="\\bMY-\\d{6}\\b"}]
 
 [sandbox]
-mode = "restricted"    # off | restricted | container
+mode = "restricted"     # off | restricted | container
 
 [update]
-channel = "alpha"      # alpha | beta | stable
-auto = false
+channel = "alpha"       # alpha | beta | stable
+auto    = false
+
+[tracker]
+type    = "github"      # github | local
+project = "My Project"
 ```
+
+Full reference: [docs/reference/config.md](https://jagadeeshm007.github.io/ehai/reference/config/)
 
 ---
 
-## Docs
+## Documentation
 
-- [docs/PROGRESS.md](docs/PROGRESS.md) — milestone log
-- [docs/DECISIONS.md](docs/DECISIONS.md) — ADR log
-- [CONTRIBUTING.md](CONTRIBUTING.md) — dev setup and commit conventions
-- [CLAUDE.md](CLAUDE.md) — full product spec
+| Resource | Description |
+|---|---|
+| [jagadeeshm007.github.io/ehai](https://jagadeeshm007.github.io/ehai/) | Full docs site (quickstart, guides, reference) |
+| [docs/PROGRESS.md](docs/PROGRESS.md) | Milestone log |
+| [docs/DECISIONS.md](docs/DECISIONS.md) | ADR log |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Dev setup, branch naming, PR process |
+| [CHANGELOG.md](CHANGELOG.md) | Release history |
+
+---
+
+## Contributing
+
+ehai is MIT-licensed and open to contributions. See [CONTRIBUTING.md](CONTRIBUTING.md) for the full guide.
+
+**Quick start for contributors**
+
+```bash
+git clone https://github.com/jagadeeshm007/ehai
+cd ehai
+cargo build --workspace
+cargo nextest run --workspace
+```
+
+Good first issues are tagged [`good first issue`](https://github.com/jagadeeshm007/ehai/labels/good%20first%20issue) on GitHub.
+
+---
+
+## License
+
+MIT © JagadeeshMandala, 2026 — see [LICENSE](LICENSE).
