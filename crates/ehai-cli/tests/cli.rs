@@ -34,6 +34,13 @@ impl Env {
                     .join("no-claude-desktop/claude_desktop_config.json"),
             );
         c.env("EHAI_HOME", self.home.path())
+            // `ehai init`'s auto-install step (and `ehai self install`/
+            // `uninstall`) edit $HOME's shell rc files — sandbox it here, by
+            // default, for every test, rather than per-test. A real machine's
+            // .bashrc getting an `export PATH=...` line pointing at a deleted
+            // tempdir is exactly the kind of thing a missing default like
+            // this causes.
+            .env("HOME", self.home.path())
             .env("NO_COLOR", "1")
             .current_dir(self.cwd.path());
         c

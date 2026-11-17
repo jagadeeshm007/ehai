@@ -100,7 +100,14 @@ pub fn run(
     let detected = detect(p, cwd, !args.no_tracker)?;
     p.note("Here's what I found", &summary(&detected))?;
     let answers = ask(p, &detected, config, args)?;
-    let ok = apply(p, home, config, &detected, &answers)?;
+    let ok = apply(
+        p,
+        home,
+        config,
+        &detected,
+        &answers,
+        std::env::home_dir().as_deref(),
+    )?;
     p.note("Try next", &next_commands(brand, &answers.role))?;
     p.outro(if ok {
         "You're ready."
@@ -587,6 +594,7 @@ fn apply(
     config: &Config,
     d: &Detected,
     a: &Answers,
+    user_home: Option<&Path>,
 ) -> io::Result<bool> {
     let mut ok = true;
     let global = ehai_core::paths::global_config(home);
@@ -594,9 +602,12 @@ fn apply(
     // So harnesses get wired to a stable location (not wherever this binary
     // happened to be run from, e.g. a build dir or a download folder) and the
     // command is on PATH without a separate step — "do it for the user"
-    // (spec §2.10). Already-installed is a fast, idempotent no-op.
+    // (spec §2.10). Already-installed is a fast, idempotent no-op. `user_home`
+    // is threaded through explicitly (not read from the environment here)
+    // so tests can sandbox it instead of touching the real machine's shell
+    // rc files — see selfcmd::install_for's doc comment.
     ok &= retrying(p, "Install ehai", &mut || {
-        crate::selfcmd::install(home, config)
+        crate::selfcmd::install_for(home, config, user_home)
             .map(|lines| lines.join("; "))
             .map_err(|e| StepError {
                 message: e.to_string(),
@@ -906,6 +917,9 @@ mod tests {
     fn apply_writes_config_and_profile() {
         let home = tempfile::tempdir().unwrap();
         let repo = tempfile::tempdir().unwrap();
+        // a disposable fake user home, so the "Install ehai" step's PATH
+        // setup never touches this machine's real shell rc files.
+        let user_home = tempfile::tempdir().unwrap();
         let mut d = detected(Some(repo.path()));
         d.harnesses.clear();
         let a = Answers {
@@ -918,7 +932,15 @@ mod tests {
             use_local_tracker: false,
         };
         let mut p = PlainPrompter::new(Vec::new());
-        assert!(apply(&mut p, home.path(), &Config::default(), &d, &a).unwrap());
+        assert!(apply(
+            &mut p,
+            home.path(),
+            &Config::default(),
+            &d,
+            &a,
+            Some(user_home.path())
+        )
+        .unwrap());
         let cfg = Config::load(&ehai_core::LoadOptions {
             global: Some(ehai_core::paths::global_config(home.path())),
             ..Default::default()

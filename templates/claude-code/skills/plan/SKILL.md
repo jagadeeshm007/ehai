@@ -16,6 +16,11 @@ Idea from the user: $ARGUMENTS
    Offer concrete options based on what you already know. Skip anything you can infer.
 3. Write the PRD: problem, users, goals, scope, out of scope, user flows as Mermaid `flowchart` diagrams, short screen descriptions, success metrics (each with a number), risks with mitigations.
 4. Call the `save_prd` tool. Pass `repo_path` when you're working inside a repository. If it returns `problems`, fix them and call again.
+4b. **Refine (lite loop, max 3 rounds — always run this):**
+   i.  Call `plan_explore` with `{"prd": "<slug>"}` — no answers yet.
+   ii. If `gaps_remaining > 0`, ask the user the top-2 gap questions in a single compact question turn (use the question tool with the gap hints as option descriptions if applicable, otherwise free text).
+   iii. Call `plan_explore` with `{"prd": "<slug>", "answers": [...]}` to apply the answers.
+   iv. Repeat up to 2 more times. Stop when `gaps_remaining == 0` or 3 rounds are done.
 5. Present the PRD:
    - In Claude desktop or claude.ai: create it as a document (artifact) the user can read and share.
    - In a terminal: show a short summary, the user-flow diagram and the saved file path.

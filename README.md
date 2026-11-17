@@ -6,7 +6,7 @@ AI-SDLC ops engine for health-tech teams.
 - **Developers** carry tasks through the dev lifecycle from any AI coding harness.
 - **Anyone** generates isolated UI/UX proof-of-concepts that match the app's design system.
 
-> **Status:** `0.1.0-alpha.1`, M8 complete — self-update with signature verification and automatic rollback, one-line install, all harness adapters, full POC engine, PM flow, env provisioning, roles/team, PHI guard. See [docs/PROGRESS.md](docs/PROGRESS.md).
+> **Status:** `0.1.0-alpha.1`, M8 complete — self-update with signature verification and automatic rollback, one-line install, all harness adapters, full POC engine, PM flow, env provisioning, roles/team, PHI guard, PRD gap-finder loop (`plan_explore`), device migration (`ehai migration export/import`), Claude Desktop skills ZIP, preference learning. See [docs/PROGRESS.md](docs/PROGRESS.md).
 
 ---
 
@@ -94,7 +94,7 @@ The wizard auto-detects OS, git, `gh` + auth, installed harnesses, Chrome, and t
 
 | Slash command | Harness | What it does |
 |---|---|---|
-| `/ehai:plan` | Any | Interview → PRD (problem, users, goals, flows, metrics, risks) |
+| `/ehai:plan` | Any | Interview → PRD (problem, users, goals, flows, metrics, risks); auto-runs a gap-finder loop (up to 3 rounds) to deepen the PRD before breakdown |
 | `/ehai:breakdown` | Any | PRD → epics → stories → tasks with acceptance criteria |
 | `/ehai:sync` | Any | Push breakdown to tracker idempotently |
 | `/ehai:status` | Any | Progress report: % done per epic, blockers, stale items, open PRs |
@@ -172,7 +172,7 @@ ehai works from any AI coding tool. After `ehai init`, slash commands are availa
 | Harness | Slash-command prefix | MCP config |
 |---|---|---|
 | Claude Code | `/ehai:` | user-scope MCP server + local plugin |
-| Claude desktop | Prompts under `ehai` connector | `claude_desktop_config.json` |
+| Claude desktop | `/ehai:` via Skills + MCP connector | `claude_desktop_config.json` + skills ZIP |
 | Codex CLI | `/ehai:` | `~/.codex/config.toml` + prompt files |
 | Gemini CLI | `/ehai:` | `~/.gemini/settings.json` + TOML commands |
 | Cursor | `/ehai:` | `~/.cursor/mcp.json` + rule files |
@@ -180,6 +180,31 @@ ehai works from any AI coding tool. After `ehai init`, slash commands are availa
 | VS Code / Copilot | `/ehai:` | user `mcp.json` (`servers` key) + prompt files |
 | Windsurf | `/ehai:` | `~/.codeium/windsurf/mcp_server_config.json` + workflows |
 | Any other | — | `~/AGENTS.md` reference card |
+
+**Claude Desktop setup (extra step):** after `ehai connect claude-desktop`, upload the generated skills ZIP via Claude Desktop → Settings → Skills:
+
+```
+~/.ehai/adapters/claude-desktop/ehai-skills.zip
+```
+
+This makes `/ehai:plan`, `/ehai:breakdown`, `/ehai:sync`, `/ehai:status`, and `/ehai:triage` available as first-class Skills in the Claude Desktop UI. The MCP connector alone gives you the tools; the Skills ZIP adds command discoverability.
+
+---
+
+## Device migration
+
+Move your ehai setup to a new machine with one ZIP:
+
+```bash
+# on the old machine
+ehai migration export                     # → ehai-backup-YYYYMMDD.zip
+
+# on the new machine — after installing ehai
+ehai migration import ehai-backup-*.zip  # restores config, prefs, local tracker
+ehai adapters regenerate                  # re-wires harnesses with the new machine's paths
+```
+
+The ZIP contains your `config.toml`, learned preferences (`prefs/user.toml`), and local tracker data. Harness adapter files are excluded because they contain machine-specific absolute paths — `adapters regenerate` rebuilds them correctly on the new machine.
 
 ---
 

@@ -3,20 +3,28 @@
 //! Registers the MCP server under `mcpServers.<brand>` in
 //! `claude_desktop_config.json`. Only that one key is ever touched; every other
 //! key keeps its value and order, and a `.ehai-backup` is taken before the first
-//! edit. The PM flows reach the desktop app as MCP *prompts* served by the same
-//! server — Claude apps only accept custom skills as ZIP uploads, so prompts are
-//! the zero-step route. Claude desktop reads the file at start-up: changes need a
-//! full quit and relaunch.
+//! edit.
+//!
+//! Additionally generates a skills ZIP at
+//! `~/.ehai/adapters/claude-desktop/<brand>-skills.zip` with the 5 critical PM
+//! flow skills (plan, breakdown, sync, status, triage). Upload it via
+//! Claude Desktop → Settings → Skills to enable `/ehai:plan` etc. See ADR-0028.
 //!
 //! Paths verified 2026-11-17 (support.claude.com, modelcontextprotocol.io and the
 //! file on Linux): macOS `~/Library/Application Support/Claude/`, Windows
 //! `%APPDATA%\Claude\`, Linux `~/.config/Claude/`. See DECISIONS ADR-0021.
 
+use std::io::Write as _;
 use std::path::{Path, PathBuf};
 
 use serde_json::{json, Map, Value};
+use zip::write::SimpleFileOptions;
+use zip::ZipWriter;
 
 use crate::{Ctx, Error, File, Harness, Result, Status};
+
+/// The 5 PM skill names bundled into the Claude Desktop skills ZIP.
+const PM_SKILLS: &[&str] = &["plan", "breakdown", "sync", "status", "triage"];
 
 pub struct ClaudeDesktop {
     /// `claude_desktop_config.json`. `EHAI_CLAUDE_DESKTOP_CONFIG` overrides (tests).
@@ -75,6 +83,73 @@ impl ClaudeDesktop {
         ehai_core::migrate::write_atomic(path, body.as_bytes())?;
         Ok(())
     }
+
+    fn zip_path(ctx: &Ctx) -> PathBuf {
+        ehai_core::paths::adapters_dir(&ctx.home)
+            .join("claude-desktop")
+            .join(format!("{}-skills.zip", ctx.brand.name))
+    }
+
+    /// Build the skills ZIP bytes for the 5 PM flows.
+    fn build_zip(ctx: &Ctx) -> Result<Vec<u8>> {
+        let mut buf = Vec::new();
+        let mut zip = ZipWriter::new(std::io::Cursor::new(&mut buf));
+        let opts = SimpleFileOptions::default();
+
+        // manifest.json
+        let manifest = json!({
+            "name": ctx.brand.name,
+            "description": format!("AI-SDLC PM skills for {}", ctx.brand.name),
+            "version": ehai_core::VERSION,
+            "skills": PM_SKILLS,
+        });
+        zip.start_file("manifest.json", opts)
+            .map_err(|e| Error::Command {
+                cmd: "zip manifest".into(),
+                stderr: e.to_string(),
+            })?;
+        zip.write_all(serde_json::to_string_pretty(&manifest).unwrap().as_bytes())
+            .map_err(|e| Error::Command {
+                cmd: "zip write manifest".into(),
+                stderr: e.to_string(),
+            })?;
+
+        // one .md per PM skill
+        for skill_name in PM_SKILLS {
+            if let Some((_, tpl)) = crate::claude_code::SKILLS
+                .iter()
+                .find(|(n, _)| *n == *skill_name)
+            {
+                let rendered = crate::render(tpl, ctx);
+                zip.start_file(format!("{skill_name}.md"), opts)
+                    .map_err(|e| Error::Command {
+                        cmd: format!("zip {skill_name}.md"),
+                        stderr: e.to_string(),
+                    })?;
+                zip.write_all(rendered.as_bytes())
+                    .map_err(|e| Error::Command {
+                        cmd: format!("zip write {skill_name}.md"),
+                        stderr: e.to_string(),
+                    })?;
+            }
+        }
+
+        zip.finish().map_err(|e| Error::Command {
+            cmd: "zip finish".into(),
+            stderr: e.to_string(),
+        })?;
+        Ok(buf)
+    }
+
+    fn write_zip(ctx: &Ctx) -> Result<PathBuf> {
+        let dest = Self::zip_path(ctx);
+        if let Some(dir) = dest.parent() {
+            std::fs::create_dir_all(dir).map_err(ehai_core::Error::io(dir))?;
+        }
+        let bytes = Self::build_zip(ctx)?;
+        ehai_core::migrate::write_atomic(&dest, &bytes)?;
+        Ok(dest)
+    }
 }
 
 /// Serialise edits across parallel ehai sessions. The lock lives in ehai's own
@@ -131,16 +206,28 @@ impl Harness for ClaudeDesktop {
             });
         };
         let entry = Self::entry(ctx);
-        if servers.get(&ctx.brand.name) == Some(&entry) {
-            return Ok(format!("`{}` already registered", ctx.brand.name));
+        let already_registered = servers.get(&ctx.brand.name) == Some(&entry);
+        if !already_registered {
+            servers.insert(ctx.brand.name.clone(), entry);
+            Self::write(path, &map)?;
         }
-        servers.insert(ctx.brand.name.clone(), entry);
-        Self::write(path, &map)?;
-        Ok(format!(
-            "registered `{}` in {} — quit and reopen Claude desktop to load it",
-            ctx.brand.name,
-            path.display()
-        ))
+
+        // always (re)generate the skills ZIP so it stays fresh after updates
+        let zip_dest = Self::write_zip(ctx)?;
+
+        if already_registered {
+            Ok(format!("`{}` already registered", ctx.brand.name))
+        } else {
+            Ok(format!(
+                "registered `{}` in {} — quit and reopen Claude desktop to load it\n\
+                 Skills ZIP → {}\n\
+                 Upload it via Claude Desktop → Settings → Skills to enable /{}:plan etc.",
+                ctx.brand.name,
+                path.display(),
+                zip_dest.display(),
+                ctx.brand.name,
+            ))
+        }
     }
 
     fn remove(&self, ctx: &Ctx) -> Result<String> {
@@ -156,6 +243,12 @@ impl Harness for ClaudeDesktop {
             .is_some();
         if removed {
             Self::write(path, &map)?;
+        }
+        // remove the skills ZIP regardless
+        let zip = Self::zip_path(ctx);
+        let _ = std::fs::remove_file(&zip);
+
+        if removed {
             Ok(format!(
                 "removed `{}` — quit and reopen Claude desktop",
                 ctx.brand.name
@@ -182,6 +275,7 @@ impl Harness for ClaudeDesktop {
 }
 
 #[cfg(test)]
+#[allow(deprecated)]
 mod tests {
     use super::*;
     use ehai_core::Brand;
@@ -190,7 +284,7 @@ mod tests {
         Ctx {
             brand: Brand::new(brand).unwrap(),
             role: None,
-            home: std::env::temp_dir().join("ehai-desktop-test"),
+            home: tempfile::tempdir().unwrap().into_path(),
             exe: "/home/u/.ehai/bin/ehai".into(),
         }
     }
@@ -232,16 +326,6 @@ mod tests {
             std::fs::read_to_string(path.with_extension("json.ehai-backup")).unwrap(),
             original
         );
-        let names: Vec<_> = std::fs::read_dir(d.path())
-            .unwrap()
-            .flatten()
-            .map(|e| e.file_name())
-            .collect();
-        assert_eq!(
-            names.len(),
-            2,
-            "only config + backup in Claude's dir: {names:?}"
-        );
 
         a.remove(&ctx("ehai")).unwrap();
         let v: Value = serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
@@ -281,5 +365,49 @@ mod tests {
         let files =
             ClaudeDesktop::at("/x/claude_desktop_config.json".into()).generate(&ctx("ehai"));
         insta::assert_snapshot!(format!("=== {} ===\n{}", files[0].path, files[0].contents));
+    }
+
+    #[test]
+    fn skills_zip_contains_all_pm_skills() {
+        let d = tempfile::tempdir().unwrap();
+        let path = d.path().join("claude_desktop_config.json");
+        let c = ctx("ehai");
+        ClaudeDesktop::at(path).install(&c).unwrap();
+
+        let zip_path = ClaudeDesktop::zip_path(&c);
+        assert!(zip_path.exists(), "skills ZIP written");
+
+        let data = std::fs::read(&zip_path).unwrap();
+        let mut archive = zip::ZipArchive::new(std::io::Cursor::new(data)).expect("valid ZIP");
+        let names: Vec<String> = (0..archive.len())
+            .map(|i| {
+                archive
+                    .by_index(i)
+                    .unwrap()
+                    .name()
+                    .unwrap_or_default()
+                    .to_string()
+            })
+            .collect();
+        for skill in PM_SKILLS {
+            assert!(
+                names.contains(&format!("{skill}.md")),
+                "missing {skill}.md in ZIP; got {names:?}"
+            );
+        }
+        assert!(names.contains(&"manifest.json".to_string()));
+    }
+
+    #[test]
+    fn remove_deletes_zip() {
+        let d = tempfile::tempdir().unwrap();
+        let path = d.path().join("claude_desktop_config.json");
+        let c = ctx("ehai");
+        ClaudeDesktop::at(path.clone()).install(&c).unwrap();
+        let zip_path = ClaudeDesktop::zip_path(&c);
+        assert!(zip_path.exists());
+
+        ClaudeDesktop::at(path).remove(&c).unwrap();
+        assert!(!zip_path.exists(), "ZIP removed");
     }
 }

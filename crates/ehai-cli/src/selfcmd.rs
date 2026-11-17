@@ -47,6 +47,21 @@ fn rc_for_shell(user_home: &Path, bin: &Path) -> (PathBuf, String) {
 /// Copy the running binary into `~/.ehai/bin`, add it to PATH, add the brand alias.
 /// Returns human-readable lines describing what happened.
 pub fn install(home: &Path, config: &Config) -> anyhow::Result<Vec<String>> {
+    install_for(home, config, std::env::home_dir().as_deref())
+}
+
+/// Like [`install`], with the user's shell-profile home (where `.bashrc` etc.
+/// live — distinct from `home`, which is `EHAI_HOME`) passed explicitly
+/// rather than read from the real process environment. Tests that call
+/// `apply()`/`install()` in-process (not through a sandboxed subprocess, the
+/// way the CLI integration tests do) must pass a disposable tempdir here —
+/// `std::env::home_dir()` would otherwise resolve to the real machine's
+/// actual home directory and edit its real `.bashrc`.
+pub fn install_for(
+    home: &Path,
+    config: &Config,
+    user_home: Option<&Path>,
+) -> anyhow::Result<Vec<String>> {
     let mut done = Vec::new();
     let target = installed_exe(home);
     let bin_dir = paths::bin_dir(home);
@@ -84,8 +99,8 @@ pub fn install(home: &Path, config: &Config) -> anyhow::Result<Vec<String>> {
             bin_dir.display()
         ));
     } else {
-        let user_home = std::env::home_dir().ok_or(ehai_core::Error::NoHome)?;
-        let (rc, line) = rc_for_shell(&user_home, &bin_dir);
+        let user_home = user_home.ok_or(ehai_core::Error::NoHome)?;
+        let (rc, line) = rc_for_shell(user_home, &bin_dir);
         if blocks::upsert(&rc, &line)? {
             done.push(format!(
                 "added {} to PATH in {}",

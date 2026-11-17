@@ -384,3 +384,37 @@ The second push then surfaced two more, this time from the 3-OS test matrix — 
 - **The `snapshots` CI job's `cargo insta test` invocation passed `--locked` where `cargo insta test` itself doesn't accept it** (it only forwards unrecognised flags placed after `--` to the underlying `cargo test`), and its doctest runner rejected `--locked` even there. Dropped it from this one job — lockfile integrity is already enforced by `clippy`, `test` and `deny`, all of which use it correctly.
 - **The real root cause of the Windows snapshot mismatch wasn't path rendering — the repo had no `.gitattributes`.** `claude_code.rs`'s adapter embeds a content hash (`content_hash(&files)`, hex-encoded into the generated plugin's `version` field) computed over the skill `.md` templates, which are pulled in at compile time via `include_str!`. Without `.gitattributes`, GitHub's `windows-latest` runner's default `core.autocrlf=true` checks those templates out with CRLF line endings instead of the LF they're committed with, so the hash — and therefore the generated `version` string's literal text — genuinely differed from the Unix-recorded snapshot. The backslash/CRLF normalization added to the test earlier was real and worth keeping (belt-and-suspenders for path rendering), but it couldn't fix *this*, since differing hash digits aren't a formatting difference to normalize away. Root-caused by adding `.gitattributes` (`* text=auto eol=lf`) so every platform checks out byte-identical content, which is the actual fix — "make the build inputs identical everywhere" beats "patch the test that happened to notice."
 - **`ehai init` now runs the equivalent of `ehai self install` as its first apply step**, unconditionally and idempotently, rather than leaving "install to `~/.ehai/bin` and add to PATH" as a separate manual step the one-line installer happened to chain but a from-source build wouldn't. Two reasons: (1) spec §2.10, "do it for the user" — PATH setup is exactly the kind of thing that shouldn't need a second command; (2) harness adapters are wired via `adapter_ctx`'s "prefer the installed binary" rule, so running `init` from a build directory or a download folder without this step would silently point every harness's MCP config at a location that disappears on `cargo clean` or once the download is deleted.
+
+## ADR-0030 — Claude Desktop skills ZIP (shipped, supersedes ADR-0027's revert note)
+**Date:** 2026-11-18 · **Status:** accepted
+
+ADR-0027 recorded that "the Claude desktop skills-ZIP idea was tried and reverted before landing." That was accurate for the uncommitted half-finished attempt found in the working tree at the time. This ADR records the deliberate, complete implementation shipped in this session.
+
+**What changed:** the half-finished attempt had imports, an unused const, and no generation code — it was rightly reverted. The shipped version (`claude_desktop.rs`) has full generation, install, remove, and four tests (ZIP contains all 5 PM skills, manifest.json present, `remove()` deletes the ZIP, idempotent install). ADR-0022 ("MCP prompts are sufficient") was the right call when the only alternative was a half-built path; it is no longer the right call now that the path is complete.
+
+**Why bother:** Claude Desktop's native Skills UI surfaces `/ehai:plan` as a first-class command the PM can discover and invoke without typing anything. MCP prompts still work, but the ZIP makes the PM flow zero-friction on Claude Desktop — no typing required. This directly serves the product goal of letting a non-technical PM complete the full planning flow from Claude Desktop without a terminal.
+
+**What it generates:** `~/.ehai/adapters/claude-desktop/{brand}-skills.zip` with `manifest.json` + 5 PM skill `.md` files (`plan`, `breakdown`, `sync`, `status`, `triage`). The same `SKILLS` array and `render()` function used by the Claude Code plugin ZIP ensure both ZIPs stay in sync when skill templates change.
+
+**Skills ZIP is re-generated on every `install()` call** (not only on first install), so updates to skill templates are always picked up without a separate command.
+
+## ADR-0031 — `plan_explore` lite loop design
+**Date:** 2026-11-18 · **Status:** accepted
+
+**Problem:** `save_prd` accepts any PRD as long as `Prd::problems()` passes (required fields present), but a valid PRD is not necessarily a complete one. Common gaps — missing measurable metrics, undescribed error flows, no out-of-scope list — only show up when developers start the breakdown and find the requirements don't cover their questions.
+
+**Solution:** a `plan_explore` MCP tool that runs deterministic gap detection after every `save_prd` success. The skill template drives a max-3-round loop: call with no answers to get gaps, ask the user the top-2, call again with answers, repeat.
+
+**Gap rules (priority order, capped at 5):**
+1. Zero user flows → "No user flows described"
+2. Single flow with no "error"/"fail"/"fallback" keyword → "No error/edge-case flow"
+3. A metric whose `target` contains no digit → "Metric needs a measurable number"
+4. A risk whose `mitigation` is under 15 characters → "Risk has no mitigation"
+5. `out_of_scope` list is empty → "Nothing listed as out of scope"
+6. Fewer than 2 user personas → "Only one user persona"
+
+**Key design choices:**
+- The loop is enforced by the skill template (max 3 rounds), not by the tool itself. The tool is stateless — it just returns the current gap list and the AI decides when to stop. This keeps the Rust engine simple.
+- The tool is always auto-run after `save_prd` (no user opt-in). The user only sees the gap questions, not the tool calls.
+- PHI check applies to any answer values before they are written back to the PRD — same `self.check()` path as `save_prd`.
+- The `observe_interaction` call in `save_prd` records `last_plan_complexity` (count of risks + flows) so later tool invocations can adapt to the user's planning style over time.

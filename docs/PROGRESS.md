@@ -187,7 +187,14 @@
   - `cargo insta test`'s CI invocation had `--locked` in the wrong place (doctests reject it outright).
   - The repo had no `.gitattributes`, so Windows checkouts got CRLF for the `templates/**/*.md` skill files, which are hashed into generated adapter content at runtime (`claude_code.rs`) — different hash, different literal text, snapshot mismatch. Added `.gitattributes` forcing LF everywhere.
   - `ehai init` now runs the equivalent of `self install` as its first step, unconditionally — PATH setup and a stable binary location for harness adapters no longer need a separate command.
-- CI result after the `.gitattributes`/auto-install fixes tracked in the next push.
+- CI result after the `.gitattributes`/auto-install fixes tracked in the next push: **all jobs green** (run 44162872235).
+
+## Post-M8 additions (pre-M9)
+- **`plan_explore` MCP tool** (ADR-0031): deterministic gap-finder auto-run after every `save_prd`; skill template drives a max-3-round refinement loop with top-2 questions per round.
+- **Claude Desktop skills ZIP** (ADR-0030): `install()` generates `{brand}-skills.zip` with the 5 PM skill `.md` files; `remove()` deletes it.
+- **`ehai migration export|import`**: device-move ZIP (config + prefs + local tracker); harness adapters excluded (re-run `adapters regenerate` after import).
+- **`observe_interaction` hook**: lightweight behavioural signals written fire-and-forget after `save_prd` and `poc_new`; self-compacts above 50 entries.
+- **Template updates**: `plan/SKILL.md` and `shared/commands/plan.md` include the `plan_explore` refinement step (4b); 7 harness adapter snapshots updated accordingly.
 
 ## Next — M9: Hardening and release
 
@@ -195,6 +202,6 @@
 - **D1 (repo visibility) — resolved 2026-11-18:** stays public.
 - **D2 (signing key) — resolved 2026-11-18:** real keypair generated, `MINISIGN_KEY` secret added, public half already matched the embedded constant.
 - **D3 (OAuth app):** still deferred per ADR-0017; `gh`/`GITHUB_TOKEN` cover everything `ehai-update` and `install.sh` need.
-- Claude desktop: MCP prompts are sufficient (ADR-0022). No ZIP skill package needed.
+- **Claude desktop skills ZIP — resolved 2026-11-18 (ADR-0030):** `ehai connect claude-desktop` now also generates `~/.ehai/adapters/claude-desktop/{brand}-skills.zip` with the 5 PM skill `.md` files; upload via Claude Desktop → Settings → Skills to surface `/ehai:plan` etc. as discoverable commands. ADR-0022's "prompts are sufficient" held for the half-finished attempt; it no longer applies to the complete implementation.
 - The interactive wizard path (cliclack on a real TTY) is exercised manually. Automated tests cover the same logic through the plain/scripted prompter.
 - `install.ps1` is untested in this environment (no PowerShell available) — syntax reviewed by hand only; needs a real Windows run before `v0.1.0-alpha.1`.

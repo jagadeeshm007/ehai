@@ -569,6 +569,7 @@ dependencies = [
  "serde_json",
  "tempfile",
  "thiserror",
+ "zip",
 ]
 
 [[package]]
