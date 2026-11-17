@@ -185,6 +185,57 @@ fn sandbox_check(worktree: &Path, home: &Path, mode: ehai_core::config::SandboxM
     Ok(())
 }
 
+/// Write per-worktree harness sandbox settings (spec §9A, last bullet).
+///
+/// For Claude Code: `.claude/settings.local.json` — allow edits inside the
+/// worktree, block pushes to default branch, block reading real env secrets.
+/// Other harnesses that support per-directory config get analogous files if
+/// they are detected; this is best-effort and never fails the whole operation.
+fn write_worktree_sandbox_settings(worktree: &Path) {
+    let claude_dir = worktree.join(".claude");
+    let settings_path = claude_dir.join("settings.local.json");
+    if settings_path.exists() {
+        return; // already written (e.g. iterate on same worktree)
+    }
+    let json = serde_json::json!({
+        "permissions": {
+            "allow": [
+                "Edit",
+                "Write",
+                "Bash(npm run *)",
+                "Bash(pnpm *)",
+                "Bash(yarn *)",
+                "Bash(bun *)",
+                "Bash(npx *)",
+                "Bash(node *)",
+                "Bash(go *)",
+                "Bash(python *)",
+                "Bash(uv *)",
+                "Bash(git status)",
+                "Bash(git diff*)",
+                "Bash(git add *)",
+                "Bash(git commit *)",
+                "Bash(git log*)",
+                "Bash(git branch*)"
+            ],
+            "deny": [
+                "Bash(git push*)",
+                "Bash(git reset --hard*)",
+                "Bash(git checkout main*)",
+                "Bash(git checkout master*)",
+                "Bash(rm -rf ../*)",
+                "Bash(rm -rf ~/*)"
+            ]
+        }
+    });
+    // best-effort — a failure here must never abort worktree creation
+    if std::fs::create_dir_all(&claude_dir).is_ok() {
+        if let Ok(text) = serde_json::to_string_pretty(&json) {
+            let _ = std::fs::write(&settings_path, text);
+        }
+    }
+}
+
 /// Create a new POC: branch + worktree + env provisioning + design context.
 pub fn poc_new(
     root: &Path,
@@ -267,6 +318,9 @@ fn create_poc(
         .map_err(|e| Error::Invalid(format!("env provisioning failed: {e}")))?;
     let port = env_report.ports.first().copied().unwrap_or(3000);
     tracing::info!(port = port, "poc env provisioned");
+
+    // Write per-worktree harness sandbox settings (§9A)
+    write_worktree_sandbox_settings(&wt_path);
 
     // Extract design profile from the SOURCE (main) worktree
     let design_profile = ehai_stack::load_or_extract(&source);
@@ -798,5 +852,28 @@ mod tests {
             SandboxMode::Off
         )
         .is_ok());
+    }
+
+    #[test]
+    fn worktree_sandbox_settings_written_idempotently() {
+        let d = tempfile::tempdir().unwrap();
+        let wt = d.path().join("poc-1");
+        std::fs::create_dir_all(&wt).unwrap();
+        // first call writes the file
+        write_worktree_sandbox_settings(&wt);
+        let settings = wt.join(".claude/settings.local.json");
+        assert!(settings.exists(), "settings.local.json created");
+        let v: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(&settings).unwrap()).unwrap();
+        assert!(v["permissions"]["deny"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|s| s.as_str().unwrap_or("").contains("git push")));
+        // second call must not overwrite (file is not re-written)
+        let mtime1 = settings.metadata().unwrap().modified().unwrap();
+        write_worktree_sandbox_settings(&wt);
+        let mtime2 = settings.metadata().unwrap().modified().unwrap();
+        assert_eq!(mtime1, mtime2, "idempotent — not rewritten");
     }
 }

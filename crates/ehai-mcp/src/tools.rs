@@ -13,7 +13,7 @@ use std::path::PathBuf;
 
 use ehai_core::config::ComplianceMode;
 use ehai_guard::{audit, Guard, Outcome};
-use ehai_planner::{breakdown::Breakdown, prd::Prd, report, triage};
+use ehai_planner::{breakdown::Breakdown, explore, prd::Prd, report, triage};
 use ehai_tracker::any::AnyTracker;
 use ehai_tracker::github::{self, Client};
 use ehai_tracker::{sync, Filter, Kind, NewItem, Priority, Size, Status, Tracker};
@@ -264,6 +264,34 @@ pub struct PocPromoteArgs {
     pub confirmed: Option<String>,
     #[serde(default)]
     pub repo_path: Option<String>,
+}
+
+/// One answer supplied by the AI during the plan_explore refinement loop.
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct ExploreAnswer {
+    /// Which PRD section this answer addresses: `"flows"` | `"metrics"` | `"risks"` | `"scope"` | `"users"`.
+    pub section: String,
+    /// 0-based index of the item within the section's array (ignored for sections
+    /// that don't address individual array items, e.g. `scope` or `users`).
+    #[serde(default)]
+    pub index: usize,
+    /// Field name within the item to update: `"target"` | `"mitigation"` | `"mermaid"` etc.
+    /// For whole-list additions (`scope`, `users`, `flows`) use `"add"`.
+    pub field: String,
+    /// New value.
+    pub value: String,
+}
+
+#[derive(Debug, Default, Deserialize, JsonSchema)]
+pub struct PlanExploreArgs {
+    /// PRD slug — the same slug returned by `save_prd`.
+    pub prd: String,
+    /// Answers from the user. Leave empty to retrieve gaps without updating.
+    #[serde(default)]
+    pub answers: Vec<ExploreAnswer>,
+    /// How to handle patient data if found in an answer.
+    #[serde(default)]
+    pub phi: Option<PhiChoice>,
 }
 
 #[derive(Debug, Default, Deserialize, JsonSchema)]
@@ -518,6 +546,15 @@ impl EhaiServer {
     }
 
     #[tool(
+        name = "plan_explore",
+        description = "Lite planning loop: find gaps in a saved PRD (missing flows, unmeasured metrics, unmitigated risks, empty out-of-scope, single persona) and optionally apply answers from the user. Always auto-run after save_prd; call with empty `answers` to get gaps, then call again with answers to apply them. Returns gaps_remaining; stop when it is 0 or after 3 rounds."
+    )]
+    pub async fn plan_explore(&self, Parameters(a): Parameters<PlanExploreArgs>) -> Out {
+        let this = self.clone();
+        guard(async move { this.do_plan_explore(a) }).await
+    }
+
+    #[tool(
         name = "prefs_list",
         description = "List all user preferences (global merged with repo). Returns scope and source for each entry."
     )]
@@ -546,6 +583,31 @@ impl EhaiServer {
 }
 
 impl EhaiServer {
+    /// Record one observed signal into the global prefs store. Fire-and-forget:
+    /// errors are silently ignored so a prefs write failure never blocks a tool.
+    /// Never write PHI — only behavior patterns like `"requirements_completeness"`.
+    fn observe_interaction(&self, key: &str, value: &str) {
+        let mut prefs = ehai_prefs::Prefs::load_global(&self.ctx.home);
+        prefs.set(
+            key,
+            value,
+            ehai_prefs::Scope::Global,
+            ehai_prefs::Source::Observed,
+        );
+        // compact when too many observed signals accumulate
+        if prefs.entries.len() > 50 {
+            let (mut explicit, mut observed): (Vec<_>, Vec<_>) = prefs
+                .entries
+                .into_iter()
+                .partition(|p| p.source == ehai_prefs::Source::Explicit);
+            observed.sort_by(|a, b| a.key.cmp(&b.key));
+            observed.truncate(30);
+            explicit.extend(observed);
+            prefs.entries = explicit;
+        }
+        let _ = prefs.save_global(&self.ctx.home);
+    }
+
     fn guard(&self) -> Result<Guard, String> {
         Guard::new(&self.ctx.config.compliance.patterns).map_err(|e| e.to_string())
     }
@@ -738,6 +800,17 @@ impl EhaiServer {
             .map(|p| p.display().to_string())
             .unwrap_or_default();
         self.audit("save_prd", "prd", &location, &checked.kinds, checked.action);
+        let complexity = checked.value.risks.len() + checked.value.flows.len();
+        self.observe_interaction(
+            "last_plan_complexity",
+            if complexity > 4 {
+                "high"
+            } else if complexity > 1 {
+                "medium"
+            } else {
+                "low"
+            },
+        );
         out(
             json!({ "status": "ok", "slug": checked.value.slug(), "files": files,
                     "markdown": checked.value.to_markdown(), "patient_data": checked.action,
@@ -745,6 +818,75 @@ impl EhaiServer {
                     "role": self.ctx.role(),
                     "presentation_hint": if self.ctx.role() == "pm" { "visual" } else { "technical" } }),
         )
+    }
+
+    fn do_plan_explore(&self, a: PlanExploreArgs) -> Out {
+        let mut prd = Prd::load(&self.ctx.home, &a.prd).map_err(|e| e.to_string())?;
+        let prd_updated = !a.answers.is_empty();
+        if prd_updated {
+            // apply each answer to the PRD struct
+            for ans in &a.answers {
+                match ans.field.as_str() {
+                    "add" => match ans.section.as_str() {
+                        "scope" => prd.out_of_scope.push(ans.value.clone()),
+                        "users" => prd.users.push(ans.value.clone()),
+                        "flows" => prd.flows.push(ehai_planner::prd::Flow {
+                            name: format!("flow-{}", prd.flows.len() + 1),
+                            mermaid: ans.value.clone(),
+                        }),
+                        _ => {}
+                    },
+                    "target" => {
+                        if let Some(m) = prd.metrics.get_mut(ans.index) {
+                            m.target = ans.value.clone();
+                        }
+                    }
+                    "mitigation" => {
+                        if let Some(r) = prd.risks.get_mut(ans.index) {
+                            r.mitigation = ans.value.clone();
+                        }
+                    }
+                    "mermaid" => {
+                        if let Some(f) = prd.flows.get_mut(ans.index) {
+                            f.mermaid = ans.value.clone();
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            // phi check on the updated PRD before saving
+            let checked = match self.check(&prd, a.phi, "PRD")? {
+                Guarded::Ask(q) => return out(q),
+                Guarded::Ready(c) => c,
+            };
+            prd = checked.value;
+            let problems = prd.problems();
+            if !problems.is_empty() {
+                return out(json!({ "status": "invalid", "problems": problems }));
+            }
+            prd.save(&self.ctx.home, None).map_err(|e| e.to_string())?;
+        }
+        let gaps = explore::find_gaps(&prd);
+        let gaps_json: Vec<serde_json::Value> = gaps
+            .iter()
+            .map(|g| json!({ "section": g.section, "question": g.question, "hint": g.hint }))
+            .collect();
+        self.observe_interaction(
+            "requirements_completeness",
+            if gaps.is_empty() {
+                "thorough"
+            } else {
+                "gaps_found"
+            },
+        );
+        out(json!({
+            "status": "ok",
+            "prd": a.prd,
+            "gaps_remaining": gaps.len(),
+            "gaps": gaps_json,
+            "prd_updated": prd_updated,
+            "prd_markdown": if prd_updated { prd.to_markdown() } else { String::new() },
+        }))
     }
 
     fn do_save_breakdown(&self, a: SaveBreakdownArgs) -> Out {
@@ -1170,6 +1312,7 @@ impl EhaiServer {
             self.ctx.config.sandbox.mode,
         )
         .map_err(|e| e.to_string())?;
+        self.observe_interaction("poc_created", "true");
         out(json!({
             "status": "ok",
             "entry": created.entry,

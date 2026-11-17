@@ -1,5 +1,6 @@
 ---
 source: crates/ehai-cli/tests/cli.rs
+assertion_line: 58
 expression: stdout(&out)
 ---
 AI-SDLC ops engine: plan, track and prototype from any AI coding harness
@@ -23,6 +24,7 @@ Commands:
   prefs       View and edit output preferences (role, style, planning granularity)
   mcp         Run the MCP server on stdio (started by your AI harness, not by hand)
   config      Inspect configuration
+  migration   Export or import config, prefs, and local tracker for device migration
   help        Print this message or the help of the given subcommand(s)
 
 Options:

@@ -5,11 +5,13 @@
 use std::path::{Path, PathBuf};
 
 pub mod breakdown;
+pub mod explore;
 pub mod prd;
 pub mod report;
 pub mod triage;
 
 pub use breakdown::Breakdown;
+pub use explore::{find_gaps, PrdGap};
 pub use prd::Prd;
 
 #[derive(Debug, thiserror::Error)]

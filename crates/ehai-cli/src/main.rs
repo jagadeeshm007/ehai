@@ -9,6 +9,7 @@ mod doctor;
 mod env;
 mod init;
 mod logging;
+mod migration;
 mod poc;
 mod prefs;
 mod role;
@@ -109,6 +110,9 @@ enum Command {
     /// Inspect configuration.
     #[command(subcommand)]
     Config(ConfigCmd),
+    /// Export or import config, prefs, and local tracker for device migration.
+    #[command(subcommand)]
+    Migration(migration::MigrationCmd),
 }
 
 #[derive(Subcommand)]
@@ -588,6 +592,10 @@ fn run() -> Result<ExitCode> {
                     );
                 }
             }
+            Ok(ExitCode::SUCCESS)
+        }
+        Command::Migration(cmd) => {
+            migration::run(&cmd, &home)?;
             Ok(ExitCode::SUCCESS)
         }
     }

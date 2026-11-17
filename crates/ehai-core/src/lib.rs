@@ -9,6 +9,7 @@ pub mod git;
 pub mod migrate;
 pub mod paths;
 pub mod process;
+pub mod release;
 
 pub use brand::Brand;
 pub use config::{Config, LoadOptions};
