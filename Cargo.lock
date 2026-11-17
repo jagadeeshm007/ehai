@@ -558,6 +558,7 @@ dependencies = [
  "console",
  "ehai-adapters",
  "ehai-core",
+ "ehai-env",
  "ehai-mcp",
  "ehai-stack",
  "ehai-tracker",
@@ -586,6 +587,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "ehai-env"
+version = "0.1.0-alpha.1"
+dependencies = [
+ "ehai-core",
+ "ehai-stack",
+ "regex",
+ "schemars",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror",
+ "tracing",
+]
+
+[[package]]
 name = "ehai-guard"
 version = "0.1.0-alpha.1"
 dependencies = [
@@ -604,6 +620,7 @@ version = "0.1.0-alpha.1"
 dependencies = [
  "ehai-adapters",
  "ehai-core",
+ "ehai-env",
  "ehai-guard",
  "ehai-planner",
  "ehai-tracker",

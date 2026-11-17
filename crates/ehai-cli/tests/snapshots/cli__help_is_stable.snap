@@ -19,6 +19,7 @@ Commands:
   tracker     Connect and inspect the work tracker (GitHub Projects)
   role        Show or change your role (only a project admin can set one)
   team        Who can be assigned work and @mentioned on the connected project
+  env         Make a worktree runnable: gitignored config, ports, dependencies, health check
   mcp         Run the MCP server on stdio (started by your AI harness, not by hand)
   config      Inspect configuration
   help        Print this message or the help of the given subcommand(s)

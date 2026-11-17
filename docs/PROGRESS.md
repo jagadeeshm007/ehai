@@ -107,10 +107,21 @@
 - Claude Code skill `/ehai:assign`; `doctor` shows the role, why, and the team cache age.
 - Verified live against `jagadeeshm007/aisdlc-demo` (real admin check, team fetch, role persistence) and against a disposable throwaway GitHub project (`EHAI_LIVE_GH=1`, self-deleting) covering admin check, team fetch and assign/unassign round-trip.
 
-## Next — M4: Env provisioning
-- `ehai-env`: discover gitignored config (`.env*`, local configs, native files), copy or symlink, check against `.env.example`, isolate ports (`.env.ehai.local`, `~/.ehai/ports.json`), install dependencies per stack, run a health check, and never stage env files.
-- `ehai env sync|check|doctor`, plus the same as MCP tools.
-- Fixture repos: RN Expo, Vite React, Next.js, Go, FastAPI and a pnpm monorepo.
+### M4 — Env provisioning (2026-11-17)
+- `ehai-env`: discover → materialise → validate → ports → install → smoke, each step logged into a `Report`:
+  - **Discover:** walks the source checkout (skipping `node_modules`/`.venv`/`target`/etc.), matches built-in patterns (`.env*`, `*.local.*`, `.npmrc`, `local.properties`, `google-services.json`, `.tool-versions`, …) plus `[env]` include/exclude globs, keeps only what git doesn't track in the target (ignored or simply new).
+  - **Materialise:** copy (default) or symlink; refuses to overwrite a path the target worktree already tracks.
+  - **Validate:** per-directory `.env.example`/`.env.sample` vs sibling `.env*`, missing keys reported by name only, prefixed by app dir in a monorepo.
+  - **Ports:** a locked JSON registry at `~/.ehai/ports.json`, keyed by the worktree's canonical path; stable across re-syncs, released on demand. Written to `.env.ehai.local` with a stack-appropriate var name (`RCT_METRO_PORT`, `VITE_PORT`, `PORT`), prefixed by app name when there's more than one app.
+  - **Install:** lockfile → package manager detection (pnpm/yarn/npm/bun/go/uv/poetry/pip); a missing tool or lockfile is reported as skipped, never fails the sync. `pod install`/Gradle stay opt-in (`rn_native_install`), per spec.
+  - **Smoke:** the configured command per app path, with a timeout; `ehai env doctor` runs just this (plus `check`) with nothing written first.
+- CLI: `ehai env sync|check|doctor [path]` (defaults to the current directory; `sync` resolves the source checkout to copy from via the worktree's common `.git` dir).
+- MCP tools: `env_sync`, `env_check`.
+- Verified against synthetic fixtures for every stack in spec §13 (RN Expo, bare RN, Vite React, Next.js, Go API, FastAPI, pnpm monorepo) reaching "ready", plus property-style coverage: ports never collide across 20 parallel worktrees, materialised env files never show up in `git status`, a missing package manager is reported as skipped rather than failing the whole sync.
+- Coverage wasn't independently measured with `cargo-llvm-cov` (not installed in this environment); each module carries its own unit tests and the fixtures suite exercises the full `sync()` path per stack.
+
+## Next — M5: POC engine
+- `ehai-poc`/`ehai-stack`: design-token extraction (web + RN), worktree lifecycle (branch, worktree via `ehai-env`), manifest, preview + screenshots, new/iterate/compare/discard.
 
 ## Open questions
 - OAuth device flow needs an ehai OAuth App client id (ADR-0017). Who registers it, and under which org?

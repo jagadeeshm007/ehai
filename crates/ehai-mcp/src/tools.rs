@@ -167,6 +167,19 @@ pub struct CommentArgs {
     pub phi: Option<PhiChoice>,
 }
 
+#[derive(Debug, Default, Deserialize, JsonSchema)]
+pub struct EnvSyncArgs {
+    /// Worktree to provision; defaults to the current directory.
+    #[serde(default)]
+    pub repo_path: Option<String>,
+}
+
+#[derive(Debug, Default, Deserialize, JsonSchema)]
+pub struct EnvCheckArgs {
+    #[serde(default)]
+    pub repo_path: Option<String>,
+}
+
 #[tool_router(router = tool_router, vis = "pub(crate)")]
 impl EhaiServer {
     #[tool(
@@ -297,6 +310,24 @@ impl EhaiServer {
     pub async fn comment_task(&self, Parameters(a): Parameters<CommentArgs>) -> Out {
         let this = self.clone();
         guard(async move { this.do_comment(a).await }).await
+    }
+
+    #[tool(
+        name = "env_sync",
+        description = "Make a worktree runnable: copy its gitignored config (.env*, local config, etc.), allocate free ports, install dependencies, and run the configured health check. Defaults to the current directory."
+    )]
+    pub async fn env_sync(&self, Parameters(a): Parameters<EnvSyncArgs>) -> Out {
+        let this = self.clone();
+        guard(async move { this.do_env_sync(a) }).await
+    }
+
+    #[tool(
+        name = "env_check",
+        description = "Compare the worktree's .env* files against .env.example/.env.sample and report which keys are missing. Never returns values, only key names."
+    )]
+    pub async fn env_check(&self, Parameters(a): Parameters<EnvCheckArgs>) -> Out {
+        let this = self.clone();
+        guard(async move { this.do_env_check(a) }).await
     }
 }
 
@@ -442,6 +473,25 @@ impl EhaiServer {
         )
         .await
         .map_err(|e| e.to_string())
+    }
+
+    fn do_env_sync(&self, a: EnvSyncArgs) -> Out {
+        let target = self
+            .repo(a.repo_path.as_deref())?
+            .ok_or_else(|| "repo_path is required when not running inside a repo".to_string())?;
+        let source = ehai_env::source_root(&target);
+        let id = ehai_env::worktree_id(&target);
+        let report = ehai_env::sync(&source, &target, &id, &self.ctx.home, &self.ctx.config.env)
+            .map_err(|e| e.to_string())?;
+        out(json!({ "status": "ok", "report": report, "ready": report.is_ready() }))
+    }
+
+    fn do_env_check(&self, a: EnvCheckArgs) -> Out {
+        let target = self
+            .repo(a.repo_path.as_deref())?
+            .ok_or_else(|| "repo_path is required when not running inside a repo".to_string())?;
+        let missing = ehai_env::check(&target);
+        out(json!({ "status": "ok", "missing_keys": missing }))
     }
 
     fn do_save_prd(&self, a: SavePrdArgs) -> Out {

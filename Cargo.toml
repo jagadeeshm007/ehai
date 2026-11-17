@@ -13,6 +13,7 @@ publish = false
 [workspace.dependencies]
 ehai-core = { path = "crates/ehai-core" }
 ehai-stack = { path = "crates/ehai-stack" }
+ehai-env = { path = "crates/ehai-env" }
 ehai-mcp = { path = "crates/ehai-mcp" }
 ehai-adapters = { path = "crates/ehai-adapters" }
 ehai-tracker = { path = "crates/ehai-tracker" }

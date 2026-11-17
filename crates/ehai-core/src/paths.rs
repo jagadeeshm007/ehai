@@ -54,6 +54,11 @@ pub fn team_cache(home: &Path, owner: &str, number: u64) -> PathBuf {
         .join(format!("{owner}-{number}.json"))
 }
 
+/// Global registry of ports allocated to worktrees (spec §6), locked on every edit.
+pub fn ports_registry(home: &Path) -> PathBuf {
+    home.join("ports.json")
+}
+
 /// Nearest `.ehai.toml` walking up from `start`.
 pub fn find_repo_config(start: &Path) -> Option<PathBuf> {
     start

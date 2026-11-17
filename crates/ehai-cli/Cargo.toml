@@ -18,6 +18,7 @@ ehai-adapters.workspace = true
 ehai-mcp.workspace = true
 ehai-stack.workspace = true
 ehai-tracker.workspace = true
+ehai-env.workspace = true
 tokio.workspace = true
 anyhow.workspace = true
 clap.workspace = true

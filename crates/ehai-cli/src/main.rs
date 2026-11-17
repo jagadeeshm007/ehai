@@ -6,6 +6,7 @@ use clap::{Parser, Subcommand};
 use ehai_core::{paths, Config, LoadOptions};
 
 mod doctor;
+mod env;
 mod init;
 mod logging;
 mod role;
@@ -92,6 +93,9 @@ enum Command {
         #[arg(long)]
         refresh: bool,
     },
+    /// Make a worktree runnable: gitignored config, ports, dependencies, health check.
+    #[command(subcommand)]
+    Env(EnvCmd),
     /// Run the MCP server on stdio (started by your AI harness, not by hand).
     Mcp,
     /// Inspect configuration.
@@ -134,6 +138,19 @@ enum RoleCmd {
         #[arg(value_parser = ["pm", "dev", "both"])]
         role: String,
     },
+}
+
+#[derive(Subcommand)]
+enum EnvCmd {
+    /// Discover and copy gitignored config, allocate ports, install dependencies, run the health check.
+    Sync {
+        /// Worktree to provision; defaults to the current directory.
+        path: Option<PathBuf>,
+    },
+    /// Compare `.env*` against `.env.example`/`.env.sample`: which keys are missing.
+    Check { path: Option<PathBuf> },
+    /// Read-only: missing keys plus the configured smoke checks.
+    Doctor { path: Option<PathBuf> },
 }
 
 #[derive(Subcommand)]
@@ -278,6 +295,17 @@ fn run() -> Result<ExitCode> {
                 }
                 TrackerCmd::Status => println!("{}", tracker::status(&config)?),
                 TrackerCmd::Schema => println!("{}", tracker::schema(&config)?),
+            }
+            Ok(ExitCode::SUCCESS)
+        }
+        Command::Env(cmd) => {
+            let config = config?;
+            match cmd {
+                EnvCmd::Sync { path } => {
+                    println!("{}", env::sync(&home, &config, path.as_deref())?)
+                }
+                EnvCmd::Check { path } => println!("{}", env::check(path.as_deref())?),
+                EnvCmd::Doctor { path } => println!("{}", env::doctor(&config, path.as_deref())?),
             }
             Ok(ExitCode::SUCCESS)
         }

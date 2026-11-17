@@ -27,6 +27,7 @@ pub struct Config {
     pub tracker: Tracker,
     pub adapters: Adapters,
     pub access: Access,
+    pub env: Env,
 }
 
 impl Default for Config {
@@ -42,6 +43,7 @@ impl Default for Config {
             tracker: Tracker::default(),
             adapters: Adapters::default(),
             access: Access::default(),
+            env: Env::default(),
         }
     }
 }
@@ -202,6 +204,42 @@ pub struct Adapters {
     /// Harness adapters the user chose (`claude-code`, ...). `doctor` verifies and
     /// `adapters regenerate` refreshes exactly these.
     pub enabled: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(default)]
+pub struct Env {
+    pub strategy: EnvStrategy,
+    /// Extra glob patterns to materialise into a new worktree, beyond the built-ins.
+    pub include: Vec<String>,
+    /// Glob patterns to never materialise, even if gitignored and otherwise matched.
+    pub exclude: Vec<String>,
+    pub install_deps: bool,
+    /// `pod install` / Gradle sync: slow, so off by default (spec §6).
+    pub rn_native_install: bool,
+    /// Health-check command per app path (e.g. `"apps/web" = "pnpm typecheck"`).
+    pub smoke: std::collections::BTreeMap<String, String>,
+}
+
+impl Default for Env {
+    fn default() -> Self {
+        Self {
+            strategy: EnvStrategy::default(),
+            include: Vec::new(),
+            exclude: Vec::new(),
+            install_deps: true,
+            rn_native_install: false,
+            smoke: std::collections::BTreeMap::new(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum EnvStrategy {
+    #[default]
+    Copy,
+    Symlink,
 }
 
 /// Inputs for [`Config::load`]. Kept explicit (no hidden env/cwd reads) so tests are hermetic.
