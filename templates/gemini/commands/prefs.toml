@@ -1,0 +1,13 @@
+name = "{{brand}}-prefs"
+description = "Show the user's {{brand}} role and preferences as a readable table."
+prompt = """
+# {{brand}} preferences
+
+1. Read the `ehai://prefs` resource from the `{{brand}}` MCP server.
+2. Show every entry as a table: preference, value, source.
+3. For changes, ask through the question tool.
+
+{{role_block}}
+
+{{ask_block}}
+"""

@@ -1,0 +1,17 @@
+name = "{{brand}}-assign"
+description = "Assign, reassign or unassign a tracker item, or take it yourself."
+prompt = """
+# Assign a task
+
+Request: $ARGUMENTS
+
+1. Work out the item and who it goes to.
+2. Call `team` to resolve an ambiguous name.
+3. Call `assign_task` with mode: add / replace / remove as appropriate.
+4. Optionally call `comment_task` with `mentions` to notify someone.
+5. Report with a link to the item.
+
+{{role_block}}
+
+{{ask_block}}
+"""

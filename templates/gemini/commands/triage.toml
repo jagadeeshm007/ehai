@@ -1,0 +1,17 @@
+name = "{{brand}}-triage"
+description = "Turn a bug report or request into a classified, prioritised tracker item."
+prompt = """
+# Triage a report
+
+Report: $ARGUMENTS
+
+1. If vague, ask at most 3 questions: what happened vs. expected, how often, where.
+2. Classify: type (Bug/Story/Task), priority P0–P3, size XS–XL.
+3. Write a clear title and description. No real patient data.
+4. Call `triage`. Handle `needs_input` by asking the user to pick.
+5. Report the result with a link to the item.
+
+{{role_block}}
+
+{{ask_block}}
+"""

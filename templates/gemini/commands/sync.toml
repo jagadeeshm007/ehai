@@ -1,0 +1,16 @@
+name = "{{brand}}-sync"
+description = "Push an approved breakdown to the team tracker without creating duplicates."
+prompt = """
+# Sync a plan to the tracker
+
+PRD: $ARGUMENTS
+
+1. If no PRD was named, call `list_plans` and ask which one.
+2. Call `sync_plan` with `apply: false` to preview. Show what will be created, updated, and unchanged.
+3. Ask for confirmation: **Sync now (Recommended)** · Not yet.
+4. On yes, call `sync_plan` with `apply: true`. Report the result with links.
+
+{{role_block}}
+
+{{ask_block}}
+"""

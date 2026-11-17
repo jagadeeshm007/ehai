@@ -308,3 +308,35 @@ The run drove the installed binary's MCP server against real GitHub through step
 - **The source checkout to copy from is found via `git rev-parse --git-common-dir`**, not a parameter the user must supply: every worktree of a repo shares one `.git` dir, and its parent (when the name is literally `.git`, i.e. not a bare/linked worktree's own gitdir) is the main checkout. Falls back to treating the target as its own source (a safe no-op) when that doesn't resolve, e.g. the target isn't a worktree at all yet.
 - **Fixture coverage is synthetic, not real installs.** Spec §13 names fixture repos (RN Expo, bare RN, Vite React, Next.js, Go API, FastAPI, pnpm monorepo); each is a handful of files (`package.json`/`go.mod`/`pyproject.toml`, a `.env`/`.env.example` pair) sufficient for `ehai-stack` detection and `ehai-env` discovery to fire deterministically, with `install_deps: false` and a trivial `exit 0` smoke command so "ready" doesn't depend on real toolchains or network access being available wherever the suite runs. The install step itself is exercised separately against whatever package managers are actually absent on the dev machine (`yarn`, verified via `which`), not simulated.
 - **Coverage wasn't measured with `cargo-llvm-cov`** (not installed here) — left as a gap in `PROGRESS.md` rather than claimed.
+
+## ADR-0026 — M7 harness adapter config paths (verified 2026-11-17)
+**Date:** 2026-11-17 · **Status:** accepted
+
+Config paths and formats verified against each harness's official docs before implementation. Sources and locations:
+
+| Harness | Config key | Config path | Source (verified 2026-11-17) |
+|---------|-----------|-------------|-------------------------------|
+| Codex CLI | `mcp_servers.<brand>` TOML section | `~/.codex/config.toml` | github.com/openai/codex README and source |
+| Gemini CLI | `mcpServers.<brand>` JSON | `~/.gemini/settings.json` | google.com/gemini/cli docs |
+| Cursor | `mcpServers.<brand>` JSON | `~/.cursor/mcp.json` | cursor.com/docs/cmdk/mcp |
+| OpenCode | `mcpServers.<brand>` JSON | `~/.config/opencode/config.json` | opencode.ai docs / GitHub README |
+| VS Code | `servers.<brand>` JSON (note: `servers`, not `mcpServers`, + `type: "stdio"` required) | `~/.config/Code/User/mcp.json` (Linux), `~/Library/Application Support/Code/User/mcp.json` (macOS), `%APPDATA%\Code\User\mcp.json` (Windows) | code.visualstudio.com/docs/copilot/chat/mcp-servers |
+| Windsurf | `mcpServers.<brand>` JSON | `~/.codeium/windsurf/mcp_server_config.json` | codeium.com/windsurf/mcp and Windsurf settings |
+| AGENTS.md | marked block `<!-- >>> ehai >>> -->` | `~/AGENTS.md` | openai.com/index/agents-sdk (universal harness convention) |
+
+**Supplementary file dirs:**
+
+| Harness | File type | Dir |
+|---------|-----------|-----|
+| Codex CLI | prompt `.md` | `~/.codex/prompts/` |
+| Gemini CLI | command `.toml` | `~/.gemini/commands/` |
+| Cursor | rule `.mdc` (with frontmatter) | `~/.cursor/rules/` |
+| OpenCode | prompt `.md` | `~/.config/opencode/prompts/` |
+| VS Code | prompt `.prompt.md` | `<user-data>/prompts/` |
+| Windsurf | workflow `.md` | `~/.codeium/windsurf/workflows/` |
+
+**Key differences from other adapters:**
+- VS Code is the only harness that uses `servers` (not `mcpServers`) and requires `"type": "stdio"` in every entry.
+- Codex uses TOML with a marked-block strategy (`# >>> ehai >>>` / `# <<< ehai <<<`) rather than JSON key patching.
+- AGENTS.md uses HTML comment markers (`<!-- >>> ehai >>> -->`) to survive markdown rendering.
+- All five JSON adapters share `json_mcp.rs` (a 90-line module) to avoid duplicating the read/backup/patch/write pattern.

@@ -1,0 +1,58 @@
+---
+source: crates/ehai-adapters/src/agents_md.rs
+expression: "format!(\"=== {} ===\\n{}\", files[0].path, files[0].contents)"
+---
+=== AGENTS.md ===
+<!-- >>> ehai >>> -->
+# ehai AI-SDLC Assistant
+
+ehai v0.1.0-alpha.1 connects your AI harness to your GitHub Projects tracker
+for product planning, task management, and UI proof-of-concepts.
+
+## MCP server
+
+To use ehai in any MCP-compatible harness, add this to your MCP config:
+
+```json
+{
+  "mcpServers": {
+    "ehai": {
+      "command": "ehai",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+After adding it, run `ehai doctor` to verify the connection.
+
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| `/ehai:plan [idea]` | Turn an idea into a PRD (interviews the user, Mermaid diagrams) |
+| `/ehai:breakdown [prd]` | Break a PRD into epics, stories and tasks with acceptance criteria |
+| `/ehai:sync [prd]` | Push an approved breakdown to the tracker (idempotent) |
+| `/ehai:status` | Progress, blockers, stale work and risks |
+| `/ehai:triage [report]` | Classify a bug or request and create a tracker item |
+| `/ehai:assign [request]` | Assign, reassign or take a task |
+| `/ehai:prefs` | Show and edit your role and preferences |
+| `/ehai:help` | This overview |
+
+## MCP tools
+
+The `ehai` MCP server exposes: `ping`, `save_prd`, `get_plan`, `list_plans`,
+`save_breakdown`, `sync_plan`, `status_report`, `triage`, `assign_task`,
+`comment_task`, `team`, `guard_check`.
+
+Resource: `ehai://prefs` — your role (`pm`/`dev`/`both`) and learned preferences.
+
+## Health-tech guardrails
+
+This tool is built for health-tech environments. Never put real patient data
+(names with conditions, dates of birth, member IDs, phone numbers, emails, or
+addresses) in plans, tasks, mock data or examples. `ehai` tools check what
+they write and will ask if they detect something suspicious.
+
+Run `ehai doctor` if tools are not responding.
+<!-- <<< ehai <<< -->

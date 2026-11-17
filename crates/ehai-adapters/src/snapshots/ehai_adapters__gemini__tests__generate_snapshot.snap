@@ -1,0 +1,284 @@
+---
+source: crates/ehai-adapters/src/gemini.rs
+expression: combined
+---
+=== settings.json#mcpServers.ehai ===
+{
+  "command": "/home/u/.ehai/bin/ehai",
+  "args": [
+    "mcp"
+  ]
+}
+
+=== ehai-help.toml ===
+name = "ehai-help"
+description = "Explain what ehai can do and check that it is connected."
+prompt = """
+# ehai help
+
+1. Call `ping` to verify ehai is reachable. If not, suggest `ehai doctor`.
+2. Read `ehai://prefs` for the user's role.
+3. List the commands: plan, breakdown, sync, status, triage, assign, prefs, help.
+4. Ask what to do next.
+
+## Who you are talking to
+
+Configured role: **both**. The user can override it for this session by saying so; the `ehai://prefs` resource has the current value.
+
+- **pm** — plain language, no jargon, short. Lead with visuals: Mermaid diagrams and tables. Always end with clear next options asked through the question tool.
+- **dev** — concise and technical: file paths, commands, diffs.
+- **both** — start plain, add a short technical section at the end.
+
+## Asking the user
+
+When you need input from the user, ask with your harness's multiple-choice question tool (e.g. `AskUserQuestion` in Claude Code). Offer 2–4 concrete options, recommended first and marked "(Recommended)". If no such tool exists, present a numbered list and wait for the answer.
+
+- Batch related questions, at most 4 per round.
+- Never ask what you can detect from the repo, the config, or a tool from the `ehai` MCP server.
+- If a `ehai` tool returns `"status": "needs_input"`, ask exactly its `question` with its `options` through the question tool. Then call **the same tool again with the same arguments**, plus `retry_param` set to the chosen option's `value`.
+
+## Patient data
+
+This is a health-tech product. Never put real patient data in plans, tasks, mock data or examples — no real names with conditions, dates of birth, record numbers, member ids, phone numbers, emails or addresses. Use obviously made-up examples ("Test Patient A"). `ehai` tools check what they write and will ask if they find something.
+"""
+
+=== ehai-plan.toml ===
+name = "ehai-plan"
+description = "Turn a product idea into a PRD by interviewing the user."
+prompt = """
+# Plan a feature with ehai
+
+Idea from the user: $ARGUMENTS
+
+1. Read the `ehai://prefs` resource for the user's role.
+2. Interview the user with the question tool. Usually two rounds of at most 4 questions:
+   - who it's for and what goes wrong for them today,
+   - what success looks like, with a number,
+   - what is out of scope, and which screens matter most.
+   Offer concrete options based on what you already know. Skip anything you can infer.
+3. Write the PRD: problem, users, goals, scope, out of scope, user flows as Mermaid diagrams, success metrics (each with a number), risks with mitigations.
+4. Call the `save_prd` tool on the `ehai` MCP server.
+
+## Who you are talking to
+
+Configured role: **both**. The user can override it for this session by saying so; the `ehai://prefs` resource has the current value.
+
+- **pm** — plain language, no jargon, short. Lead with visuals: Mermaid diagrams and tables. Always end with clear next options asked through the question tool.
+- **dev** — concise and technical: file paths, commands, diffs.
+- **both** — start plain, add a short technical section at the end.
+
+## Asking the user
+
+When you need input from the user, ask with your harness's multiple-choice question tool (e.g. `AskUserQuestion` in Claude Code). Offer 2–4 concrete options, recommended first and marked "(Recommended)". If no such tool exists, present a numbered list and wait for the answer.
+
+- Batch related questions, at most 4 per round.
+- Never ask what you can detect from the repo, the config, or a tool from the `ehai` MCP server.
+- If a `ehai` tool returns `"status": "needs_input"`, ask exactly its `question` with its `options` through the question tool. Then call **the same tool again with the same arguments**, plus `retry_param` set to the chosen option's `value`.
+
+## Patient data
+
+This is a health-tech product. Never put real patient data in plans, tasks, mock data or examples — no real names with conditions, dates of birth, record numbers, member ids, phone numbers, emails or addresses. Use obviously made-up examples ("Test Patient A"). `ehai` tools check what they write and will ask if they find something.
+"""
+
+=== ehai-breakdown.toml ===
+name = "ehai-breakdown"
+description = "Break a saved PRD into epics, stories and tasks with acceptance criteria."
+prompt = """
+# Break a PRD into work
+
+PRD: $ARGUMENTS
+
+1. If no PRD was named, call `list_plans` and ask which one with the question tool.
+2. Call `get_plan` to read the PRD.
+3. Draft epics → stories → tasks with Given/When/Then criteria, sizes XS–XL, priorities P0–P3.
+4. Call `save_breakdown`.
+5. Show the board preview and dependency graph.
+6. Ask: **Sync to the tracker (Recommended)** · Change something · Not yet.
+
+## Who you are talking to
+
+Configured role: **both**. The user can override it for this session by saying so; the `ehai://prefs` resource has the current value.
+
+- **pm** — plain language, no jargon, short. Lead with visuals: Mermaid diagrams and tables. Always end with clear next options asked through the question tool.
+- **dev** — concise and technical: file paths, commands, diffs.
+- **both** — start plain, add a short technical section at the end.
+
+## Asking the user
+
+When you need input from the user, ask with your harness's multiple-choice question tool (e.g. `AskUserQuestion` in Claude Code). Offer 2–4 concrete options, recommended first and marked "(Recommended)". If no such tool exists, present a numbered list and wait for the answer.
+
+- Batch related questions, at most 4 per round.
+- Never ask what you can detect from the repo, the config, or a tool from the `ehai` MCP server.
+- If a `ehai` tool returns `"status": "needs_input"`, ask exactly its `question` with its `options` through the question tool. Then call **the same tool again with the same arguments**, plus `retry_param` set to the chosen option's `value`.
+
+## Patient data
+
+This is a health-tech product. Never put real patient data in plans, tasks, mock data or examples — no real names with conditions, dates of birth, record numbers, member ids, phone numbers, emails or addresses. Use obviously made-up examples ("Test Patient A"). `ehai` tools check what they write and will ask if they find something.
+"""
+
+=== ehai-sync.toml ===
+name = "ehai-sync"
+description = "Push an approved breakdown to the team tracker without creating duplicates."
+prompt = """
+# Sync a plan to the tracker
+
+PRD: $ARGUMENTS
+
+1. If no PRD was named, call `list_plans` and ask which one.
+2. Call `sync_plan` with `apply: false` to preview. Show what will be created, updated, and unchanged.
+3. Ask for confirmation: **Sync now (Recommended)** · Not yet.
+4. On yes, call `sync_plan` with `apply: true`. Report the result with links.
+
+## Who you are talking to
+
+Configured role: **both**. The user can override it for this session by saying so; the `ehai://prefs` resource has the current value.
+
+- **pm** — plain language, no jargon, short. Lead with visuals: Mermaid diagrams and tables. Always end with clear next options asked through the question tool.
+- **dev** — concise and technical: file paths, commands, diffs.
+- **both** — start plain, add a short technical section at the end.
+
+## Asking the user
+
+When you need input from the user, ask with your harness's multiple-choice question tool (e.g. `AskUserQuestion` in Claude Code). Offer 2–4 concrete options, recommended first and marked "(Recommended)". If no such tool exists, present a numbered list and wait for the answer.
+
+- Batch related questions, at most 4 per round.
+- Never ask what you can detect from the repo, the config, or a tool from the `ehai` MCP server.
+- If a `ehai` tool returns `"status": "needs_input"`, ask exactly its `question` with its `options` through the question tool. Then call **the same tool again with the same arguments**, plus `retry_param` set to the chosen option's `value`.
+
+## Patient data
+
+This is a health-tech product. Never put real patient data in plans, tasks, mock data or examples — no real names with conditions, dates of birth, record numbers, member ids, phone numbers, emails or addresses. Use obviously made-up examples ("Test Patient A"). `ehai` tools check what they write and will ask if they find something.
+"""
+
+=== ehai-status.toml ===
+name = "ehai-status"
+description = "Report project progress: percent done per epic, blockers, stale work and risks."
+prompt = """
+# Project status
+
+1. Read `ehai://prefs` for the role.
+2. Call `status_report`. Set `html: true` for PM or when sharing.
+3. Show the result: headline, per-epic table, chart, then blockers, stale work, risks.
+4. Offer to open an HTML report if one was returned.
+
+## Who you are talking to
+
+Configured role: **both**. The user can override it for this session by saying so; the `ehai://prefs` resource has the current value.
+
+- **pm** — plain language, no jargon, short. Lead with visuals: Mermaid diagrams and tables. Always end with clear next options asked through the question tool.
+- **dev** — concise and technical: file paths, commands, diffs.
+- **both** — start plain, add a short technical section at the end.
+
+## Asking the user
+
+When you need input from the user, ask with your harness's multiple-choice question tool (e.g. `AskUserQuestion` in Claude Code). Offer 2–4 concrete options, recommended first and marked "(Recommended)". If no such tool exists, present a numbered list and wait for the answer.
+
+- Batch related questions, at most 4 per round.
+- Never ask what you can detect from the repo, the config, or a tool from the `ehai` MCP server.
+- If a `ehai` tool returns `"status": "needs_input"`, ask exactly its `question` with its `options` through the question tool. Then call **the same tool again with the same arguments**, plus `retry_param` set to the chosen option's `value`.
+
+## Patient data
+
+This is a health-tech product. Never put real patient data in plans, tasks, mock data or examples — no real names with conditions, dates of birth, record numbers, member ids, phone numbers, emails or addresses. Use obviously made-up examples ("Test Patient A"). `ehai` tools check what they write and will ask if they find something.
+"""
+
+=== ehai-triage.toml ===
+name = "ehai-triage"
+description = "Turn a bug report or request into a classified, prioritised tracker item."
+prompt = """
+# Triage a report
+
+Report: $ARGUMENTS
+
+1. If vague, ask at most 3 questions: what happened vs. expected, how often, where.
+2. Classify: type (Bug/Story/Task), priority P0–P3, size XS–XL.
+3. Write a clear title and description. No real patient data.
+4. Call `triage`. Handle `needs_input` by asking the user to pick.
+5. Report the result with a link to the item.
+
+## Who you are talking to
+
+Configured role: **both**. The user can override it for this session by saying so; the `ehai://prefs` resource has the current value.
+
+- **pm** — plain language, no jargon, short. Lead with visuals: Mermaid diagrams and tables. Always end with clear next options asked through the question tool.
+- **dev** — concise and technical: file paths, commands, diffs.
+- **both** — start plain, add a short technical section at the end.
+
+## Asking the user
+
+When you need input from the user, ask with your harness's multiple-choice question tool (e.g. `AskUserQuestion` in Claude Code). Offer 2–4 concrete options, recommended first and marked "(Recommended)". If no such tool exists, present a numbered list and wait for the answer.
+
+- Batch related questions, at most 4 per round.
+- Never ask what you can detect from the repo, the config, or a tool from the `ehai` MCP server.
+- If a `ehai` tool returns `"status": "needs_input"`, ask exactly its `question` with its `options` through the question tool. Then call **the same tool again with the same arguments**, plus `retry_param` set to the chosen option's `value`.
+
+## Patient data
+
+This is a health-tech product. Never put real patient data in plans, tasks, mock data or examples — no real names with conditions, dates of birth, record numbers, member ids, phone numbers, emails or addresses. Use obviously made-up examples ("Test Patient A"). `ehai` tools check what they write and will ask if they find something.
+"""
+
+=== ehai-assign.toml ===
+name = "ehai-assign"
+description = "Assign, reassign or unassign a tracker item, or take it yourself."
+prompt = """
+# Assign a task
+
+Request: $ARGUMENTS
+
+1. Work out the item and who it goes to.
+2. Call `team` to resolve an ambiguous name.
+3. Call `assign_task` with mode: add / replace / remove as appropriate.
+4. Optionally call `comment_task` with `mentions` to notify someone.
+5. Report with a link to the item.
+
+## Who you are talking to
+
+Configured role: **both**. The user can override it for this session by saying so; the `ehai://prefs` resource has the current value.
+
+- **pm** — plain language, no jargon, short. Lead with visuals: Mermaid diagrams and tables. Always end with clear next options asked through the question tool.
+- **dev** — concise and technical: file paths, commands, diffs.
+- **both** — start plain, add a short technical section at the end.
+
+## Asking the user
+
+When you need input from the user, ask with your harness's multiple-choice question tool (e.g. `AskUserQuestion` in Claude Code). Offer 2–4 concrete options, recommended first and marked "(Recommended)". If no such tool exists, present a numbered list and wait for the answer.
+
+- Batch related questions, at most 4 per round.
+- Never ask what you can detect from the repo, the config, or a tool from the `ehai` MCP server.
+- If a `ehai` tool returns `"status": "needs_input"`, ask exactly its `question` with its `options` through the question tool. Then call **the same tool again with the same arguments**, plus `retry_param` set to the chosen option's `value`.
+
+## Patient data
+
+This is a health-tech product. Never put real patient data in plans, tasks, mock data or examples — no real names with conditions, dates of birth, record numbers, member ids, phone numbers, emails or addresses. Use obviously made-up examples ("Test Patient A"). `ehai` tools check what they write and will ask if they find something.
+"""
+
+=== ehai-prefs.toml ===
+name = "ehai-prefs"
+description = "Show the user's ehai role and preferences as a readable table."
+prompt = """
+# ehai preferences
+
+1. Read the `ehai://prefs` resource from the `ehai` MCP server.
+2. Show every entry as a table: preference, value, source.
+3. For changes, ask through the question tool.
+
+## Who you are talking to
+
+Configured role: **both**. The user can override it for this session by saying so; the `ehai://prefs` resource has the current value.
+
+- **pm** — plain language, no jargon, short. Lead with visuals: Mermaid diagrams and tables. Always end with clear next options asked through the question tool.
+- **dev** — concise and technical: file paths, commands, diffs.
+- **both** — start plain, add a short technical section at the end.
+
+## Asking the user
+
+When you need input from the user, ask with your harness's multiple-choice question tool (e.g. `AskUserQuestion` in Claude Code). Offer 2–4 concrete options, recommended first and marked "(Recommended)". If no such tool exists, present a numbered list and wait for the answer.
+
+- Batch related questions, at most 4 per round.
+- Never ask what you can detect from the repo, the config, or a tool from the `ehai` MCP server.
+- If a `ehai` tool returns `"status": "needs_input"`, ask exactly its `question` with its `options` through the question tool. Then call **the same tool again with the same arguments**, plus `retry_param` set to the chosen option's `value`.
+
+## Patient data
+
+This is a health-tech product. Never put real patient data in plans, tasks, mock data or examples — no real names with conditions, dates of birth, record numbers, member ids, phone numbers, emails or addresses. Use obviously made-up examples ("Test Patient A"). `ehai` tools check what they write and will ask if they find something.
+"""

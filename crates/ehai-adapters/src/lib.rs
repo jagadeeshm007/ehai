@@ -1,15 +1,22 @@
-//! Harness adapters. Each one can detect its harness, generate its files, install,
-//! verify (status) and remove — idempotently and reversibly (spec §10).
-//! Claude Code (M1) and Claude desktop (M3) so far; M7 adds Codex, Gemini CLI, Cursor, OpenCode, VS Code,
-//! Windsurf and AGENTS.md behind the same trait.
+//! Harness adapters: detect, generate, install, verify, remove — all idempotent
+//! and reversible (spec §10). Nine adapters total: Claude Code, Claude desktop,
+//! Codex CLI, Gemini CLI, Cursor, OpenCode, VS Code, Windsurf, AGENTS.md.
 
 use std::path::{Path, PathBuf};
 
 use ehai_core::Brand;
 
+pub mod agents_md;
 pub mod claude_code;
 pub mod claude_desktop;
+pub mod codex;
+pub mod cursor;
+pub mod gemini;
+mod json_mcp;
+pub mod opencode;
 mod templates;
+pub mod vscode;
+pub mod windsurf;
 
 pub use templates::render;
 
@@ -66,11 +73,18 @@ pub trait Harness {
     fn status(&self, ctx: &Ctx) -> Status;
 }
 
-/// Adapters available in this build.
+/// All adapters available in this build, in the order they are listed by the CLI.
 pub fn all() -> Vec<Box<dyn Harness>> {
     vec![
         Box::new(claude_code::ClaudeCode::from_env()),
         Box::new(claude_desktop::ClaudeDesktop::from_env()),
+        Box::new(codex::Codex::from_env()),
+        Box::new(gemini::Gemini::from_env()),
+        Box::new(cursor::Cursor::from_env()),
+        Box::new(opencode::OpenCode::from_env()),
+        Box::new(vscode::VsCode::from_env()),
+        Box::new(windsurf::Windsurf::from_env()),
+        Box::new(agents_md::AgentsMd::from_env()),
     ]
 }
 

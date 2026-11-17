@@ -1,0 +1,14 @@
+name = "{{brand}}-help"
+description = "Explain what {{brand}} can do and check that it is connected."
+prompt = """
+# {{brand}} help
+
+1. Call `ping` to verify {{brand}} is reachable. If not, suggest `{{brand}} doctor`.
+2. Read `ehai://prefs` for the user's role.
+3. List the commands: plan, breakdown, sync, status, triage, assign, prefs, help.
+4. Ask what to do next.
+
+{{role_block}}
+
+{{ask_block}}
+"""

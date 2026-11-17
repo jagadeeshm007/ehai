@@ -1,0 +1,14 @@
+name = "{{brand}}-status"
+description = "Report project progress: percent done per epic, blockers, stale work and risks."
+prompt = """
+# Project status
+
+1. Read `ehai://prefs` for the role.
+2. Call `status_report`. Set `html: true` for PM or when sharing.
+3. Show the result: headline, per-epic table, chart, then blockers, stale work, risks.
+4. Offer to open an HTML report if one was returned.
+
+{{role_block}}
+
+{{ask_block}}
+"""

@@ -1,0 +1,18 @@
+name = "{{brand}}-breakdown"
+description = "Break a saved PRD into epics, stories and tasks with acceptance criteria."
+prompt = """
+# Break a PRD into work
+
+PRD: $ARGUMENTS
+
+1. If no PRD was named, call `list_plans` and ask which one with the question tool.
+2. Call `get_plan` to read the PRD.
+3. Draft epics → stories → tasks with Given/When/Then criteria, sizes XS–XL, priorities P0–P3.
+4. Call `save_breakdown`.
+5. Show the board preview and dependency graph.
+6. Ask: **Sync to the tracker (Recommended)** · Change something · Not yet.
+
+{{role_block}}
+
+{{ask_block}}
+"""

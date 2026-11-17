@@ -120,6 +120,16 @@
 - Verified against synthetic fixtures for every stack in spec §13 (RN Expo, bare RN, Vite React, Next.js, Go API, FastAPI, pnpm monorepo) reaching "ready", plus property-style coverage: ports never collide across 20 parallel worktrees, materialised env files never show up in `git status`, a missing package manager is reported as skipped rather than failing the whole sync.
 - Coverage wasn't independently measured with `cargo-llvm-cov` (not installed in this environment); each module carries its own unit tests and the fixtures suite exercises the full `sync()` path per stack.
 
+### M7 — All harness adapters (2026-11-17)
+- 7 new harness adapters: Codex CLI, Gemini CLI, Cursor, OpenCode, VS Code, Windsurf, AGENTS.md (universal).
+- Shared `json_mcp.rs` module handles read/backup/patch/write for the 5 JSON-based adapters.
+- Marked-block strategy for Codex (TOML `# >>> ehai >>>`) and AGENTS.md (HTML `<!-- >>> ehai >>> -->`).
+- VS Code uses `servers` (not `mcpServers`) and requires `type: "stdio"` — the only harness that differs.
+- Each adapter has install/idempotency/remove tests and an insta snapshot for `generate()`.
+- `ehai_adapters::all()` now returns all 9 adapters; CLI commands require no changes.
+- Config paths verified against official docs and recorded in ADR-0026.
+- 25 adapter tests: 25 passed, 0 failed.
+
 ## Next — M5: POC engine
 - `ehai-poc`/`ehai-stack`: design-token extraction (web + RN), worktree lifecycle (branch, worktree via `ehai-env`), manifest, preview + screenshots, new/iterate/compare/discard.
 
