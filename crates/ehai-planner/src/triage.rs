@@ -92,6 +92,7 @@ mod tests {
             kind: None,
             closed: false,
             updated_at: None,
+            assignees: vec![],
         }
     }
 

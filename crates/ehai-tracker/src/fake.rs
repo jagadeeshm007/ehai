@@ -30,7 +30,6 @@ pub async fn mount(server: &MockServer) -> FakeGithub {
 #[derive(Clone, Default)]
 pub struct FakeGithub(std::sync::Arc<Mutex<State>>);
 
-#[derive(Default)]
 struct State {
     next: u64,
     fields: Vec<FakeField>,
@@ -38,6 +37,28 @@ struct State {
     comments: Vec<String>,
     seeded: bool,
     fail_field: Option<String>,
+    /// `viewerCanClose`: toggled with [`FakeGithub::set_admin`].
+    viewer_can_close: bool,
+    /// (login, name) pairs the fake reports as the repo's assignable users.
+    assignable_users: Vec<(String, Option<String>)>,
+    /// (login, name) pairs the fake reports as org members.
+    org_members: Vec<(String, Option<String>)>,
+}
+
+impl Default for State {
+    fn default() -> Self {
+        Self {
+            next: 0,
+            fields: Vec::new(),
+            items: Vec::new(),
+            comments: Vec::new(),
+            seeded: false,
+            fail_field: None,
+            viewer_can_close: true,
+            assignable_users: vec![("octo".into(), Some("Octo Cat".into()))],
+            org_members: Vec::new(),
+        }
+    }
 }
 
 struct FakeField {
@@ -55,6 +76,7 @@ struct FakeItem {
     title: String,
     body: String,
     values: HashMap<String, String>, // field id → option id
+    assignees: Vec<String>,          // user node ids, e.g. "U_alice"
 }
 
 impl FakeGithub {
@@ -101,6 +123,42 @@ impl FakeGithub {
     pub fn comments(&self) -> Vec<String> {
         self.0.lock().unwrap().comments.clone()
     }
+
+    /// Set whether the viewer administers the project (`viewerCanClose`).
+    pub fn set_admin(&self, admin: bool) {
+        self.0.lock().unwrap().viewer_can_close = admin;
+    }
+
+    /// Replace the repo's assignable-users list for the `Team` query.
+    pub fn set_assignable_users(&self, users: &[(&str, Option<&str>)]) {
+        self.0.lock().unwrap().assignable_users = users
+            .iter()
+            .map(|(l, n)| (l.to_string(), n.map(String::from)))
+            .collect();
+    }
+
+    /// Replace the org-members list for the `Team` query.
+    pub fn set_org_members(&self, users: &[(&str, Option<&str>)]) {
+        self.0.lock().unwrap().org_members = users
+            .iter()
+            .map(|(l, n)| (l.to_string(), n.map(String::from)))
+            .collect();
+    }
+
+    /// Logins currently assigned to an item, by its project-item id.
+    pub fn assignees_of(&self, item_id: &str) -> Vec<String> {
+        let s = self.0.lock().unwrap();
+        s.items
+            .iter()
+            .find(|i| i.id == item_id)
+            .map(|i| i.assignees.iter().map(|id| login_of(id)).collect())
+            .unwrap_or_default()
+    }
+}
+
+/// `"U_alice"` → `"alice"` (the fake's deterministic id scheme).
+fn login_of(id: &str) -> String {
+    id.strip_prefix("U_").unwrap_or(id).to_string()
 }
 
 impl State {
@@ -150,7 +208,8 @@ impl State {
                 Some(json!({ "name": name, "field": { "name": f.name } }))
             })
             .collect();
-        let mut content = json!({ "__typename": i.typename, "id": i.content_id, "title": i.title, "body": i.body });
+        let mut content = json!({ "__typename": i.typename, "id": i.content_id, "title": i.title, "body": i.body,
+            "assignees": { "nodes": i.assignees.iter().map(|id| json!({ "id": id, "login": login_of(id) })).collect::<Vec<_>>() } });
         if let Some(n) = i.number {
             content["number"] = json!(n);
             content["url"] = json!(format!("https://github.com/octo/app/issues/{n}"));
@@ -233,9 +292,74 @@ impl State {
                 json!({ "viewer": { "login": "octo", "organizations": { "nodes": [{ "login": "acme" }] } } })
             }
             "Projects" => json!({ "repositoryOwner": { "id": "U_1", "login": v["owner"],
-                "projectsV2": { "nodes": [{ "number": 1, "title": "Fake", "url": "https://github.com/users/octo/projects/1", "closed": false }] } } }),
+                "projectsV2": { "nodes": [{ "number": 1, "title": "Fake", "url": "https://github.com/users/octo/projects/1",
+                    "closed": false, "viewerCanClose": self.viewer_can_close }] } } }),
             "CreateProject" => json!({ "createProjectV2": { "projectV2": {
                 "number": 1, "title": v["title"], "url": "https://github.com/users/octo/projects/1", "closed": false } } }),
+            "ProjectAdmin" => {
+                json!({ "repositoryOwner": { "projectV2": { "viewerCanClose": self.viewer_can_close } } })
+            }
+            "ResolveUser" => {
+                json!({ "user": { "id": format!("U_{}", v["login"].as_str().unwrap()) } })
+            }
+            "Team" => {
+                let member = |(l, n): &(String, Option<String>)| json!({ "login": l, "name": n });
+                let mut out = json!({ "viewer": { "login": "octo" },
+                    "repositoryOwner": { "projectV2": { "viewerCanClose": self.viewer_can_close },
+                        "membersWithRole": { "nodes": self.org_members.iter().map(member).collect::<Vec<_>>() } } });
+                if v["hasRepo"] == true {
+                    out["repository"] = json!({ "assignableUsers":
+                        { "nodes": self.assignable_users.iter().map(member).collect::<Vec<_>>() } });
+                }
+                out
+            }
+            "AddAssignees" => {
+                let item = self
+                    .items
+                    .iter_mut()
+                    .find(|i| i.content_id == v["id"].as_str().unwrap())
+                    .unwrap();
+                for id in v["ids"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .filter_map(|x| x.as_str())
+                {
+                    if !item.assignees.iter().any(|a| a == id) {
+                        item.assignees.push(id.to_string());
+                    }
+                }
+                json!({})
+            }
+            "RemoveAssignees" => {
+                let remove: Vec<&str> = v["ids"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .filter_map(|x| x.as_str())
+                    .collect();
+                let item = self
+                    .items
+                    .iter_mut()
+                    .find(|i| i.content_id == v["id"].as_str().unwrap())
+                    .unwrap();
+                item.assignees.retain(|a| !remove.contains(&a.as_str()));
+                json!({})
+            }
+            "SetDraftAssignees" => {
+                let item = self
+                    .items
+                    .iter_mut()
+                    .find(|i| i.content_id == v["id"].as_str().unwrap())
+                    .unwrap();
+                item.assignees = v["ids"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .filter_map(|x| x.as_str().map(String::from))
+                    .collect();
+                json!({})
+            }
             "CreateIssue" => {
                 let content_id = self.id("I");
                 let number = self.next;
@@ -247,6 +371,7 @@ impl State {
                     title: v["title"].as_str().unwrap().into(),
                     body: v["body"].as_str().unwrap().into(),
                     values: HashMap::new(),
+                    assignees: Vec::new(),
                 });
                 json!({ "createIssue": { "issue": { "id": content_id } } })
             }
@@ -271,6 +396,7 @@ impl State {
                     title: v["title"].as_str().unwrap().into(),
                     body: v["body"].as_str().unwrap().into(),
                     values: HashMap::new(),
+                    assignees: Vec::new(),
                 });
                 json!({ "addProjectV2DraftIssue": { "projectItem": { "id": id } } })
             }

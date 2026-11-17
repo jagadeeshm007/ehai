@@ -73,7 +73,7 @@ async fn flow(c: Client, owner: String, number: u64) {
 
     let r = t.ensure_schema().await.unwrap();
     eprintln!("schema: {r:?}");
-    let fresh = GithubProjects::new(c, &owner, number, None);
+    let fresh = GithubProjects::new(c.clone(), &owner, number, None);
     assert!(
         fresh.ensure_schema().await.unwrap().is_noop(),
         "second ensure_schema is a no-op"
@@ -124,4 +124,28 @@ async fn flow(c: Client, owner: String, number: u64) {
         .await
         .unwrap();
     assert_eq!(found[0].status, Some(Status::Done));
+
+    let admin = c.project_admin(&owner, number).await.unwrap();
+    assert!(admin, "creator administers their own project");
+
+    let team = ehai_tracker::team::fetch(&c, &owner, number, None)
+        .await
+        .unwrap();
+    assert_eq!(team.viewer, owner);
+    assert!(team.viewer_is_admin);
+    eprintln!("team: {} member(s)", team.members.len());
+
+    fresh
+        .assign(&a.id, std::slice::from_ref(&owner))
+        .await
+        .unwrap();
+    assert_eq!(
+        fresh.get_item(&a.id).await.unwrap().assignees,
+        vec![owner.clone()]
+    );
+    fresh
+        .unassign(&a.id, std::slice::from_ref(&owner))
+        .await
+        .unwrap();
+    assert!(fresh.get_item(&a.id).await.unwrap().assignees.is_empty());
 }

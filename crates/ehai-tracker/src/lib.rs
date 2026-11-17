@@ -15,6 +15,7 @@ pub mod fake;
 pub mod github;
 pub mod memory;
 pub mod sync;
+pub mod team;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -30,6 +31,8 @@ pub enum Error {
     Config(String),
     #[error("not supported by this tracker: {0}")]
     Unsupported(String),
+    #[error(transparent)]
+    Core(#[from] ehai_core::Error),
 }
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
@@ -115,6 +118,8 @@ pub struct Item {
     pub closed: bool,
     /// Last change, ISO-8601 UTC (`2026-11-17T09:30:00Z`); compares as a string.
     pub updated_at: Option<String>,
+    /// Logins of people assigned to this item.
+    pub assignees: Vec<String>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -190,6 +195,10 @@ pub trait Tracker: Sync {
     fn get_item(&self, id: &str) -> impl Future<Output = Result<Item>> + Send;
     fn comment(&self, id: &str, body: &str) -> impl Future<Output = Result<()>> + Send;
     fn link_pr(&self, id: &str, pr_url: &str) -> impl Future<Output = Result<()>> + Send;
+    /// Add `logins` to the item's assignees (already-assigned logins are a no-op).
+    fn assign(&self, id: &str, logins: &[String]) -> impl Future<Output = Result<()>> + Send;
+    /// Remove `logins` from the item's assignees (absent logins are a no-op).
+    fn unassign(&self, id: &str, logins: &[String]) -> impl Future<Output = Result<()>> + Send;
 }
 
 const FOOTER_START: &str = "<!-- ehai-id: ";
@@ -312,6 +321,7 @@ mod tests {
             kind: Some(Kind::Task),
             closed: false,
             updated_at: None,
+            assignees: vec![],
         };
         assert!(Filter::default().matches(&item));
         assert!(Filter {

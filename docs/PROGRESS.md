@@ -92,6 +92,21 @@
 - Claude desktop adapter: an `mcpServers` entry in `claude_desktop_config.json`; the flows arrive as MCP prompts.
 - Verified live: the plugin passes `claude plugin validate`, the MCP server shows ✔ Connected, and the real binary serves 9 tools and 7 prompts.
 
+### M3.5 — Roles and team (2026-11-17)
+- Role resolution tied to real GitHub project admin status (`docs/plans/roles-and-team.md`, approved):
+  - Admin check: `ProjectV2.viewerCanClose`, run when `tracker set`/`init` connects a project and stored as `access.project_admin` + `access.checked`.
+  - `Config::effective_role()` reads `access.project_admin` at every call site; a stored `role` or `EHAI_ROLE` override is harmless to persist — it only takes effect for an admin. Non-admins and "no project connected yet" are always `dev`, no question asked.
+  - `ehai role` shows the effective role and why; `ehai role set <role>` is refused with a clear message for non-admins.
+- `ehai-tracker::team`: team = repo assignable users ∪ org members (merged by login), one combined GraphQL query, cached at `~/.ehai/cache/team/<owner>-<number>.json`, refreshed once a day or with `ehai team --refresh`; falls back to the stale cache if a refresh fails.
+- Assignment, by design, is **not permission-gated** — every action stays available to every role; role only shapes tone and defaults. `ehai-tracker::Tracker::assign`/`unassign`:
+  - Issues: `addAssigneesToAssignable` / `removeAssigneesToAssignable`.
+  - Draft issues: `updateProjectV2DraftIssue` (replace-only — no additive mutation exists for drafts), so the impl reads current assignees first and replaces the whole list.
+- `sync`: `Desired.assignees` are set once, on create only — a re-sync never undoes a manual reassignment on the board (same rule as status).
+- MCP tools: `team`, `assign_task` (add/replace/remove modes), `comment_task` (optional `@login` mentions, still PHI-guarded). Both resolve a fuzzy `item` (`#18`, URL, ehai id or title substring) and fuzzy assignee names, returning `needs_input` on ambiguity.
+- `ehai-planner`: `Story`/`Task` gained an optional `assignees` field (tasks inherit the story's when empty, like `platforms`); `status_report` gained a by-person table and an "overloaded" (>5 open) flag.
+- Claude Code skill `/ehai:assign`; `doctor` shows the role, why, and the team cache age.
+- Verified live against `jagadeeshm007/aisdlc-demo` (real admin check, team fetch, role persistence) and against a disposable throwaway GitHub project (`EHAI_LIVE_GH=1`, self-deleting) covering admin check, team fetch and assign/unassign round-trip.
+
 ## Next — M4: Env provisioning
 - `ehai-env`: discover gitignored config (`.env*`, local configs, native files), copy or symlink, check against `.env.example`, isolate ports (`.env.ehai.local`, `~/.ehai/ports.json`), install dependencies per stack, run a health check, and never stage env files.
 - `ehai env sync|check|doctor`, plus the same as MCP tools.

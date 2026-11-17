@@ -1,6 +1,6 @@
 ---
 source: crates/ehai-planner/src/report.rs
-assertion_line: 404
+assertion_line: 492
 expression: r.to_markdown()
 ---
 # Status — 2026-11-17
@@ -26,3 +26,10 @@ pie title Items by status
 ## Risks
 
 - [Confirm a booking](https://github.com/o/r/issues/s2) — P0 not started
+
+## By person
+
+| Person | Open | In progress | Done |
+|---|---|---|---|
+| bob | 1 | 0 | 0 |
+| jane | 0 | 2 | 1 |

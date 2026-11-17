@@ -8,8 +8,10 @@ use ehai_core::{paths, Config, LoadOptions};
 mod doctor;
 mod init;
 mod logging;
+mod role;
 mod selfcmd;
 mod sys;
+mod team;
 mod tracker;
 mod ui;
 
@@ -79,6 +81,17 @@ enum Command {
     /// Connect and inspect the work tracker (GitHub Projects).
     #[command(subcommand)]
     Tracker(TrackerCmd),
+    /// Show or change your role (only a project admin can set one).
+    Role {
+        #[command(subcommand)]
+        cmd: Option<RoleCmd>,
+    },
+    /// Who can be assigned work and @mentioned on the connected project.
+    Team {
+        /// Re-check now instead of using the (at most a day old) cache.
+        #[arg(long)]
+        refresh: bool,
+    },
     /// Run the MCP server on stdio (started by your AI harness, not by hand).
     Mcp,
     /// Inspect configuration.
@@ -112,6 +125,15 @@ enum TrackerCmd {
     Status,
     /// Create any missing project fields (Status, Priority, Size, Work type, Iteration).
     Schema,
+}
+
+#[derive(Subcommand)]
+enum RoleCmd {
+    /// Choose a role. Refused unless you administer the connected project.
+    Set {
+        #[arg(value_parser = ["pm", "dev", "both"])]
+        role: String,
+    },
 }
 
 #[derive(Subcommand)]
@@ -225,6 +247,19 @@ fn run() -> Result<ExitCode> {
                 }
                 Ok(())
             })())?;
+            Ok(ExitCode::SUCCESS)
+        }
+        Command::Role { cmd } => {
+            let config = config?;
+            match cmd {
+                None => println!("{}", role::show(&config)),
+                Some(RoleCmd::Set { role: r }) => println!("{}", role::set(&home, &config, &r)?),
+            }
+            Ok(ExitCode::SUCCESS)
+        }
+        Command::Team { refresh } => {
+            let config = config?;
+            println!("{}", team::run(&home, &config, refresh)?);
             Ok(ExitCode::SUCCESS)
         }
         Command::Tracker(cmd) => {

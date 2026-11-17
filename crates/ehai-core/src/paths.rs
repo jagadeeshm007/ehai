@@ -46,6 +46,14 @@ pub fn repo_dir(repo_root: &Path) -> PathBuf {
     repo_root.join(".ehai")
 }
 
+/// Cached team list for one tracker project (spec: roles-and-team plan §2),
+/// refreshed at most once a day, or on demand with `ehai team refresh`.
+pub fn team_cache(home: &Path, owner: &str, number: u64) -> PathBuf {
+    // owner logins are `[A-Za-z0-9-]`, so this is always a valid filename.
+    home.join("cache/team")
+        .join(format!("{owner}-{number}.json"))
+}
+
 /// Nearest `.ehai.toml` walking up from `start`.
 pub fn find_repo_config(start: &Path) -> Option<PathBuf> {
     start

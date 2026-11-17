@@ -77,6 +77,9 @@ pub struct Story {
     /// Ids of stories/tasks this depends on.
     #[serde(default)]
     pub depends_on: Vec<String>,
+    /// Logins to assign when this story is first created.
+    #[serde(default)]
+    pub assignees: Vec<String>,
     #[serde(default)]
     pub tasks: Vec<Task>,
 }
@@ -94,6 +97,10 @@ pub struct Task {
     pub platforms: Vec<Platform>,
     #[serde(default)]
     pub depends_on: Vec<String>,
+    /// Logins to assign when this task is first created. Inherits the story's
+    /// assignees when empty, like `platforms` inherits.
+    #[serde(default)]
+    pub assignees: Vec<String>,
 }
 
 /// A flattened row: every epic, story and task with its parent.
@@ -107,6 +114,7 @@ pub struct Row {
     pub size: Option<Size>,
     pub platforms: Vec<Platform>,
     pub depends_on: Vec<String>,
+    pub assignees: Vec<String>,
 }
 
 impl Breakdown {
@@ -122,6 +130,7 @@ impl Breakdown {
                 size: None,
                 platforms: vec![],
                 depends_on: vec![],
+                assignees: vec![],
             });
             for s in &e.stories {
                 rows.push(Row {
@@ -133,6 +142,7 @@ impl Breakdown {
                     size: Some(s.size),
                     platforms: s.platforms.clone(),
                     depends_on: s.depends_on.clone(),
+                    assignees: s.assignees.clone(),
                 });
                 for t in &s.tasks {
                     rows.push(Row {
@@ -148,6 +158,11 @@ impl Breakdown {
                             t.platforms.clone()
                         },
                         depends_on: t.depends_on.clone(),
+                        assignees: if t.assignees.is_empty() {
+                            s.assignees.clone()
+                        } else {
+                            t.assignees.clone()
+                        },
                     });
                 }
             }
@@ -206,10 +221,10 @@ impl Breakdown {
     /// Board preview: a table plus a Mermaid graph of hierarchy and dependencies.
     pub fn preview(&self) -> String {
         let rows = self.rows();
-        let mut md = String::from("| ID | Type | Title | Priority | Size | Platforms | Depends on |\n|---|---|---|---|---|---|---|\n");
+        let mut md = String::from("| ID | Type | Title | Priority | Size | Platforms | Assignees | Depends on |\n|---|---|---|---|---|---|---|---|\n");
         for r in &rows {
             md += &format!(
-                "| {} | {} | {} | {} | {} | {} | {} |\n",
+                "| {} | {} | {} | {} | {} | {} | {} | {} |\n",
                 r.id,
                 r.kind.label(),
                 cell(&r.title),
@@ -220,6 +235,7 @@ impl Breakdown {
                     .map(|p| p.tag())
                     .collect::<Vec<_>>()
                     .join(", "),
+                r.assignees.join(", "),
                 r.depends_on.join(", "),
             );
         }
@@ -267,6 +283,7 @@ impl Breakdown {
                 priority: Some(r.priority),
                 size: r.size,
                 kind: Some(r.kind),
+                assignees: r.assignees,
             });
         };
         let rows = self.rows();
@@ -335,6 +352,16 @@ impl Breakdown {
                     r.platforms
                         .iter()
                         .map(|p| format!("`{}`", p.tag()))
+                        .collect::<Vec<_>>()
+                        .join(" ")
+                ));
+            }
+            if !r.assignees.is_empty() {
+                meta.push(format!(
+                    "Assignees: {}",
+                    r.assignees
+                        .iter()
+                        .map(|a| format!("@{a}"))
                         .collect::<Vec<_>>()
                         .join(" ")
                 ));
@@ -505,6 +532,7 @@ pub(crate) fn sample() -> Breakdown {
                     size: Size::M,
                     platforms: vec![Platform::Rn, Platform::Go],
                     depends_on: vec![],
+                    assignees: vec!["jane".into()],
                     tasks: vec![
                         Task {
                             id: "t1".into(),
@@ -514,6 +542,7 @@ pub(crate) fn sample() -> Breakdown {
                             priority: None,
                             platforms: vec![Platform::Go],
                             depends_on: vec![],
+                            assignees: vec![],
                         },
                         Task {
                             id: "t2".into(),
@@ -523,6 +552,7 @@ pub(crate) fn sample() -> Breakdown {
                             priority: None,
                             platforms: vec![Platform::Rn],
                             depends_on: vec!["t1".into()],
+                            assignees: vec![],
                         },
                     ],
                 },
@@ -539,6 +569,7 @@ pub(crate) fn sample() -> Breakdown {
                     size: Size::S,
                     platforms: vec![Platform::Rn],
                     depends_on: vec!["s1".into()],
+                    assignees: vec![],
                     tasks: vec![],
                 },
             ],
@@ -569,6 +600,7 @@ mod tests {
             size: Size::S,
             priority: None,
             platforms: vec![],
+            assignees: vec![],
             depends_on: vec!["ghost".into()],
         });
         let p = b.problems();

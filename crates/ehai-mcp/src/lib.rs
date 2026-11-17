@@ -55,13 +55,15 @@ impl Context {
         &self.config.brand.name
     }
 
-    pub fn role(&self) -> Option<&'static str> {
+    /// The role that actually applies — `dev` unless the viewer administers
+    /// the connected project (`Config::effective_role`).
+    pub fn role(&self) -> &'static str {
         use ehai_core::config::Role;
-        self.config.role.map(|r| match r {
+        match self.config.effective_role() {
             Role::Pm => "pm",
             Role::Dev => "dev",
             Role::Both => "both",
-        })
+        }
     }
 }
 
@@ -79,13 +81,24 @@ impl EhaiServer {
         }
     }
 
-    /// Body of the `ehai://prefs` resource: role plus the user's preference file.
-    /// Preference learning lands in M6; until then this is the explicit profile only.
+    /// Body of the `ehai://prefs` resource: role (and why it applies) plus the
+    /// user's preference file. Preference learning lands in M6; until then
+    /// this is the explicit profile only.
     pub fn prefs_text(&self) -> String {
         let mut out = String::from("# ehai user preferences (edit with /ehai:prefs)\n");
-        if let Some(role) = self.ctx.role() {
-            out.push_str(&format!("role = \"{role}\"\n"));
-        }
+        out.push_str(&format!("role = \"{}\"\n", self.ctx.role()));
+        out.push_str(&format!(
+            "project_admin = {}\n",
+            self.ctx
+                .config
+                .access
+                .project_admin
+                .map_or("unknown".to_string(), |b| b.to_string())
+        ));
+        out.push_str(
+            "role_source = \"only an admin of the connected project chooses a role; \
+             everyone else is dev\"\n",
+        );
         let file = ehai_core::paths::prefs_dir(&self.ctx.home).join("user.toml");
         match std::fs::read_to_string(&file) {
             Ok(body) => out.push_str(&body),
@@ -97,7 +110,7 @@ impl EhaiServer {
     fn adapter_ctx(&self) -> ehai_adapters::Ctx {
         ehai_adapters::Ctx {
             brand: self.ctx.config.brand.clone(),
-            role: self.ctx.role().map(String::from),
+            role: Some(self.ctx.role().to_string()),
             home: self.ctx.home.clone(),
             exe: std::env::current_exe().unwrap_or_default(),
         }
@@ -282,6 +295,7 @@ mod tests {
         let mut config = Config::default();
         config.brand = ehai_core::Brand::new("acme").unwrap();
         config.role = Some(ehai_core::config::Role::Pm);
+        config.access.project_admin = Some(true); // so effective_role() is "pm", not "dev"
         Context {
             config,
             home,
@@ -298,10 +312,21 @@ mod tests {
         let d = tempfile::tempdir().unwrap();
         let s = EhaiServer::new(ctx(d.path().into()));
         assert!(s.prefs_text().contains("role = \"pm\""));
+        assert!(s.prefs_text().contains("project_admin = true"));
         assert!(s.prefs_text().contains("nothing learned yet"));
         std::fs::create_dir_all(d.path().join("prefs")).unwrap();
         std::fs::write(d.path().join("prefs/user.toml"), "detail = \"short\"\n").unwrap();
         assert!(s.prefs_text().contains("detail = \"short\""));
+    }
+
+    #[test]
+    fn non_admins_are_always_dev_regardless_of_stored_role() {
+        let d = tempfile::tempdir().unwrap();
+        let mut c = ctx(d.path().into());
+        c.config.access.project_admin = Some(false);
+        assert_eq!(c.role(), "dev");
+        c.config.access.project_admin = None; // no project connected yet
+        assert_eq!(c.role(), "dev");
     }
 
     #[test]

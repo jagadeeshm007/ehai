@@ -1,15 +1,15 @@
 ---
 source: crates/ehai-planner/src/breakdown.rs
-assertion_line: 515
+assertion_line: 580
 expression: b.preview()
 ---
-| ID | Type | Title | Priority | Size | Platforms | Depends on |
-|---|---|---|---|---|---|---|
-| e1 | Epic | Self-service booking | P1 |  |  |  |
-| s1 | Story | See free slots | P1 | M | rn, go |  |
-| t1 | Task | Slots API | P1 | S | go |  |
-| t2 | Task | Slot picker screen | P1 | M | rn | t1 |
-| s2 | Story | Confirm a booking | P0 | S | rn | s1 |
+| ID | Type | Title | Priority | Size | Platforms | Assignees | Depends on |
+|---|---|---|---|---|---|---|---|
+| e1 | Epic | Self-service booking | P1 |  |  |  |  |
+| s1 | Story | See free slots | P1 | M | rn, go | jane |  |
+| t1 | Task | Slots API | P1 | S | go | jane |  |
+| t2 | Task | Slot picker screen | P1 | M | rn | jane | t1 |
+| s2 | Story | Confirm a booking | P0 | S | rn |  | s1 |
 
 **1 epic · 2 stories · 2 tasks**
 

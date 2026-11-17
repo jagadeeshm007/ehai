@@ -37,6 +37,9 @@ pub struct ProjectSummary {
     pub title: String,
     pub url: String,
     pub closed: bool,
+    /// `viewerCanClose`: GitHub reserves closing a project to its admins, so
+    /// this is the signal M3.5 uses to decide who gets asked for a role.
+    pub viewer_is_admin: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -222,6 +225,32 @@ impl Client {
         .await
         .map(|_| ())
     }
+
+    /// Is the viewer an admin of `owner #number`? (`viewerCanClose`; cheaper
+    /// than [`Client::projects`] when only this one project matters.)
+    pub async fn project_admin(&self, owner: &str, number: u64) -> Result<bool> {
+        let d = self
+            .graphql(
+                "ProjectAdmin",
+                q::PROJECT_ADMIN,
+                json!({ "owner": owner, "number": number }),
+            )
+            .await?;
+        d["repositoryOwner"]["projectV2"]["viewerCanClose"]
+            .as_bool()
+            .ok_or_else(|| Error::NotFound(format!("project #{number} of `{owner}`")))
+    }
+
+    /// Node id for a login, needed by the assignee mutations.
+    async fn resolve_user_id(&self, login: &str) -> Result<String> {
+        let d = self
+            .graphql("ResolveUser", q::RESOLVE_USER, json!({ "login": login }))
+            .await?;
+        d["user"]["id"]
+            .as_str()
+            .map(String::from)
+            .ok_or_else(|| Error::NotFound(format!("GitHub user `{login}`")))
+    }
 }
 
 fn str_of(v: &Value) -> String {
@@ -235,6 +264,7 @@ fn project_summary(owner: &str, p: &Value) -> ProjectSummary {
         title: str_of(&p["title"]),
         url: str_of(&p["url"]),
         closed: p["closed"].as_bool().unwrap_or(false),
+        viewer_is_admin: p["viewerCanClose"].as_bool().unwrap_or(false),
     }
 }
 
@@ -482,6 +512,12 @@ fn parse_item(n: &Value) -> Option<Item> {
         kind: get("work type").or(get("type")).and_then(Kind::from_label),
         closed: c["closed"].as_bool().unwrap_or(false),
         updated_at: n["updatedAt"].as_str().map(String::from),
+        assignees: c["assignees"]["nodes"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(|a| a["login"].as_str().map(String::from))
+            .collect(),
     })
 }
 
@@ -729,6 +765,95 @@ impl Tracker for GithubProjects {
         self.comment(id, &format!("Linked pull request: {pr_url}"))
             .await
     }
+
+    async fn assign(&self, id: &str, logins: &[String]) -> Result<()> {
+        if logins.is_empty() {
+            return Ok(());
+        }
+        let raw = self.raw_item(id).await?;
+        let c = &raw["content"];
+        let mut ids = Vec::with_capacity(logins.len());
+        for login in logins {
+            ids.push(self.client.resolve_user_id(login).await?);
+        }
+        match c["__typename"].as_str() {
+            Some("Issue") => {
+                self.client
+                    .graphql(
+                        "AddAssignees",
+                        q::ADD_ASSIGNEES,
+                        json!({ "id": c["id"], "ids": ids }),
+                    )
+                    .await?;
+            }
+            Some("DraftIssue") => {
+                let current = draft_assignee_ids(c);
+                let merged: Vec<String> = current
+                    .into_iter()
+                    .chain(ids)
+                    .collect::<std::collections::BTreeSet<_>>()
+                    .into_iter()
+                    .collect();
+                self.client
+                    .graphql(
+                        "SetDraftAssignees",
+                        q::SET_DRAFT_ASSIGNEES,
+                        json!({ "id": c["id"], "ids": merged }),
+                    )
+                    .await?;
+            }
+            other => return Err(Error::Unsupported(format!("assigning {other:?} items"))),
+        }
+        Ok(())
+    }
+
+    async fn unassign(&self, id: &str, logins: &[String]) -> Result<()> {
+        if logins.is_empty() {
+            return Ok(());
+        }
+        let raw = self.raw_item(id).await?;
+        let c = &raw["content"];
+        let mut ids = Vec::with_capacity(logins.len());
+        for login in logins {
+            ids.push(self.client.resolve_user_id(login).await?);
+        }
+        match c["__typename"].as_str() {
+            Some("Issue") => {
+                self.client
+                    .graphql(
+                        "RemoveAssignees",
+                        q::REMOVE_ASSIGNEES,
+                        json!({ "id": c["id"], "ids": ids }),
+                    )
+                    .await?;
+            }
+            Some("DraftIssue") => {
+                let remaining: Vec<String> = draft_assignee_ids(c)
+                    .into_iter()
+                    .filter(|a| !ids.contains(a))
+                    .collect();
+                self.client
+                    .graphql(
+                        "SetDraftAssignees",
+                        q::SET_DRAFT_ASSIGNEES,
+                        json!({ "id": c["id"], "ids": remaining }),
+                    )
+                    .await?;
+            }
+            other => return Err(Error::Unsupported(format!("unassigning {other:?} items"))),
+        }
+        Ok(())
+    }
+}
+
+/// Current assignee node ids of a `content` value from the item fragment.
+fn draft_assignee_ids(c: &Value) -> Vec<String> {
+    c["assignees"]["nodes"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|a| a["id"].as_str().map(String::from))
+        .collect()
 }
 
 /// API root: `EHAI_GITHUB_API` when set (tests point it at a fake), else GitHub.
@@ -773,8 +898,8 @@ mod q {
     const ITEM: &str = "fragment ItemF on ProjectV2Item {
         id isArchived updatedAt
         content { __typename
-          ... on Issue { id number url title body closed }
-          ... on DraftIssue { id title body } }
+          ... on Issue { id number url title body closed assignees(first: 20) { nodes { id login } } }
+          ... on DraftIssue { id title body assignees(first: 20) { nodes { id login } } } }
         fieldValues(first: 30) { nodes {
           ... on ProjectV2ItemFieldSingleSelectValue { name field { ... on ProjectV2FieldCommon { name } } } } } }";
 
@@ -783,7 +908,22 @@ mod q {
 
     pub const PROJECTS: &str = "query Projects($owner: String!) { repositoryOwner(login: $owner) { id login
         ... on ProjectV2Owner { projectsV2(first: 50, orderBy: {field: UPDATED_AT, direction: DESC}) {
-          nodes { number title url closed } } } } }";
+          nodes { number title url closed viewerCanClose } } } } }";
+
+    pub const PROJECT_ADMIN: &str = "query ProjectAdmin($owner: String!, $number: Int!) {
+        repositoryOwner(login: $owner) { ... on ProjectV2Owner { projectV2(number: $number) { viewerCanClose } } } }";
+
+    pub const RESOLVE_USER: &str =
+        "query ResolveUser($login: String!) { user(login: $login) { id } }";
+
+    pub const ADD_ASSIGNEES: &str = "mutation AddAssignees($id: ID!, $ids: [ID!]) {
+        addAssigneesToAssignable(input: {assignableId: $id, assigneeIds: $ids}) { clientMutationId } }";
+
+    pub const REMOVE_ASSIGNEES: &str = "mutation RemoveAssignees($id: ID!, $ids: [ID!]!) {
+        removeAssigneesFromAssignable(input: {assignableId: $id, assigneeIds: $ids}) { clientMutationId } }";
+
+    pub const SET_DRAFT_ASSIGNEES: &str = "mutation SetDraftAssignees($id: ID!, $ids: [ID!]) {
+        updateProjectV2DraftIssue(input: {draftIssueId: $id, assigneeIds: $ids}) { clientMutationId } }";
 
     pub const CREATE_PROJECT: &str = "mutation CreateProject($ownerId: ID!, $title: String!) {
         createProjectV2(input: {ownerId: $ownerId, title: $title}) { projectV2 { number title url closed } } }";

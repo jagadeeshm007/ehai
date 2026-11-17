@@ -45,6 +45,7 @@ fn breakdown() -> Value {
 fn server(home: &Path, api: &str, mode: ComplianceMode) -> EhaiServer {
     let mut config = Config::default();
     config.role = Some(Role::Pm);
+    config.access.project_admin = Some(true);
     config.compliance.mode = mode;
     config.tracker.github.owner = Some("octo".into());
     config.tracker.github.project = Some(1);
@@ -268,4 +269,106 @@ async fn tracker_not_connected_is_explained() {
         .err()
         .expect("tool error");
     assert!(e.contains("tracker set"), "{e}");
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn team_assign_and_comment_tools() {
+    let gh = wiremock::MockServer::start().await;
+    let fake = ehai_tracker::fake::mount(&gh).await;
+    fake.set_assignable_users(&[("octo", Some("Octo Cat")), ("priya", Some("Priya P"))]);
+    fake.set_org_members(&[("priya", Some("Priya P")), ("asha", Some("Asha A"))]);
+    let home = tempfile::tempdir().unwrap();
+    let s = server(home.path(), &gh.uri(), ComplianceMode::Warn);
+
+    // team: lists the merged roster, with the viewer as admin
+    let r = val(s.team(p(json!({}))).await);
+    assert_eq!(r["status"], "ok");
+    assert_eq!(r["viewer_is_admin"], true);
+    let logins: Vec<&str> = r["members"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|m| m["login"].as_str().unwrap())
+        .collect();
+    assert_eq!(logins, vec!["asha", "octo", "priya"], "{r}");
+
+    // a real item to assign/comment on
+    let item = val(
+        s.triage(p(json!({ "title": "Export visit history", "description": "As a PDF", "kind": "Story", "priority": "P2" })))
+            .await,
+    );
+    assert_eq!(item["action"], "created", "{item}");
+    let number: u64 = item["url"]
+        .as_str()
+        .unwrap()
+        .rsplit('/')
+        .next()
+        .unwrap()
+        .parse()
+        .unwrap();
+    let item_ref = format!("#{number}");
+    // a second item, so a loose title search can be genuinely ambiguous
+    val(s
+        .triage(p(json!({ "title": "Export lab results", "description": "As a CSV", "kind": "Story", "priority": "P2" })))
+        .await);
+
+    // assign "me" and a teammate; unknown name asks, "priya" by fuzzy title also works
+    let r = val(s
+        .assign_task(p(json!({ "item": item_ref, "assignees": ["me", "priya"] })))
+        .await);
+    assert_eq!(r["status"], "ok", "{r}");
+    let mut assignees: Vec<&str> = r["assignees"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|v| v.as_str().unwrap())
+        .collect();
+    assignees.sort();
+    assert_eq!(assignees, vec!["octo", "priya"]);
+
+    let r = val(s
+        .assign_task(p(
+            json!({ "item": "Export visit", "assignees": ["nobody-here"] }),
+        ))
+        .await);
+    assert_eq!(r["status"], "needs_input", "{r}");
+    assert_eq!(r["retry_param"], "assignees");
+
+    // replace drops octo, keeps asha only
+    let r = val(s
+        .assign_task(p(
+            json!({ "item": item_ref, "assignees": ["asha"], "mode": "replace" }),
+        ))
+        .await);
+    assert_eq!(r["assignees"], json!(["asha"]), "{r}");
+
+    // remove
+    let r = val(s
+        .assign_task(p(
+            json!({ "item": item_ref, "assignees": ["asha"], "mode": "remove" }),
+        ))
+        .await);
+    assert_eq!(r["assignees"], json!([]), "{r}");
+
+    // ambiguous item reference
+    let r = val(s
+        .assign_task(p(json!({ "item": "e", "assignees": ["me"] })))
+        .await);
+    assert_eq!(r["status"], "needs_input");
+    assert_eq!(r["retry_param"], "item");
+
+    // comment with a mention and a PHI-bearing body (warn mode asks first)
+    let r = val(
+        s.comment_task(p(json!({ "item": item_ref, "body": "Patient MRN 00482913 asked about this.", "mentions": ["priya"] })))
+            .await,
+    );
+    assert_eq!(r["status"], "needs_input");
+    let r = val(
+        s.comment_task(p(json!({ "item": item_ref, "body": "Patient MRN 00482913 asked about this.", "mentions": ["priya"], "phi": "redact" })))
+            .await,
+    );
+    assert_eq!(r["status"], "ok", "{r}");
+    let last = fake.comments().last().unwrap().clone();
+    assert!(last.starts_with("@priya"), "{last}");
+    assert!(!last.contains("00482913"), "{last}");
 }

@@ -26,6 +26,7 @@ fake = ["dep:wiremock"]
 [dev-dependencies]
 ehai-tracker = { path = ".", features = ["fake"] }
 proptest.workspace = true
+tempfile.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread"] }
 wiremock.workspace = true
 

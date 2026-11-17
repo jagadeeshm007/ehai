@@ -66,6 +66,7 @@ impl Tracker for MemoryTracker {
             kind: n.kind,
             closed: false,
             updated_at: Some(format!("{}T00:00:00Z", ehai_core::date::today_utc())),
+            assignees: vec![],
         };
         s.items.push(item.clone());
         Ok(item)
@@ -113,5 +114,19 @@ impl Tracker for MemoryTracker {
     async fn link_pr(&self, id: &str, pr_url: &str) -> Result<()> {
         self.comment(id, &format!("Linked pull request: {pr_url}"))
             .await
+    }
+
+    async fn assign(&self, id: &str, logins: &[String]) -> Result<()> {
+        self.with_item(id, |i| {
+            for login in logins {
+                if !i.assignees.contains(login) {
+                    i.assignees.push(login.clone());
+                }
+            }
+        })
+    }
+
+    async fn unassign(&self, id: &str, logins: &[String]) -> Result<()> {
+        self.with_item(id, |i| i.assignees.retain(|a| !logins.contains(a)))
     }
 }

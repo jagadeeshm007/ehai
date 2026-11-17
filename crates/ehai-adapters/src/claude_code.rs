@@ -45,6 +45,10 @@ pub const SKILLS: &[(&str, &str)] = &[
         include_str!("../../../templates/claude-code/skills/triage/SKILL.md"),
     ),
     (
+        "assign",
+        include_str!("../../../templates/claude-code/skills/assign/SKILL.md"),
+    ),
+    (
         "prefs",
         include_str!("../../../templates/claude-code/skills/prefs/SKILL.md"),
     ),

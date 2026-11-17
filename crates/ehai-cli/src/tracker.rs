@@ -91,7 +91,9 @@ pub fn ask_project(
     )
 }
 
-/// Create the project if needed, save it to config, and ensure its fields.
+/// Create the project if needed, save it to config, ensure its fields, and
+/// check whether the viewer administers it (`access.project_admin`; see
+/// docs/plans/roles-and-team.md). Returns `(fully connected, is_admin)`.
 pub fn connect_project(
     p: &mut dyn Prompter,
     home: &Path,
@@ -99,7 +101,7 @@ pub fn connect_project(
     owner: &str,
     choice: &ProjectChoice,
     repo: Option<&str>,
-) -> std::io::Result<bool> {
+) -> std::io::Result<(bool, bool)> {
     let mut number = None;
     let created = p.step("GitHub project", &mut || match choice {
         ProjectChoice::Existing(n) => {
@@ -114,7 +116,7 @@ pub fn connect_project(
             .map_err(fail),
     })?;
     let Some(number) = number.filter(|_| created) else {
-        return Ok(false);
+        return Ok((false, false));
     };
     let tracker = GithubProjects::new(client.clone(), owner, number, repo.map(String::from));
     let schema = p.step(
@@ -128,8 +130,22 @@ pub fn connect_project(
     // Save only once the project is known to exist and is set up, so a typo in
     // the owner or number never leaves a broken tracker in the config.
     if !schema {
-        return Ok(false);
+        return Ok((false, false));
     }
+    let mut is_admin = false;
+    let admin_checked = p.step("Check your role", &mut || {
+        block_on(client.project_admin(owner, number))
+            .map(|a| {
+                is_admin = a;
+                if a {
+                    "you administer this project"
+                } else {
+                    "developer"
+                }
+                .into()
+            })
+            .map_err(fail)
+    })?;
     let global = ehai_core::paths::global_config(home);
     let saved = p.step("Save tracker settings", &mut || {
         config::edit_file(&global, |t| {
@@ -141,6 +157,8 @@ pub fn connect_project(
                 gh.insert("repo".into(), r.into());
             }
             config::set(t, "tracker", "github", toml::Value::Table(gh));
+            config::set(t, "access", "project_admin", is_admin);
+            config::set(t, "access", "checked", ehai_core::date::today_utc());
         })
         .map(|()| global.display().to_string())
         .map_err(|e| StepError {
@@ -148,7 +166,7 @@ pub fn connect_project(
             fix: None,
         })
     })?;
-    Ok(saved && schema)
+    Ok((saved && schema && admin_checked, is_admin))
 }
 
 pub fn describe(r: SchemaReport) -> String {
@@ -307,7 +325,27 @@ pub fn set(p: &mut dyn Prompter, home: &Path, cwd: &Path, args: &SetArgs) -> Res
     } else {
         None
     };
-    let ok = connect_project(p, home, &client, &owner, &choice, repo.as_deref())?;
+    let (ok, is_admin) = connect_project(p, home, &client, &owner, &choice, repo.as_deref())?;
+    if ok {
+        if is_admin {
+            let current = Config::load(&ehai_core::LoadOptions {
+                global: Some(ehai_core::paths::global_config(home)),
+                ..Default::default()
+            })
+            .ok()
+            .and_then(|c| c.role)
+            .map_or("both", crate::role::role_str);
+            let chosen = crate::role::ask_role(p, current)?;
+            let global = ehai_core::paths::global_config(home);
+            config::edit_file(&global, |t| config::set(t, "", "role", chosen.as_str()))
+                .map_err(std::io::Error::other)?;
+        } else {
+            p.note(
+                "Your role",
+                "You're a developer on this project — only its admins pick a role.",
+            )?;
+        }
+    }
     p.outro(if ok {
         "Tracker connected."
     } else {
@@ -364,6 +402,7 @@ mod tests {
             title: title.into(),
             url: String::new(),
             closed,
+            viewer_is_admin: true,
         }
     }
 

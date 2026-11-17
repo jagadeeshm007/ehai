@@ -23,6 +23,10 @@ pub struct Desired {
     pub priority: Option<Priority>,
     pub size: Option<Size>,
     pub kind: Option<Kind>,
+    /// Logins to assign, set on create only — like status, the board owns it
+    /// afterwards, so a re-sync never undoes a reassignment.
+    #[serde(default)]
+    pub assignees: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -116,6 +120,7 @@ pub async fn sync<T: Tracker>(tracker: &T, desired: &[Desired]) -> Result<Report
         match op {
             Op::Create(d) => {
                 let id = d.ehai_id.clone();
+                let assignees = d.assignees.clone();
                 let r = tracker
                     .create_item(NewItem {
                         ehai_id: Some(d.ehai_id),
@@ -128,7 +133,14 @@ pub async fn sync<T: Tracker>(tracker: &T, desired: &[Desired]) -> Result<Report
                     })
                     .await;
                 match r {
-                    Ok(_) => report.created.push(id),
+                    Ok(item) => {
+                        if !assignees.is_empty() {
+                            if let Err(e) = tracker.assign(&item.id, &assignees).await {
+                                tracing::warn!(ehai_id = %id, error = %e, "created but could not set assignees");
+                            }
+                        }
+                        report.created.push(id);
+                    }
                     Err(e) => report.failed.push((id, e.to_string())),
                 }
             }
@@ -157,6 +169,7 @@ mod tests {
             priority: Some(Priority::P2),
             size: Some(Size::M),
             kind: Some(Kind::Task),
+            assignees: vec![],
         }
     }
 
@@ -170,6 +183,36 @@ mod tests {
         assert!(r2.created.is_empty() && r2.updated.is_empty(), "{r2:?}");
         assert_eq!(r2.unchanged.len(), 2);
         assert_eq!(t.list_items(&Filter::default()).await.unwrap().len(), 2);
+    }
+
+    #[tokio::test]
+    async fn assignees_are_set_on_create_only() {
+        let t = MemoryTracker::default();
+        let mut plan = vec![d("t-1", "One")];
+        plan[0].assignees = vec!["jane".into()];
+        sync(&t, &plan).await.unwrap();
+        let item = t
+            .list_items(&Filter::default())
+            .await
+            .unwrap()
+            .into_iter()
+            .next()
+            .unwrap();
+        assert_eq!(item.assignees, vec!["jane".to_string()]);
+
+        // someone reassigns it on the board; a plan with different assignees
+        // (still the same otherwise, so it's "unchanged") must not touch that
+        t.unassign(&item.id, &["jane".into()]).await.unwrap();
+        t.assign(&item.id, &["bob".into()]).await.unwrap();
+        plan[0].assignees = vec!["carol".into()];
+        let r = sync(&t, &plan).await.unwrap();
+        assert_eq!(r.unchanged, vec!["t-1"], "{r:?}");
+        let item = t.get_item(&item.id).await.unwrap();
+        assert_eq!(
+            item.assignees,
+            vec!["bob".to_string()],
+            "sync never touches assignees after create"
+        );
     }
 
     #[tokio::test]

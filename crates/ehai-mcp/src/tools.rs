@@ -129,6 +129,44 @@ pub struct GuardArgs {
     pub text: String,
 }
 
+#[derive(Debug, Default, Deserialize, JsonSchema)]
+pub struct TeamArgs {
+    /// Re-check now instead of using the (at most a day old) cache.
+    #[serde(default)]
+    pub refresh: bool,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum AssignMode {
+    #[default]
+    Add,
+    Replace,
+    Remove,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct AssignArgs {
+    /// `#18`, a URL, an ehai id, or part of the title.
+    pub item: String,
+    /// Logins, or `"me"` for the caller. Matched against the team (case-insensitive).
+    pub assignees: Vec<String>,
+    #[serde(default)]
+    pub mode: AssignMode,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct CommentArgs {
+    /// `#18`, a URL, an ehai id, or part of the title.
+    pub item: String,
+    pub body: String,
+    /// Logins, or `"me"`, added as `@login` mentions.
+    #[serde(default)]
+    pub mentions: Vec<String>,
+    #[serde(default)]
+    pub phi: Option<PhiChoice>,
+}
+
 #[tool_router(router = tool_router, vis = "pub(crate)")]
 impl EhaiServer {
     #[tool(
@@ -232,6 +270,33 @@ impl EhaiServer {
                         "found": ehai_guard::summarize(&findings) }))
         })
         .await
+    }
+
+    #[tool(
+        name = "team",
+        description = "Who can be assigned work and @mentioned on the connected project. Cached up to a day; set `refresh: true` to recheck now."
+    )]
+    pub async fn team(&self, Parameters(a): Parameters<TeamArgs>) -> Out {
+        let this = self.clone();
+        guard(async move { this.do_team(a).await }).await
+    }
+
+    #[tool(
+        name = "assign_task",
+        description = "Add, replace or remove assignees on a tracker item. `item` accepts #18, a URL, an ehai id, or part of the title; `assignees` accepts logins or \"me\". Returns `needs_input` if the item or an assignee can't be resolved unambiguously."
+    )]
+    pub async fn assign_task(&self, Parameters(a): Parameters<AssignArgs>) -> Out {
+        let this = self.clone();
+        guard(async move { this.do_assign(a).await }).await
+    }
+
+    #[tool(
+        name = "comment_task",
+        description = "Post a comment on a tracker item, optionally @mentioning people. `item` accepts #18, a URL, an ehai id, or part of the title."
+    )]
+    pub async fn comment_task(&self, Parameters(a): Parameters<CommentArgs>) -> Out {
+        let this = self.clone();
+        guard(async move { this.do_comment(a).await }).await
     }
 }
 
@@ -341,13 +406,42 @@ impl EhaiServer {
         }
     }
 
-    fn tracker(&self) -> Result<GithubProjects, String> {
-        let client = match &self.ctx.github {
+    fn github_client(&self) -> Result<Client, String> {
+        match &self.ctx.github {
             Github::FromEnv => github::client_from_env().map(|(c, _)| c),
             Github::Fixed { api, token } => Client::new(api, token),
         }
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| e.to_string())
+    }
+
+    fn tracker(&self) -> Result<GithubProjects, String> {
+        let client = self.github_client()?;
         github::from_config(&self.ctx.config, client).map_err(|e| e.to_string())
+    }
+
+    /// The team for the connected project (cached; `refresh` forces a recheck).
+    async fn fetch_team(&self, refresh: bool) -> Result<ehai_tracker::team::Team, String> {
+        let g = &self.ctx.config.tracker.github;
+        let (owner, number) = match (&g.owner, g.project) {
+            (Some(o), Some(n)) => (o.clone(), n),
+            _ => {
+                return Err(format!(
+                    "no tracker connected yet: run `{} tracker set`",
+                    self.ctx.brand()
+                ))
+            }
+        };
+        let client = self.github_client()?;
+        ehai_tracker::team::get(
+            &client,
+            &self.ctx.home,
+            &owner,
+            number,
+            g.repo.as_deref(),
+            refresh,
+        )
+        .await
+        .map_err(|e| e.to_string())
     }
 
     fn do_save_prd(&self, a: SavePrdArgs) -> Out {
@@ -674,6 +768,201 @@ impl EhaiServer {
                     "kind": a.kind, "priority": a.priority }),
         )
     }
+
+    async fn do_team(&self, a: TeamArgs) -> Out {
+        let team = self.fetch_team(a.refresh).await?;
+        out(
+            json!({ "status": "ok", "viewer": team.viewer, "viewer_is_admin": team.viewer_is_admin,
+                    "cache_age_secs": team.age_secs(),
+                    "members": team.members.iter().map(|m| json!({ "login": m.login, "name": m.name, "assignable": m.assignable })).collect::<Vec<_>>() }),
+        )
+    }
+
+    async fn do_assign(&self, a: AssignArgs) -> Out {
+        let t = self.tracker()?;
+        let items = t
+            .list_items(&Filter::default())
+            .await
+            .map_err(|e| e.to_string())?;
+        let item = match resolve_item(&items, &a.item) {
+            Ok(i) => i,
+            Err(e) => return e,
+        };
+        let team = self.fetch_team(false).await?;
+        let logins = match resolve_assignees(&team, &a.assignees) {
+            Ok(v) => v,
+            Err(e) => return out(e),
+        };
+        let unassignable: Vec<&str> = logins
+            .iter()
+            .filter(|l| team.find(l).is_some_and(|m| !m.assignable))
+            .map(String::as_str)
+            .collect();
+        match a.mode {
+            AssignMode::Add => t
+                .assign(&item.id, &logins)
+                .await
+                .map_err(|e| e.to_string())?,
+            AssignMode::Remove => t
+                .unassign(&item.id, &logins)
+                .await
+                .map_err(|e| e.to_string())?,
+            AssignMode::Replace => {
+                t.unassign(&item.id, &item.assignees)
+                    .await
+                    .map_err(|e| e.to_string())?;
+                t.assign(&item.id, &logins)
+                    .await
+                    .map_err(|e| e.to_string())?;
+            }
+        }
+        let updated = t.get_item(&item.id).await.map_err(|e| e.to_string())?;
+        self.audit(
+            "assign_task",
+            "tracker-item",
+            updated.url.as_deref().unwrap_or(&updated.id),
+            &[],
+            "clean",
+        );
+        out(
+            json!({ "status": "ok", "title": updated.title, "url": updated.url, "assignees": updated.assignees,
+                    "warning": (!unassignable.is_empty()).then(|| format!("{} may not be assignable on this repo", unassignable.join(", "))) }),
+        )
+    }
+
+    async fn do_comment(&self, a: CommentArgs) -> Out {
+        let t = self.tracker()?;
+        let items = t
+            .list_items(&Filter::default())
+            .await
+            .map_err(|e| e.to_string())?;
+        let item = match resolve_item(&items, &a.item) {
+            Ok(i) => i,
+            Err(e) => return e,
+        };
+        let mentions = if a.mentions.is_empty() {
+            vec![]
+        } else {
+            let team = self.fetch_team(false).await?;
+            match resolve_assignees(&team, &a.mentions) {
+                Ok(v) => v,
+                Err(e) => return out(e),
+            }
+        };
+        let checked = match self.check(&a.body, a.phi, "comment")? {
+            Guarded::Ask(q) => return out(q),
+            Guarded::Ready(c) => c,
+        };
+        let prefix = mentions
+            .iter()
+            .map(|l| format!("@{l}"))
+            .collect::<Vec<_>>()
+            .join(" ");
+        let body = if prefix.is_empty() {
+            checked.value
+        } else {
+            format!("{prefix}\n\n{}", checked.value)
+        };
+        t.comment(&item.id, &body)
+            .await
+            .map_err(|e| e.to_string())?;
+        self.audit(
+            "comment_task",
+            "tracker-comment",
+            item.url.as_deref().unwrap_or(&item.id),
+            &checked.kinds,
+            checked.action,
+        );
+        out(json!({ "status": "ok", "title": item.title, "url": item.url }))
+    }
+}
+
+/// Resolve a loose item reference — `#18`, a URL, an ehai id, or a title
+/// fragment — against the tracker's current items. `Err` carries the final
+/// tool result to return directly: a plain error when nothing matches, or
+/// `needs_input` with up to 5 candidates when more than one does.
+fn resolve_item<'a>(
+    items: &'a [ehai_tracker::Item],
+    reference: &str,
+) -> Result<&'a ehai_tracker::Item, Out> {
+    let r = reference.trim();
+    if let Some(n) = r.strip_prefix('#').and_then(|n| n.parse::<u64>().ok()) {
+        if let Some(i) = items.iter().find(|i| i.number == Some(n)) {
+            return Ok(i);
+        }
+    }
+    if r.contains("://") {
+        if let Some(i) = items.iter().find(|i| i.url.as_deref() == Some(r)) {
+            return Ok(i);
+        }
+    }
+    if let Some(i) = items.iter().find(|i| i.ehai_id.as_deref() == Some(r)) {
+        return Ok(i);
+    }
+    let needle = r.to_lowercase();
+    let matches: Vec<&ehai_tracker::Item> = items
+        .iter()
+        .filter(|i| i.title.to_lowercase().contains(&needle))
+        .collect();
+    match matches.as_slice() {
+        [one] => Ok(one),
+        [] => Err(Err(format!("no tracker item matches `{reference}`"))),
+        many => {
+            let options = many
+                .iter()
+                .take(5)
+                .map(|i| {
+                    opt(
+                        &i.title,
+                        i.ehai_id.as_deref().unwrap_or(&i.id),
+                        i.url.as_deref().unwrap_or(""),
+                    )
+                })
+                .collect();
+            Err(out(needs_input(
+                "Which item?",
+                format!(
+                    "`{reference}` matches {} items. Which one did you mean?",
+                    many.len()
+                ),
+                options,
+                "item",
+            )))
+        }
+    }
+}
+
+/// Resolve names (logins or `"me"`) against the team. `Err` is a
+/// `needs_input` value listing the team as options, for names that didn't match.
+fn resolve_assignees(
+    team: &ehai_tracker::team::Team,
+    names: &[String],
+) -> Result<Vec<String>, Value> {
+    let mut resolved = Vec::new();
+    let mut missing = Vec::new();
+    for n in names {
+        match team.find(n) {
+            Some(m) => resolved.push(m.login.clone()),
+            None => missing.push(n.clone()),
+        }
+    }
+    if missing.is_empty() {
+        return Ok(resolved);
+    }
+    let options = team
+        .members
+        .iter()
+        .map(|m| opt(&m.login, &m.login, m.name.as_deref().unwrap_or("")))
+        .collect();
+    Err(needs_input(
+        "Who?",
+        format!(
+            "I don't recognise {} on this project's team. Who did you mean?",
+            missing.join(", ")
+        ),
+        options,
+        "assignees",
+    ))
 }
 
 /// `ehai-id` → issue number for items that are issues.

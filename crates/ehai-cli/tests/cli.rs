@@ -65,6 +65,7 @@ fn doctor_passes_in_sane_env() {
     let s = stdout(&out);
     assert!(out.status.success(), "{s}");
     assert!(s.contains("✔ Git"), "{s}");
+    assert!(s.contains("✔ Role") && s.contains("dev"), "{s}");
     assert!(s.contains("All checks passed"), "{s}");
     assert!(env.home.path().join("logs").is_dir(), "log dir created");
 }

@@ -344,14 +344,16 @@ pub fn ask(
         Repo,
     }
     let mut todo = Vec::new();
-    if args.role.is_none() {
-        todo.push(Q::Role);
-    }
     if args.harnesses.is_empty() && !d.harnesses.is_empty() {
         todo.push(Q::Harnesses);
     }
     if ask_tracker {
         todo.push(Q::Tracker);
+    } else if args.role.is_none() && admin_of_configured(d, config) == Some(true) {
+        // tracker already connected and known to be administered by the
+        // viewer: ask the role question now, in the same place it would run
+        // right after Q::Tracker below.
+        todo.push(Q::Role);
     }
     if args.compliance.is_none() {
         todo.push(Q::Compliance);
@@ -366,27 +368,7 @@ pub fn ask(
     let mut i = 0;
     while i < todo.len() {
         let result = match todo[i] {
-            Q::Role => p
-                .select(
-                    "What's your role?",
-                    &[
-                        mark(
-                            Choice::new("pm", "Product manager")
-                                .hint("plain language, visuals first"),
-                            &a.role,
-                        ),
-                        mark(
-                            Choice::new("dev", "Developer").hint("concise, technical"),
-                            &a.role,
-                        ),
-                        mark(
-                            Choice::new("both", "Both")
-                                .hint("plain first, technical details after"),
-                            &a.role,
-                        ),
-                    ],
-                )
-                .map(|v| a.role = v),
+            Q::Role => crate::role::ask_role(p, &a.role).map(|v| a.role = v),
             Q::Harnesses => {
                 let choices: Vec<Choice> = d
                     .harnesses
@@ -469,7 +451,24 @@ pub fn ask(
             }
         };
         match result {
-            Ok(()) => i += 1,
+            Ok(()) => {
+                // The tracker question just resolved who (if anyone) is being
+                // connected; only an admin of that project gets asked a role.
+                if matches!(todo[i], Q::Tracker) && args.role.is_none() {
+                    let is_admin = match &a.tracker {
+                        None => false,                          // connecting was skipped
+                        Some(ProjectChoice::Create(_)) => true, // the creator administers it
+                        Some(ProjectChoice::Existing(n)) => d
+                            .github
+                            .as_ref()
+                            .is_some_and(|g| admin_of(&g.projects, &g.owner, *n) == Some(true)),
+                    };
+                    if is_admin {
+                        todo.insert(i + 1, Q::Role);
+                    }
+                }
+                i += 1;
+            }
             Err(e) if e.kind() == io::ErrorKind::Interrupted => {
                 // cliclack reports Esc and Ctrl-C alike; offer back, quit on a second cancel.
                 let back = p.select(
@@ -488,6 +487,27 @@ pub fn ask(
         }
     }
     Ok(a)
+}
+
+/// Looks up `viewerCanClose` for `owner #number` from the already-detected
+/// (open) project list — no extra network call. `None` when it isn't there
+/// (closed, or a different owner), in which case the caller treats it as
+/// "can't tell" and defaults to not asking.
+fn admin_of(projects: &[ProjectSummary], owner: &str, number: u64) -> Option<bool> {
+    projects
+        .iter()
+        .find(|p| p.owner == owner && p.number == number)
+        .map(|p| p.viewer_is_admin)
+}
+
+/// Is the project already connected in `config` one the viewer administers?
+/// Only answerable when that project happens to be in the detected list; see
+/// [`admin_of`].
+fn admin_of_configured(d: &Detected, config: &Config) -> Option<bool> {
+    let g = d.github.as_ref()?;
+    let owner = config.tracker.github.owner.as_deref()?;
+    let number = config.tracker.github.project?;
+    admin_of(&g.projects, owner, number)
 }
 
 /// Mark the choice matching the current value as the default.
@@ -597,7 +617,7 @@ fn apply(
                     },
                     |g| (g.owner.clone(), g.repo.clone()),
                 );
-                ok &= crate::tracker::connect_project(
+                let (connected, _is_admin) = crate::tracker::connect_project(
                     p,
                     home,
                     &client,
@@ -605,6 +625,7 @@ fn apply(
                     choice,
                     repo.as_deref(),
                 )?;
+                ok &= connected;
             }
             Err(e) => {
                 ok &= p.step("GitHub project", &mut || {
@@ -713,8 +734,9 @@ mod tests {
         let out = String::from_utf8(p.into_inner()).unwrap();
         assert_eq!(
             out.lines().filter(|l| l.starts_with("? ")).count(),
-            5,
-            "at most 5 questions:\n{out}"
+            4,
+            "at most 5 questions, and Role is skipped entirely with no GitHub \
+             detected (nobody to confirm as admin):\n{out}"
         );
     }
 
@@ -724,9 +746,11 @@ mod tests {
             sandbox: Some("off".into()),
             ..Default::default()
         };
-        let mut p = PlainPrompter::scripted(Vec::new(), &["pm", "", "strict"]);
+        // Harnesses, then Compliance: Role is skipped (no GitHub detected) and
+        // Sandbox is skipped (answered by the flag).
+        let mut p = PlainPrompter::scripted(Vec::new(), &["", "strict"]);
         let a = ask(&mut p, &detected(None), &Config::default(), &args).unwrap();
-        assert_eq!(a.role, "pm");
+        assert_eq!(a.role, "both", "not asked, so it keeps its default");
         assert!(a.harnesses.is_empty(), "user unchecked every harness");
         assert_eq!(a.compliance, "strict");
         assert_eq!(a.sandbox, "off");
@@ -766,6 +790,7 @@ mod tests {
                 title: "Clinic".into(),
                 url: String::new(),
                 closed: false,
+                viewer_is_admin: true,
             }],
             repo: Some("acme/clinic".into()),
         };
@@ -777,9 +802,26 @@ mod tests {
                 .tracker,
             None
         );
-        let mut p = PlainPrompter::scripted(Vec::new(), &["both", "claude-code", "4"]);
+        // Harnesses, then Tracker; the viewer administers #4, so Role is
+        // inserted right after Tracker is answered.
+        let mut p = PlainPrompter::scripted(Vec::new(), &["claude-code", "4", "both"]);
         let a = ask(&mut p, &d, &Config::default(), &InitArgs::default()).unwrap();
         assert_eq!(a.tracker, Some(ProjectChoice::Existing(4)));
+        assert_eq!(a.role, "both");
+
+        // a project the viewer does NOT administer: no Role question at all
+        let mut non_admin_gh = gh.clone();
+        non_admin_gh.projects[0].viewer_is_admin = false;
+        d.github = Some(non_admin_gh);
+        let mut p = PlainPrompter::scripted(Vec::new(), &["claude-code", "4"]);
+        let a = ask(&mut p, &d, &Config::default(), &InitArgs::default()).unwrap();
+        assert_eq!(
+            (a.tracker, a.role.as_str()),
+            (Some(ProjectChoice::Existing(4)), "both"),
+            "role stays at its default"
+        );
+        let out = String::from_utf8(p.into_inner()).unwrap();
+        assert!(!out.contains("What's your role?"), "{out}");
 
         // missing scope: no question, the summary explains the fix
         d.github = Some(GithubDetect {

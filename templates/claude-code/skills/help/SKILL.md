@@ -21,6 +21,7 @@ disable-model-invocation: false
    | `/{{prefix}}sync` | Put the plan on the tracker board (no duplicates) |
    | `/{{prefix}}status` | Progress, blockers and risks |
    | `/{{prefix}}triage` | Turn a bug or request into a tracker item |
+   | `/{{prefix}}assign` | Assign, reassign or take a task, or mention someone |
    | `/{{prefix}}prefs` | Your role and preferences |
    | `/{{prefix}}help` | This overview |
 

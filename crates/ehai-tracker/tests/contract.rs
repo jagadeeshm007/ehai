@@ -132,6 +132,30 @@ async fn contract<T: Tracker>(t: &T) {
         .await
         .unwrap();
 
+    // assign is additive and idempotent; unassign removes, absent logins are a no-op
+    t.assign(&a.id, &["alice".into()]).await.unwrap();
+    t.assign(&a.id, &["alice".into(), "bob".into()])
+        .await
+        .unwrap();
+    let mut assignees = t.get_item(&a.id).await.unwrap().assignees;
+    assignees.sort();
+    assert_eq!(assignees, vec!["alice".to_string(), "bob".to_string()]);
+    t.unassign(&a.id, &["alice".into()]).await.unwrap();
+    assert_eq!(
+        t.get_item(&a.id).await.unwrap().assignees,
+        vec!["bob".to_string()]
+    );
+    t.unassign(&a.id, &["nobody-here".into()]).await.unwrap();
+    assert_eq!(
+        t.get_item(&a.id).await.unwrap().assignees,
+        vec!["bob".to_string()]
+    );
+    t.assign(&a.id, &[]).await.unwrap(); // empty list: no-op, no error
+    assert_eq!(
+        t.get_item(&a.id).await.unwrap().assignees,
+        vec!["bob".to_string()]
+    );
+
     assert!(matches!(
         t.get_item("does-not-exist").await,
         Err(Error::NotFound(_))
@@ -338,4 +362,106 @@ async fn one_failing_field_does_not_stop_the_others() {
     for f in ["Size", "Work type", "Iteration"] {
         assert!(r.created_fields.iter().any(|c| c == f), "{f}: {r:?}");
     }
+}
+
+#[tokio::test]
+async fn assigning_draft_items_replaces_the_whole_list() {
+    let server = MockServer::start().await;
+    let fake = ehai_tracker::fake::mount(&server).await;
+    let t = GithubProjects::new(Client::new(&server.uri(), "t").unwrap(), "octo", 1, None);
+    let d = t
+        .create_item(NewItem {
+            title: "Draft".into(),
+            ..Default::default()
+        })
+        .await
+        .unwrap();
+    t.assign(&d.id, &["alice".into()]).await.unwrap();
+    t.assign(&d.id, &["bob".into()]).await.unwrap(); // drafts replace server-side; the trait still merges
+    let mut assignees = t.get_item(&d.id).await.unwrap().assignees;
+    assignees.sort();
+    assert_eq!(assignees, vec!["alice".to_string(), "bob".to_string()]);
+    t.unassign(&d.id, &["alice".into()]).await.unwrap();
+    assert_eq!(
+        t.get_item(&d.id).await.unwrap().assignees,
+        vec!["bob".to_string()]
+    );
+    assert_eq!(fake.assignees_of(&d.id), vec!["bob".to_string()]);
+}
+
+#[tokio::test]
+async fn project_admin_check() {
+    let server = MockServer::start().await;
+    let fake = ehai_tracker::fake::mount(&server).await;
+    let c = Client::new(&server.uri(), "t").unwrap();
+    assert!(c.project_admin("octo", 1).await.unwrap());
+    fake.set_admin(false);
+    assert!(!c.project_admin("octo", 1).await.unwrap());
+}
+
+#[tokio::test]
+async fn team_fetch_merges_assignable_and_org_members() {
+    let server = MockServer::start().await;
+    let fake = ehai_tracker::fake::mount(&server).await;
+    fake.set_admin(true);
+    fake.set_assignable_users(&[("alice", Some("Alice A")), ("bob", None)]);
+    fake.set_org_members(&[("bob", Some("Bob B")), ("carol", Some("Carol C"))]);
+    let c = Client::new(&server.uri(), "t").unwrap();
+
+    let team = ehai_tracker::team::fetch(&c, "octo", 1, Some("octo/app"))
+        .await
+        .unwrap();
+    assert_eq!(team.viewer, "octo");
+    assert!(team.viewer_is_admin);
+    let logins: Vec<&str> = team.members.iter().map(|m| m.login.as_str()).collect();
+    assert_eq!(logins, vec!["alice", "bob", "carol"], "merged and sorted");
+    let bob = team.find("bob").unwrap();
+    assert!(bob.assignable, "bob is on both lists, so assignable wins");
+    assert_eq!(
+        bob.name.as_deref(),
+        Some("Bob B"),
+        "org name fills in what the repo list left blank"
+    );
+    assert!(
+        !team.find("carol").unwrap().assignable,
+        "org-only member isn't assignable"
+    );
+
+    // without a repo, only org members are listed
+    let team_no_repo = ehai_tracker::team::fetch(&c, "octo", 1, None)
+        .await
+        .unwrap();
+    let logins: Vec<&str> = team_no_repo
+        .members
+        .iter()
+        .map(|m| m.login.as_str())
+        .collect();
+    assert_eq!(logins, vec!["bob", "carol"]);
+}
+
+#[tokio::test]
+async fn team_cache_fills_refreshes_and_falls_back_on_failure() {
+    let home = tempfile::tempdir().unwrap();
+    let server = MockServer::start().await;
+    let fake = ehai_tracker::fake::mount(&server).await;
+    fake.set_assignable_users(&[("alice", None)]);
+    let c = Client::new(&server.uri(), "t").unwrap();
+
+    let first = ehai_tracker::team::get(&c, home.path(), "octo", 1, Some("octo/app"), false)
+        .await
+        .unwrap();
+    assert_eq!(first.members.len(), 1);
+
+    // a fresh cache is reused without another network call
+    drop(server);
+    let again = ehai_tracker::team::get(&c, home.path(), "octo", 1, Some("octo/app"), false)
+        .await
+        .unwrap();
+    assert_eq!(again, first, "cached, no network call made");
+
+    // force_refresh against an unreachable server falls back to the stale cache
+    let still = ehai_tracker::team::get(&c, home.path(), "octo", 1, Some("octo/app"), true)
+        .await
+        .unwrap();
+    assert_eq!(still, first, "refresh failed; kept using the old list");
 }

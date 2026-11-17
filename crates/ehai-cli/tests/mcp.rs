@@ -18,7 +18,11 @@ struct Server {
 impl Server {
     fn start() -> Self {
         let home = tempfile::tempdir().unwrap();
-        std::fs::write(home.path().join("config.toml"), "role = \"pm\"\n").unwrap();
+        std::fs::write(
+            home.path().join("config.toml"),
+            "role = \"pm\"\n[access]\nproject_admin = true\n",
+        )
+        .unwrap();
         let mut child = Command::new(assert_cmd::cargo::cargo_bin("ehai"))
             .arg("mcp")
             .env("EHAI_HOME", home.path())

@@ -42,6 +42,18 @@ pub fn run(
     })?;
     ok &= p.step("Git", &mut check_git)?;
     ok &= p.step("Home dir", &mut || check_writable(home))?;
+    if let Ok(cfg) = config {
+        p.step("Role", &mut || {
+            let mut line = crate::role::show(cfg);
+            let g = &cfg.tracker.github;
+            if let (Some(owner), Some(number)) = (&g.owner, g.project) {
+                if let Some(team) = ehai_tracker::team::cached(home, owner, number) {
+                    line += &format!(", team cache {}s old", team.age_secs());
+                }
+            }
+            Ok(line)
+        })?;
+    }
     ok &= p.step("GitHub CLI", &mut || {
         Ok(tool_version("gh", &["--version"])
             .unwrap_or_else(|| "not found (optional; used to reuse GitHub auth)".into()))

@@ -26,6 +26,7 @@ pub struct Config {
     pub update: Update,
     pub tracker: Tracker,
     pub adapters: Adapters,
+    pub access: Access,
 }
 
 impl Default for Config {
@@ -40,6 +41,21 @@ impl Default for Config {
             update: Update::default(),
             tracker: Tracker::default(),
             adapters: Adapters::default(),
+            access: Access::default(),
+        }
+    }
+}
+
+impl Config {
+    /// The role that actually applies: only project admins get the role they
+    /// chose (`role`); everyone else — including an `EHAI_ROLE` override — gets
+    /// `dev`. Resolved from the last admin check (`ehai role`, `tracker set`,
+    /// `init`, or the daily team refresh); see docs/plans/roles-and-team.md.
+    pub fn effective_role(&self) -> Role {
+        if self.access.project_admin == Some(true) {
+            self.role.unwrap_or(Role::Both)
+        } else {
+            Role::Dev
         }
     }
 }
@@ -50,6 +66,21 @@ pub enum Role {
     Pm,
     Dev,
     Both,
+}
+
+/// Whether the viewer administers the connected GitHub project, and when that
+/// was last checked. Written by ehai (`init`, `tracker set`, `ehai role`, the
+/// team refresh) — never by hand.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(default)]
+pub struct Access {
+    /// `None` until the first check. `Some(false)` covers both "checked, not
+    /// admin" and "no project connected" — both default the role to `dev`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub project_admin: Option<bool>,
+    /// `YYYY-MM-DD` of the last check.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub checked: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -468,6 +499,43 @@ mod tests {
         let before = std::fs::read_to_string(&p).unwrap();
         assert!(edit_file(&p, |t| set(t, "compliance", "mode", "loose")).is_err());
         assert_eq!(std::fs::read_to_string(&p).unwrap(), before);
+    }
+
+    #[test]
+    fn effective_role_follows_admin_status() {
+        let admin_pm = Config {
+            role: Some(Role::Pm),
+            access: Access {
+                project_admin: Some(true),
+                checked: Some("2026-11-17".into()),
+            },
+            ..Default::default()
+        };
+        assert_eq!(admin_pm.effective_role(), Role::Pm);
+
+        // admin with no role chosen yet defaults to Both, not Dev
+        let admin_unset = Config {
+            access: Access {
+                project_admin: Some(true),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        assert_eq!(admin_unset.effective_role(), Role::Both);
+
+        // a stored/env-overridden role never overrides a non-admin result
+        let non_admin = Config {
+            role: Some(Role::Pm),
+            access: Access {
+                project_admin: Some(false),
+                checked: Some("2026-11-17".into()),
+            },
+            ..Default::default()
+        };
+        assert_eq!(non_admin.effective_role(), Role::Dev);
+
+        // never checked (no project connected yet) → dev
+        assert_eq!(Config::default().effective_role(), Role::Dev);
     }
 
     #[test]
