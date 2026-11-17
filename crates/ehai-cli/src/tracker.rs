@@ -116,6 +116,20 @@ pub fn connect_project(
     let Some(number) = number.filter(|_| created) else {
         return Ok(false);
     };
+    let tracker = GithubProjects::new(client.clone(), owner, number, repo.map(String::from));
+    let schema = p.step(
+        "Project fields (Status, Priority, Size, Work type, Iteration)",
+        &mut || {
+            block_on(tracker.ensure_schema())
+                .map(describe)
+                .map_err(fail)
+        },
+    )?;
+    // Save only once the project is known to exist and is set up, so a typo in
+    // the owner or number never leaves a broken tracker in the config.
+    if !schema {
+        return Ok(false);
+    }
     let global = ehai_core::paths::global_config(home);
     let saved = p.step("Save tracker settings", &mut || {
         config::edit_file(&global, |t| {
@@ -134,15 +148,6 @@ pub fn connect_project(
             fix: None,
         })
     })?;
-    let tracker = GithubProjects::new(client.clone(), owner, number, repo.map(String::from));
-    let schema = p.step(
-        "Project fields (Status, Priority, Size, Work type, Iteration)",
-        &mut || {
-            block_on(tracker.ensure_schema())
-                .map(describe)
-                .map_err(fail)
-        },
-    )?;
     Ok(saved && schema)
 }
 

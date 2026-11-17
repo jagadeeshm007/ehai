@@ -347,6 +347,7 @@ async fn tracker_commands_against_fake_github() {
     let server = wiremock::MockServer::start().await;
     let fake = ehai_tracker::fake::mount(&server).await;
     let env = std::sync::Arc::new(Env::new());
+    let env_home = env.home.path().to_path_buf();
     let api = server.uri();
     let run = move |args: &'static [&'static str]| {
         let env = env.clone();
@@ -423,6 +424,26 @@ async fn tracker_commands_against_fake_github() {
     ])
     .await;
     assert!(ok && out.contains("GitHub project — octo #1"), "{out}");
+
+    // a project that doesn't exist fails *before* anything is saved
+    let before = std::fs::read_to_string(env_home.join("config.toml")).unwrap();
+    let (ok, out) = run(&[
+        "tracker",
+        "set",
+        "--owner",
+        "octo",
+        "--project",
+        "99",
+        "--no-repo",
+        "--yes",
+    ])
+    .await;
+    assert!(!ok && out.contains("not found"), "{out}");
+    assert_eq!(
+        std::fs::read_to_string(env_home.join("config.toml")).unwrap(),
+        before,
+        "config untouched"
+    );
 
     let (ok, out) = run(&["tracker", "set", "linear"]).await;
     assert!(!ok && out.contains("isn't available yet"), "{out}");

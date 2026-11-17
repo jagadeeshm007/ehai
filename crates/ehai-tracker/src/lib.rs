@@ -34,11 +34,13 @@ pub enum Error {
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
-/// Single-select field values ehai manages. `LABELS` are what the tracker shows.
+/// Single-select field values ehai manages. They serialize as the label the
+/// board shows (`XS`, `In Progress`), which is also what people and agents type;
+/// parsing ignores case and spaces, so `xs`, `Xs` and `inprogress` work too.
 macro_rules! labeled_enum {
     ($(#[$m:meta])* $name:ident { $($variant:ident => $label:literal),+ $(,)? }) => {
         $(#[$m])*
-        #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, schemars::JsonSchema)]
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
         pub enum $name { $($variant),+ }
 
         impl $name {
@@ -49,9 +51,36 @@ macro_rules! labeled_enum {
                 match self { $($name::$variant => $label),+ }
             }
 
-            /// Case-insensitive match on the label.
+            /// Match on the label, ignoring case and spaces.
             pub fn from_label(s: &str) -> Option<Self> {
-                Self::ALL.iter().copied().find(|v| v.label().eq_ignore_ascii_case(s.trim()))
+                let norm = |x: &str| x.chars().filter(|c| !c.is_whitespace()).collect::<String>().to_ascii_lowercase();
+                let want = norm(s);
+                Self::ALL.iter().copied().find(|v| norm(v.label()) == want)
+            }
+        }
+
+        impl Serialize for $name {
+            fn serialize<S: serde::Serializer>(&self, s: S) -> std::result::Result<S::Ok, S::Error> {
+                s.serialize_str(self.label())
+            }
+        }
+
+        impl<'de> Deserialize<'de> for $name {
+            fn deserialize<D: serde::Deserializer<'de>>(d: D) -> std::result::Result<Self, D::Error> {
+                let s = String::deserialize(d)?;
+                Self::from_label(&s).ok_or_else(|| {
+                    serde::de::Error::custom(format!("unknown value `{s}`, expected one of {}", Self::LABELS.join(", ")))
+                })
+            }
+        }
+
+        impl schemars::JsonSchema for $name {
+            fn schema_name() -> std::borrow::Cow<'static, str> {
+                stringify!($name).into()
+            }
+
+            fn json_schema(_: &mut schemars::SchemaGenerator) -> schemars::Schema {
+                schemars::json_schema!({ "type": "string", "enum": Self::LABELS })
             }
         }
     };
@@ -213,6 +242,32 @@ mod tests {
         assert_eq!(Status::from_label("in progress"), Some(Status::InProgress));
         assert_eq!(Size::from_label("xl"), Some(Size::Xl));
         assert_eq!(Kind::from_label("Chore"), None);
+        assert_eq!(
+            Status::from_label("InProgress"),
+            Some(Status::InProgress),
+            "old spelling still parses"
+        );
+    }
+
+    #[test]
+    fn serde_uses_labels() {
+        assert_eq!(serde_json::to_string(&Size::Xs).unwrap(), "\"XS\"");
+        assert_eq!(
+            serde_json::to_string(&Status::InProgress).unwrap(),
+            "\"In Progress\""
+        );
+        for s in ["\"XS\"", "\"Xs\"", "\"xs\""] {
+            assert_eq!(serde_json::from_str::<Size>(s).unwrap(), Size::Xs, "{s}");
+        }
+        let e = serde_json::from_str::<Size>("\"huge\"")
+            .unwrap_err()
+            .to_string();
+        assert!(e.contains("XS, S, M, L, XL"), "{e}");
+        let schema = serde_json::to_value(schemars::schema_for!(Size)).unwrap();
+        assert_eq!(
+            schema["enum"],
+            serde_json::json!(["XS", "S", "M", "L", "XL"])
+        );
     }
 
     #[test]

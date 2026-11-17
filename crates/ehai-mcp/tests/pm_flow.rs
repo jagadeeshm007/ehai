@@ -128,6 +128,20 @@ async fn plan_breakdown_sync_status_triage() {
     assert_eq!(r["nothing_to_do"], true, "{r}");
     assert_eq!(fake.item_titles().len(), 4);
 
+    // renaming one story updates exactly that issue (others link it by #number)
+    let mut renamed = breakdown();
+    renamed["epics"][0]["stories"][0]["title"] = json!("See open slots");
+    val(s.save_breakdown(p(json!({ "breakdown": renamed }))).await);
+    let r = val(s
+        .sync_plan(p(json!({ "prd": "online-appointment-booking" })))
+        .await);
+    assert_eq!(r["update"], json!(["See open slots"]), "{r}");
+    val(s
+        .sync_plan(p(
+            json!({ "prd": "online-appointment-booking", "apply": true }),
+        ))
+        .await);
+
     // status: markdown + HTML file
     let r = val(s.status_report(p(json!({ "html": true }))).await);
     assert!(r["markdown"]

@@ -404,15 +404,15 @@ impl EhaiServer {
 
     async fn do_sync(&self, a: SyncArgs) -> Out {
         let b = Breakdown::load(&self.ctx.home, &a.prd).map_err(|e| e.to_string())?;
-        let desired = match self.check(&b.to_desired(), a.phi, "plan")? {
-            Guarded::Ask(q) => return out(q),
-            Guarded::Ready(c) => c,
-        };
         let t = self.tracker()?;
         let remote = t
             .list_items(&Filter::default())
             .await
             .map_err(|e| e.to_string())?;
+        let desired = match self.check(&b.to_desired_with(&numbers(&remote)), a.phi, "plan")? {
+            Guarded::Ask(q) => return out(q),
+            Guarded::Ready(c) => c,
+        };
         let (ops, orphaned) = sync::plan(&desired.value, &remote);
         let title_of = |id: &str| {
             desired
@@ -432,15 +432,44 @@ impl EhaiServer {
             }
             return out(
                 json!({ "status": "preview", "create": create, "update": update,
-                               "unchanged": unchanged, "orphaned": orphaned, "nothing_to_do": ops.iter().all(|o| matches!(o, sync::Op::Unchanged { .. })) }),
+                               "unchanged": unchanged, "orphaned": orphaned,
+                               "nothing_to_do": create.is_empty() && update.is_empty() }),
             );
         }
         // fields must exist before items are written, or every later sync sees
         // "drift" in the fields that couldn't be set (idempotent, cheap)
         let schema = t.ensure_schema().await.map_err(|e| e.to_string())?;
-        let report = sync::sync(&t, &desired.value)
+        let mut report = sync::sync(&t, &desired.value)
             .await
             .map_err(|e| e.to_string())?;
+        let mut after = t.list_items(&Filter::default()).await.unwrap_or_default();
+        if !report.created.is_empty() {
+            // second pass: new items now have issue numbers, so cross-references
+            // become `#n` links (and a re-sync stays a no-op)
+            let resolved: Vec<_> = self
+                .check(
+                    &b.to_desired_with(&numbers(&after)),
+                    Some(a.phi.unwrap_or(PhiChoice::Redact)),
+                    "plan",
+                )
+                .ok()
+                .and_then(|g| match g {
+                    Guarded::Ready(c) => Some(c.value),
+                    Guarded::Ask(_) => None,
+                })
+                .unwrap_or_default();
+            if let Ok(second) = sync::sync(&t, &resolved).await {
+                // links filled into just-created items are part of creating them
+                let extra: Vec<String> = second
+                    .updated
+                    .into_iter()
+                    .filter(|id| !report.created.contains(id) && !report.updated.contains(id))
+                    .collect();
+                report.updated.extend(extra);
+                report.failed.extend(second.failed);
+                after = t.list_items(&Filter::default()).await.unwrap_or_default();
+            }
+        }
         let location = format!(
             "{} #{}",
             self.ctx
@@ -459,7 +488,6 @@ impl EhaiServer {
             &desired.kinds,
             desired.action,
         );
-        let after = t.list_items(&Filter::default()).await.unwrap_or_default();
         let link = |id: &String| {
             let item = after.iter().find(|i| i.ehai_id.as_ref() == Some(id));
             json!({ "title": item.map_or_else(|| title_of(id), |i| i.title.clone()), "url": item.and_then(|i| i.url.clone()) })
@@ -646,6 +674,14 @@ impl EhaiServer {
                     "kind": a.kind, "priority": a.priority }),
         )
     }
+}
+
+/// `ehai-id` → issue number for items that are issues.
+fn numbers(items: &[ehai_tracker::Item]) -> std::collections::BTreeMap<String, u64> {
+    items
+        .iter()
+        .filter_map(|i| Some((i.ehai_id.clone()?, i.number?)))
+        .collect()
 }
 
 /// Apply `f` to every string in a JSON value.

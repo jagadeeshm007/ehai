@@ -271,3 +271,16 @@ Re-check before bumping.
   - The lock file lives in `~/.ehai/adapters/`, never in Claude's directory.
   - The desktop app needs a full quit and relaunch afterwards; the install message says so.
 - **Why prompts:** the PM flows reach desktop as **MCP prompts** served by the same server, rendered from the same templates as the Claude Code skills. That gives one source and zero manual steps. ZIP skill export can be added if the team wants skills there too.
+
+## ADR-0023 — Fixes from the first live end-to-end run (aisdlc-demo → project #2)
+**Date:** 2026-11-17 · **Status:** accepted
+
+The run drove the installed binary's MCP server against real GitHub through steps 0–10. It found:
+
+1. **`tracker set` saved before verifying.** A mistyped owner was written to config, then failed. Now the field setup (which proves the project exists) runs first, and settings are saved only after it succeeds. A test for a missing project checks that config is untouched.
+2. **Plain TypeScript package without framework dependencies → "no apps".** Left as is for now; app detection is revisited with stack work in M5.
+3. **A rename rewrote every related issue,** because descriptions quoted other items by title. Descriptions now use `[[ehai-ref:<id>|<title>]]` tokens, resolved to `#<number>` once issues exist (GitHub renders the live title), or to the title for draft items.
+   - Sync applies in two passes when it creates items: pass 1 creates them, pass 2 fills in the links. A re-sync is therefore a no-op.
+   - Verified live: renaming one story updated 1 issue and left 3 untouched.
+   - The first sync on an older board migrates title references to `#n` once.
+4. **Enum values serialized as Rust names** (`Xs`, `InProgress`), while skills, people and the board say `XS` / `In Progress`. An agent sending "XS" was rejected. Status, Priority, Size and Work type now serialize as board labels, parse case- and space-insensitively (old saved plans still load), and advertise their labels in tool schemas.

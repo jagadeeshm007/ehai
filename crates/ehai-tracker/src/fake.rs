@@ -162,6 +162,10 @@ impl State {
     fn handle(&mut self, op: &str, v: &Value) -> Value {
         self.seed();
         match op {
+            // only project #1 exists
+            "ProjectMeta" if v["number"] != 1 => {
+                json!({ "repositoryOwner": { "projectV2": null } })
+            }
             "ProjectMeta" => json!({ "repositoryOwner": { "projectV2": {
                 "id": "PVT_1", "title": "Fake", "url": "https://github.com/orgs/octo/projects/1",
                 "fields": { "nodes": self.fields.iter().map(Self::field_json).collect::<Vec<_>>() } } } }),

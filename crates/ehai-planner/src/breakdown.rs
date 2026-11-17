@@ -282,7 +282,7 @@ impl Breakdown {
                     body += e.description.trim();
                     body += "\n\n**Stories**\n";
                     for s in &e.stories {
-                        body += &format!("- [ ] {}\n", s.title);
+                        body += &format!("- [ ] {}\n", self.reference(&s.id, &titles));
                     }
                 }
                 Kind::Story => {
@@ -303,7 +303,7 @@ impl Breakdown {
                     if !s.tasks.is_empty() {
                         body += "\n**Tasks**\n";
                         for t in &s.tasks {
-                            body += &format!("- [ ] {}\n", t.title);
+                            body += &format!("- [ ] {}\n", self.reference(&t.id, &titles));
                         }
                     }
                 }
@@ -319,16 +319,13 @@ impl Breakdown {
             }
             let mut meta = Vec::new();
             if let Some(p) = &r.parent {
-                meta.push(format!(
-                    "Part of: {}",
-                    titles.get(p).cloned().unwrap_or_default()
-                ));
+                meta.push(format!("Part of: {}", self.reference(p, &titles)));
             }
             if !r.depends_on.is_empty() {
                 let deps: Vec<String> = r
                     .depends_on
                     .iter()
-                    .map(|d| titles.get(d).cloned().unwrap_or_else(|| d.clone()))
+                    .map(|d| self.reference(d, &titles))
                     .collect();
                 meta.push(format!("Depends on: {}", deps.join("; ")));
             }
@@ -350,6 +347,26 @@ impl Breakdown {
         out
     }
 
+    /// Tracker items with cross-references resolved: `#<number>` for items that
+    /// already exist as issues (GitHub shows their live title, so a rename touches
+    /// only the renamed issue), the title otherwise.
+    pub fn to_desired_with(&self, numbers: &BTreeMap<String, u64>) -> Vec<Desired> {
+        let mut out = self.to_desired();
+        for d in &mut out {
+            d.body = resolve_refs(&d.body, numbers);
+        }
+        out
+    }
+
+    /// `[[ehai-ref:<ehai-id>|<title>]]`, resolved later by [`resolve_refs`].
+    fn reference(&self, id: &str, titles: &BTreeMap<String, String>) -> String {
+        let title = titles
+            .get(id)
+            .map_or(id, String::as_str)
+            .replace("]]", "] ]");
+        format!("{REF_OPEN}{}|{title}]]", item_id(&self.prd, id))
+    }
+
     fn stories(&self) -> impl Iterator<Item = &Story> {
         self.epics.iter().flat_map(|e| &e.stories)
     }
@@ -367,6 +384,31 @@ impl Breakdown {
     pub fn load(home: &Path, prd: &str) -> Result<Self> {
         read_json(&plan_dir(home, prd).join("breakdown.json"), prd)
     }
+}
+
+const REF_OPEN: &str = "[[ehai-ref:";
+
+/// Replace `[[ehai-ref:<ehai-id>|<title>]]` tokens with `#<number>` when the
+/// item's issue number is known, else with its title.
+pub fn resolve_refs(body: &str, numbers: &BTreeMap<String, u64>) -> String {
+    let mut out = String::with_capacity(body.len());
+    let mut rest = body;
+    while let Some(start) = rest.find(REF_OPEN) {
+        out.push_str(&rest[..start]);
+        let after = &rest[start + REF_OPEN.len()..];
+        let Some(end) = after.find("]]") else {
+            out.push_str(&rest[start..]);
+            return out;
+        };
+        let (id, title) = after[..end].split_once('|').unwrap_or((&after[..end], ""));
+        match numbers.get(id) {
+            Some(n) => out.push_str(&format!("#{n}")),
+            None => out.push_str(title),
+        }
+        rest = &after[end + 2..];
+    }
+    out.push_str(rest);
+    out
 }
 
 /// Tracker `ehai-id` for an item: `<prd-slug>.<id>`, slug cut so it stays ≤ 64.
@@ -544,7 +586,7 @@ mod tests {
 
     #[test]
     fn desired_items() {
-        let d = sample().to_desired();
+        let d = sample().to_desired_with(&BTreeMap::new());
         assert_eq!(d.len(), 5);
         let story = d
             .iter()
@@ -566,6 +608,51 @@ mod tests {
             "inherits the story's priority"
         );
         assert!(d.iter().all(|x| ehai_tracker::valid_ehai_id(&x.ehai_id)));
+    }
+
+    #[test]
+    fn references_use_issue_numbers_once_known() {
+        let mut numbers = BTreeMap::new();
+        numbers.insert("online-appointment-booking.s1".to_string(), 18);
+        let d = sample().to_desired_with(&numbers);
+        let s2 = d.iter().find(|x| x.ehai_id.ends_with(".s2")).unwrap();
+        assert!(s2.body.contains("Depends on: #18"), "{}", s2.body);
+        let epic = d.iter().find(|x| x.ehai_id.ends_with(".e1")).unwrap();
+        assert!(
+            epic.body.contains("- [ ] #18") && epic.body.contains("- [ ] Confirm a booking"),
+            "{}",
+            epic.body
+        );
+
+        // renaming s1 changes only s1 once everything has a number
+        let all: BTreeMap<String, u64> = sample()
+            .to_desired()
+            .iter()
+            .enumerate()
+            .map(|(i, x)| (x.ehai_id.clone(), i as u64 + 10))
+            .collect();
+        let before = sample().to_desired_with(&all);
+        let mut renamed = sample();
+        renamed.epics[0].stories[0].title = "See open slots".into();
+        let after = renamed.to_desired_with(&all);
+        let changed: Vec<_> = before
+            .iter()
+            .zip(&after)
+            .filter(|(a, b)| a != b)
+            .map(|(a, _)| a.ehai_id.clone())
+            .collect();
+        assert_eq!(changed, ["online-appointment-booking.s1"]);
+    }
+
+    #[test]
+    fn resolve_refs_edge_cases() {
+        let none = BTreeMap::new();
+        assert_eq!(resolve_refs("a [[ehai-ref:x.y|T]] b", &none), "a T b");
+        assert_eq!(
+            resolve_refs("broken [[ehai-ref:x", &none),
+            "broken [[ehai-ref:x"
+        );
+        assert_eq!(resolve_refs("plain", &none), "plain");
     }
 
     #[test]
