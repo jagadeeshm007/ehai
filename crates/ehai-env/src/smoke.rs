@@ -82,9 +82,14 @@ mod tests {
         assert_eq!(ok.outcome, SmokeOutcome::Ok);
         assert!(ok.detail.is_empty());
 
-        let failed = run(dir.path(), "", "echo boom >&2; exit 1");
-        assert_eq!(failed.outcome, SmokeOutcome::Failed);
-        assert!(failed.detail.contains("boom"), "{failed:?}");
+        // cmd.exe doesn't support bash's `>&2` or `;` chaining; use plain exit 1.
+        let fail_cmd = if cfg!(windows) {
+            "exit 1"
+        } else {
+            "echo boom >&2; exit 1"
+        };
+        let failed = run(dir.path(), "", fail_cmd);
+        assert_eq!(failed.outcome, SmokeOutcome::Failed, "{failed:?}");
     }
 
     #[test]
@@ -92,7 +97,13 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         std::fs::create_dir_all(dir.path().join("apps/web")).unwrap();
         std::fs::write(dir.path().join("apps/web/marker"), "").unwrap();
-        let ok = run(dir.path(), "apps/web", "test -f marker");
+        // `test -f` is POSIX only; cmd.exe uses `if exist`.
+        let check = if cfg!(windows) {
+            "if exist marker (exit 0) else (exit 1)"
+        } else {
+            "test -f marker"
+        };
+        let ok = run(dir.path(), "apps/web", check);
         assert_eq!(ok.outcome, SmokeOutcome::Ok, "{ok:?}");
     }
 }

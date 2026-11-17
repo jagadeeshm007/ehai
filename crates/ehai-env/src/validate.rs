@@ -46,7 +46,7 @@ pub fn missing_keys_in(root: &Path) -> Vec<String> {
             .strip_prefix(root)
             .unwrap_or(dir)
             .to_string_lossy()
-            .into_owned();
+            .replace('\\', "/");
         let prefix = if rel_dir.is_empty() || rel_dir == "." {
             String::new()
         } else {
