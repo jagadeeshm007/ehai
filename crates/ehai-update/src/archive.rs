@@ -24,11 +24,13 @@ fn extract_zip(archive: &[u8]) -> Result<Vec<u8>> {
         zip::ZipArchive::new(Cursor::new(archive)).map_err(|e| Error::Http(e.to_string()))?;
     for i in 0..zip.len() {
         let mut entry = zip.by_index(i).map_err(|e| Error::Http(e.to_string()))?;
-        if is_binary_entry(entry.name()) {
+        let name = entry
+            .name()
+            .map_err(|e| Error::Http(e.to_string()))?
+            .into_owned();
+        if is_binary_entry(&name) {
             let mut buf = Vec::new();
-            entry
-                .read_to_end(&mut buf)
-                .map_err(Error::io(entry.name().to_string()))?;
+            entry.read_to_end(&mut buf).map_err(Error::io(name))?;
             return Ok(buf);
         }
     }

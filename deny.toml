@@ -3,6 +3,13 @@ all-features = true
 
 [advisories]
 yanked = "deny"
+ignore = [
+  # chrono is unmaintained (RUSTSEC-2026-0543), with "no safe upgrade available" per
+  # the advisory itself. Pulled transitively, not a direct dependency, by two crates
+  # we can't drop: rmcp (the MCP SDK) and schemars (config JSON schema generation).
+  # Revisit if either stops depending on it, or a patched chrono/alternative ships.
+  "RUSTSEC-2026-0543",
+]
 
 [licenses]
 # Only licenses actually in the tree; all permissive. ISC/BSD-3/MIT-0 arrive with
