@@ -5,9 +5,11 @@ ADR-style log. One entry per non-obvious decision. Newest last.
 ---
 
 ## ADR-0001 — Release repository
-**Date:** 2026-11-17 · **Status:** accepted
+**Date:** 2026-11-17 · **Status:** accepted · **Amended:** 2026-11-18 (public, not private)
 
-Releases are published to the private repo **`jagadeeshm007/ehai`**. (Changed from `jagadeeshm943/ehai` on 2026-11-17, before any release: `jagadeeshm007` is the account `gh` is signed into.) The owner/name appears in `Cargo.toml` (`workspace.package.repository`) and will be used by `install/` and `ehai-update` (M8). It can move to an org later; keep it in those few places.
+Releases are published to **`jagadeeshm007/ehai`**. (Changed from `jagadeeshm943/ehai` on 2026-11-17, before any release: `jagadeeshm007` is the account `gh` is signed into.) The owner/name appears in `Cargo.toml` (`workspace.package.repository`) and is used by `install/` and `ehai-update` (M8). It can move to an org later; keep it in those few places.
+
+**Amendment (2026-11-18):** the spec's original "private GitHub repo" assumption is dropped — the user explicitly chose to keep the repo **public**. Nothing in the implementation actually required privacy: `install.sh`/`install.ps1` and `ehai-update` already treat `gh auth token`/`GITHUB_TOKEN` as optional (used only to avoid unauthenticated API rate limits), never as a hard requirement, so a public repo needs no code change — only the spec's wording (CLAUDE.md §11/§14) and this ADR needed correcting to stop describing a constraint that no longer applies.
 
 ## ADR-0002 — Create crates when a milestone needs them
 **Date:** 2026-11-17 · **Status:** accepted

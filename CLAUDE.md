@@ -302,11 +302,10 @@ For each harness: **detect → generate → install → verify → uninstall**. 
 
 ## 11. Updates and reliability (`ehai-update`)
 
-- **Private distribution:** binaries are published as releases in the client's **private GitHub repo** (macOS arm64/x64, Linux x64/arm64 musl static, Windows x64), each with `SHA256SUMS` + a minisign signature.
-- **One-line install** (auth via `gh` or a token):
+- **Distribution:** binaries are published as releases in the public GitHub repo `jagadeeshm007/ehai` (macOS arm64/x64, Linux x64/arm64 musl static, Windows x64), each with `SHA256SUMS` + a minisign signature. The repo is public (ADR-0001); auth (`gh`/`GITHUB_TOKEN`) is still used where present to avoid unauthenticated rate limits, but is never required to install or update.
+- **One-line install:**
   ```bash
-  curl -fsSL -H "Authorization: Bearer $(gh auth token)" \
-    https://raw.githubusercontent.com/<ORG>/ehai/main/install/install.sh | sh
+  curl -fsSL https://raw.githubusercontent.com/jagadeeshm007/ehai/main/install/install.sh | sh
   ```
   If `gh` isn't installed, the script falls back to `GITHUB_TOKEN`. The PowerShell equivalent is `install.ps1`. The script installs to `~/.ehai/bin`, adds it to PATH, then runs `ehai init`.
 - **`ehai update`:**
@@ -349,7 +348,7 @@ For each harness: **detect → generate → install → verify → uninstall**. 
   1. Verifies the tag equals the workspace version, and fails if not.
   2. Cross-compiles all targets (`cargo-zigbuild` or `cross` for Linux musl; native runners for macOS and Windows).
   3. Produces archives, `SHA256SUMS`, and a minisign signature.
-  4. Creates a GitHub Release in the private repo with generated notes from conventional commits (`git-cliff`). Tags with a pre-release suffix (`-alpha`, `-beta`, `-rc`) are marked **pre-release**.
+  4. Creates a GitHub Release in the repo with generated notes from conventional commits (`git-cliff`). Tags with a pre-release suffix (`-alpha`, `-beta`, `-rc`) are marked **pre-release**.
 - **Update channels:** pre-release tags map to the update channels (`alpha` → `beta` → `stable`). `ehai update` only offers versions on the user's channel; the default channel during 0.x is `alpha`.
 - **Conventional commits:** enforce them with a lightweight commit-msg check documented in `CONTRIBUTING.md`. A `just release 0.1.0-alpha.2` recipe bumps the version, updates the changelog, commits, and tags.
 
@@ -389,7 +388,7 @@ For each harness: **detect → generate → install → verify → uninstall**. 
 
 ## 14. Definition of done
 
-- One-line install works on macOS, Linux, and Windows from the private repo.
+- One-line install works on macOS, Linux, and Windows from the public repo.
 - After `ehai init`, slash commands work in Claude Code and at least two other harnesses; the PM flows work in Claude desktop.
 - PM can go from idea → PRD → approved breakdown → GitHub Project items without touching a terminal command beyond setup.
 - POCs run out of the box in a fresh worktree (env, deps, ports handled), match the app's design system, iterate and compose, and never touch main until promoted.

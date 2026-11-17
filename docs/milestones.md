@@ -232,7 +232,7 @@ Every new worktree must be runnable with no manual steps.
 
 | Requirement | Milestone |
 |---|---|
-| One-line install on macOS, Linux and Windows from the private repo | M8 |
+| One-line install on macOS, Linux and Windows from the public repo | M8 |
 | Slash commands in Claude Code + ≥ 2 other harnesses; PM flows in Claude desktop | M1, M3 ✅ · M7 |
 | PM: idea → PRD → approved breakdown → GitHub items with no terminal work beyond setup | M3 ✅ |
 | POCs run out of the box, match the design system, iterate and compose, never touch main | M4, M5, M6 |
@@ -247,8 +247,8 @@ Every new worktree must be runnable with no manual steps.
 
 | # | Question | Needed by |
 |---|---|---|
-| D1 | `jagadeeshm007/ehai` is **public** and empty; the spec says releases come from a **private** repo. Make it private before the first push? | M8 (first push) |
-| D2 | Generate the minisign key (`minisign -G -W`) and add the `MINISIGN_KEY` secret to the release repo | M8 |
+| D1 | ~~Make `jagadeeshm007/ehai` private?~~ **Resolved 2026-11-18: stays public.** | M8 (first push) |
+| D2 | ~~Generate the minisign key and add `MINISIGN_KEY`.~~ **Resolved 2026-11-18.** | M8 |
 | D3 | An OAuth app for GitHub device-flow login (ADR-0017): who registers it, under which org? Without it, ehai keeps using `gh` / `GITHUB_TOKEN` | M8 (optional for alpha) |
 | D4 | Which harnesses must be in the "≥ 2 others" acceptance check? Suggested: Codex CLI and Cursor | M7 |
 | D5 | Which fixture apps should the POC engine be judged on? Suggested: a Vite React app and an Expo app (synthetic data) | M5 |

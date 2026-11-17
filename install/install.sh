@@ -1,13 +1,15 @@
 #!/usr/bin/env sh
 # ehai installer (macOS, Linux). See install.ps1 for Windows.
 #
-#   curl -fsSL -H "Authorization: Bearer $(gh auth token)" \
-#     https://raw.githubusercontent.com/jagadeeshm007/ehai/main/install/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/jagadeeshm007/ehai/main/install/install.sh | sh
+#
+# The repo is public, so no auth is required. `gh auth token` / `GITHUB_TOKEN`
+# are used when present only to avoid unauthenticated GitHub API rate limits.
 #
 # Env overrides:
 #   EHAI_NAME     install under a different command name (default: ehai)
 #   EHAI_CHANNEL  alpha | beta | stable (default: alpha)
-#   GITHUB_TOKEN  used if `gh auth token` isn't available (private repo)
+#   GITHUB_TOKEN  used if `gh auth token` isn't available
 set -eu
 
 REPO="jagadeeshm007/ehai"

@@ -176,13 +176,18 @@
 - CI: new `shellcheck` job lints `install.sh` (mirrored in `ci-skip.yml`).
 - Config migration mechanism (`ehai_core::migrate`) refactored so the forward-migration loop (`migrate_with`) is parameterised over the steps array and target version, letting a test simulate a v2 schema (key rename + new default field) without touching the real `STEPS`/`CURRENT_SCHEMA_VERSION`, which stay at v1 until there's an actual v2.
 - Found and fixed in review: the background daily-check timestamp file, and the local tracker's `tracker.json`, weren't in `selfcmd::OWNED` — `ehai uninstall` was leaving them behind as unrecognised "leftovers" and therefore refusing to remove `~/.ehai` itself. Added both.
-- **Not done (needs you — see Open questions):** the actual `MINISIGN_KEY` GitHub secret, making the release repo private (or deciding not to), and the first real push + tag. Nothing in this milestone touches the git remote.
+- **Not done in this milestone's commit:** the first real push + tag. Nothing in M8's commit touches the git remote — see M8.1 below for that.
+
+### M8.1 — First push (2026-11-18)
+- **D1 resolved:** the repo stays **public** (user's explicit choice). ADR-0001 amended; CLAUDE.md §11/§14 and `docs/milestones.md` updated to stop describing a private-repo requirement that never had a code dependency — `install.sh`/`install.ps1`/`ehai-update` already treated auth as optional, not required.
+- **D2 resolved:** the user generated the real minisign keypair (`~/.ehai/minisign.pub`/`.key`, matching the placeholder embedded in `ehai_core::release::MINISIGN_PUBLIC_KEY` — same key, so no code change needed) and added the secret key as `MINISIGN_KEY` in `jagadeeshm007/ehai` → Settings → Secrets and variables → Actions.
+- First push to `main` — CI result tracked below once it runs.
 
 ## Next — M9: Hardening and release
 
 ## Open questions
-- **D1 (first push):** `jagadeeshm007/ehai` is currently public and empty; the spec wants releases from a **private** repo. Make it private before the first push?
-- **D2 (signing key):** generate the real minisign keypair with `minisign -G -W -p ~/.ehai/minisign.pub -s ~/.ehai/minisign.key` and add the secret key contents to `jagadeeshm007/ehai` → Settings → Secrets → `MINISIGN_KEY`. The embedded `MINISIGN_PUBLIC_KEY` in `ehai_core::release` right now is a placeholder generated in this session for development — it is **not** signed by a key GitHub Actions has, so a real release built by the current `release.yml` would fail `ehai update`'s / `install.sh`'s signature check until the real keypair is generated and the public half here is updated to match. The release workflow hard-fails if the `MINISIGN_KEY` secret is absent, so this must happen before tagging `v0.1.0-alpha.1`.
+- **D1 (repo visibility) — resolved 2026-11-18:** stays public.
+- **D2 (signing key) — resolved 2026-11-18:** real keypair generated, `MINISIGN_KEY` secret added, public half already matched the embedded constant.
 - **D3 (OAuth app):** still deferred per ADR-0017; `gh`/`GITHUB_TOKEN` cover everything `ehai-update` and `install.sh` need.
 - Claude desktop: MCP prompts are sufficient (ADR-0022). No ZIP skill package needed.
 - The interactive wizard path (cliclack on a real TTY) is exercised manually. Automated tests cover the same logic through the plain/scripted prompter.
