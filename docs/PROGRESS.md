@@ -181,7 +181,13 @@
 ### M8.1 — First push (2026-11-18)
 - **D1 resolved:** the repo stays **public** (user's explicit choice). ADR-0001 amended; CLAUDE.md §11/§14 and `docs/milestones.md` updated to stop describing a private-repo requirement that never had a code dependency — `install.sh`/`install.ps1`/`ehai-update` already treated auth as optional, not required.
 - **D2 resolved:** the user generated the real minisign keypair (`~/.ehai/minisign.pub`/`.key`, matching the placeholder embedded in `ehai_core::release::MINISIGN_PUBLIC_KEY` — same key, so no code change needed) and added the secret key as `MINISIGN_KEY` in `jagadeeshm007/ehai` → Settings → Secrets and variables → Actions.
-- First push to `main` — CI result tracked below once it runs.
+- First push to `main`. CI caught real issues plain `cargo build`/`test`/`clippy` locally never would — see ADR-0029 for the full list. Fixed across several follow-up pushes:
+  - `zip` 2.6.1 had two real RUSTSEC vulnerabilities (bumped to 9.x, trimmed to `features = ["deflate"]` to avoid new transitive licenses); `chrono` is unmaintained with no fix available (accepted via `deny.toml`'s advisory ignore list).
+  - Two test-only platform assumptions broke on the 3-OS matrix: `ehai-env`'s install-skip test assumed `yarn` was absent (true here, false on GitHub's runners — fixed with an `EHAI_ENV_PATH` override instead of mutating real `PATH`); `ehai-update`'s fixture hardcoded one target (fixed with a multi-target signed fixture).
+  - `cargo insta test`'s CI invocation had `--locked` in the wrong place (doctests reject it outright).
+  - The repo had no `.gitattributes`, so Windows checkouts got CRLF for the `templates/**/*.md` skill files, which are hashed into generated adapter content at runtime (`claude_code.rs`) — different hash, different literal text, snapshot mismatch. Added `.gitattributes` forcing LF everywhere.
+  - `ehai init` now runs the equivalent of `self install` as its first step, unconditionally — PATH setup and a stable binary location for harness adapters no longer need a separate command.
+- CI result after the `.gitattributes`/auto-install fixes tracked in the next push.
 
 ## Next — M9: Hardening and release
 

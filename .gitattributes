@@ -1,0 +1,20 @@
+# Force LF everywhere, regardless of platform or local git config. Without
+# this, Windows checkouts (core.autocrlf=true, GitHub's windows-latest
+# default) get CRLF for text files, including templates/**/*.md — which are
+# embedded verbatim via include_str!() and hashed into generated adapter
+# content (see claude_code.rs's content_hash()). A CRLF checkout changes that
+# hash, producing different (but equally valid) output on Windows than on
+# Unix: harmless in production, but it broke a snapshot test comparing
+# Windows output against a Unix-recorded snapshot — the real fix is making
+# checkouts byte-identical everywhere, not normalizing around the symptom.
+* text=auto eol=lf
+
+# Binary / generated — never touch line endings.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+Cargo.lock -diff

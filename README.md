@@ -51,7 +51,7 @@ A background check (at most once a day) notifies you of a newer version without 
 ehai init
 ```
 
-The wizard auto-detects OS, git, `gh` + auth, installed harnesses, Chrome, and the current repo. It asks at most 5 questions (role, harnesses, tracker, compliance mode, sandbox mode) and applies changes with a live checklist.
+The wizard auto-detects OS, git, `gh` + auth, installed harnesses, Chrome, and the current repo. It asks at most 5 questions (role, harnesses, tracker, compliance mode, sandbox mode) and applies changes with a live checklist — including installing itself to `~/.ehai/bin` and adding that to your PATH, if it isn't already, so `ehai init` alone is enough even when run straight from a `cargo build` without a separate `self install` step.
 
 **No `gh`?** The wizard detects this and asks: install `gh` to unlock GitHub Projects sync, or continue with local storage. Local storage supports all PM flows; GitHub sync can be added later with `ehai tracker set github`.
 

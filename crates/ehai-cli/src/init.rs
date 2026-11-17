@@ -590,6 +590,20 @@ fn apply(
 ) -> io::Result<bool> {
     let mut ok = true;
     let global = ehai_core::paths::global_config(home);
+
+    // So harnesses get wired to a stable location (not wherever this binary
+    // happened to be run from, e.g. a build dir or a download folder) and the
+    // command is on PATH without a separate step — "do it for the user"
+    // (spec §2.10). Already-installed is a fast, idempotent no-op.
+    ok &= retrying(p, "Install ehai", &mut || {
+        crate::selfcmd::install(home, config)
+            .map(|lines| lines.join("; "))
+            .map_err(|e| StepError {
+                message: e.to_string(),
+                fix: Some(format!("check that {} is writable", home.display())),
+            })
+    })?;
+
     ok &= retrying(p, "Save settings", &mut || {
         config::edit_file(&global, |t| {
             config::set(t, "", "role", a.role.as_str());
