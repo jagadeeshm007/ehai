@@ -251,6 +251,50 @@ impl Client {
             .map(String::from)
             .ok_or_else(|| Error::NotFound(format!("GitHub user `{login}`")))
     }
+
+    /// Create a PR via REST. Returns the HTML URL.
+    ///
+    /// HTTP 422 (branch already has open PR) is surfaced as `Error::Api`.
+    pub async fn create_pull_request(
+        &self,
+        repo: &str,
+        head: &str,
+        base: &str,
+        title: &str,
+        body: &str,
+    ) -> Result<String> {
+        let (owner, name) = repo
+            .split_once('/')
+            .ok_or_else(|| Error::Api(format!("repo must be 'owner/name', got '{repo}'")))?;
+        let req = self
+            .http
+            .post(format!("{}/repos/{owner}/{name}/pulls", self.base))
+            .header("Accept", "application/vnd.github+json")
+            .header("X-GitHub-Api-Version", "2022-11-28")
+            .json(&json!({ "title": title, "body": body, "head": head, "base": base }));
+        let resp = self.send(req).await?;
+        let status = resp.status();
+        let v: Value = resp.json().await.map_err(|e| {
+            Error::Api(format!(
+                "create_pull_request: unreadable response ({status}): {e}"
+            ))
+        })?;
+        if status == reqwest::StatusCode::UNPROCESSABLE_ENTITY {
+            let msg = v["errors"]
+                .as_array()
+                .and_then(|e| e.first())
+                .and_then(|e| e["message"].as_str())
+                .unwrap_or("already has an open pull request");
+            return Err(Error::Api(format!("create_pull_request: {msg}")));
+        }
+        if !status.is_success() {
+            return Err(Error::Api(format!("create_pull_request: HTTP {status}")));
+        }
+        v["html_url"]
+            .as_str()
+            .ok_or_else(|| Error::Api("create_pull_request: missing html_url".to_string()))
+            .map(String::from)
+    }
 }
 
 fn str_of(v: &Value) -> String {

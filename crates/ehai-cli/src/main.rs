@@ -10,6 +10,7 @@ mod env;
 mod init;
 mod logging;
 mod poc;
+mod prefs;
 mod role;
 mod selfcmd;
 mod sys;
@@ -100,6 +101,9 @@ enum Command {
     /// Create and manage UI/UX proof-of-concept worktrees.
     #[command(subcommand)]
     Poc(PocCmd),
+    /// View and edit output preferences (role, style, planning granularity).
+    #[command(subcommand)]
+    Prefs(PrefsCmd),
     /// Run the MCP server on stdio (started by your AI harness, not by hand).
     Mcp,
     /// Inspect configuration.
@@ -185,6 +189,37 @@ enum PocCmd {
     },
     /// Print the worktree path, dev-server command, and URL for a POC.
     Open { feature: String, n: u32 },
+    /// Synthesise a new POC from parts of two or more existing POCs.
+    Compose {
+        feature: String,
+        description: String,
+        /// Source POC numbers (repeat: --from 1 --from 2).
+        #[arg(long = "from", value_name = "N")]
+        sources: Vec<u32>,
+    },
+    /// Promote a POC by opening a GitHub pull request to the default branch.
+    Promote { feature: String, n: u32 },
+}
+
+#[derive(Subcommand)]
+enum PrefsCmd {
+    /// List all preferences (global merged with repo).
+    List,
+    /// Set a preference value.
+    Set {
+        key: String,
+        value: String,
+        /// `global` (default) or `repo`.
+        #[arg(long, default_value = "global")]
+        scope: String,
+    },
+    /// Delete a preference.
+    Delete {
+        key: String,
+        /// `global` (default) or `repo`.
+        #[arg(long, default_value = "global")]
+        scope: String,
+    },
 }
 
 #[derive(Subcommand)]
@@ -370,6 +405,47 @@ fn run() -> Result<ExitCode> {
                 }
                 PocCmd::Open { feature, n } => {
                     println!("{}", poc::open_poc(&config, &feature, n)?)
+                }
+                PocCmd::Compose {
+                    feature,
+                    description,
+                    sources,
+                } => {
+                    // Build (n, description) pairs from --from flags (description is empty; Claude synthesises)
+                    let src: Vec<(u32, String)> =
+                        sources.into_iter().map(|n| (n, String::new())).collect();
+                    println!(
+                        "{}",
+                        poc::compose_poc(&home, &config, &feature, &description, src)?
+                    )
+                }
+                PocCmd::Promote { feature, n } => {
+                    // Always confirm before promoting; --yes does not bypass this
+                    let mut p = ui::prompter(false);
+                    let ok = cancellable(p.confirm(
+                        &format!(
+                            "Promote poc-{n} of '{feature}' to main? This creates a GitHub PR."
+                        ),
+                        false,
+                    ))?;
+                    if !ok {
+                        println!("Cancelled.");
+                        return Ok(ExitCode::FAILURE);
+                    }
+                    println!("{}", poc::promote_poc(&home, &config, &feature, n)?)
+                }
+            }
+            Ok(ExitCode::SUCCESS)
+        }
+        Command::Prefs(cmd) => {
+            let config = config?;
+            match cmd {
+                PrefsCmd::List => println!("{}", prefs::list_prefs(&home, &config)?),
+                PrefsCmd::Set { key, value, scope } => {
+                    println!("{}", prefs::set_pref(&home, &config, &key, &value, &scope)?)
+                }
+                PrefsCmd::Delete { key, scope } => {
+                    println!("{}", prefs::delete_pref(&home, &config, &key, &scope)?)
                 }
             }
             Ok(ExitCode::SUCCESS)

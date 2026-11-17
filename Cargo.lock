@@ -561,6 +561,7 @@ dependencies = [
  "ehai-env",
  "ehai-mcp",
  "ehai-poc",
+ "ehai-prefs",
  "ehai-stack",
  "ehai-tracker",
  "insta",
@@ -625,6 +626,7 @@ dependencies = [
  "ehai-guard",
  "ehai-planner",
  "ehai-poc",
+ "ehai-prefs",
  "ehai-tracker",
  "rmcp",
  "schemars",
@@ -658,10 +660,23 @@ dependencies = [
  "ehai-core",
  "ehai-env",
  "ehai-stack",
+ "ehai-tracker",
  "insta",
  "serde",
  "serde_json",
  "tempfile",
+ "tracing",
+]
+
+[[package]]
+name = "ehai-prefs"
+version = "0.1.0-alpha.1"
+dependencies = [
+ "ehai-core",
+ "insta",
+ "serde",
+ "tempfile",
+ "toml",
  "tracing",
 ]
 

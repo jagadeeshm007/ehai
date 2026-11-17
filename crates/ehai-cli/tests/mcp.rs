@@ -139,7 +139,7 @@ fn speaks_mcp_over_stdio_and_survives_bad_input() {
     assert_eq!(res["result"]["resources"][0]["uri"], "ehai://prefs");
     let prefs = s.call(5, "resources/read", json!({"uri": "ehai://prefs"}));
     let text = prefs["result"]["contents"][0]["text"].as_str().unwrap();
-    assert!(text.contains("role = \"pm\""), "{text}");
+    assert!(text.contains("role: pm"), "{text}");
 
     // Bad input: garbage line, unknown tool, unknown resource, wrong params.
     s.send_raw("this is not json");

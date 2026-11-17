@@ -15,6 +15,7 @@ path = "src/main.rs"
 [dependencies]
 ehai-core.workspace = true
 ehai-adapters.workspace = true
+ehai-prefs.workspace = true
 ehai-mcp.workspace = true
 ehai-stack.workspace = true
 ehai-tracker.workspace = true

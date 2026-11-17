@@ -173,6 +173,18 @@ fn ensure_pocs_gitignored(root: &Path) -> Result<()> {
 
 // ── Core operations ────────────────────────────────────────────────────────
 
+fn sandbox_check(worktree: &Path, home: &Path, mode: ehai_core::config::SandboxMode) -> Result<()> {
+    use ehai_core::config::SandboxMode;
+    if mode == SandboxMode::Restricted && !worktree.starts_with(home.join("worktrees")) {
+        return Err(Error::Invalid(format!(
+            "sandbox: worktree {} is outside {}/worktrees; blocked in Restricted mode",
+            worktree.display(),
+            home.display()
+        )));
+    }
+    Ok(())
+}
+
 /// Create a new POC: branch + worktree + env provisioning + design context.
 pub fn poc_new(
     root: &Path,
@@ -180,9 +192,10 @@ pub fn poc_new(
     feature: &str,
     prompt: &str,
     env_config: &ehai_core::config::Env,
+    sandbox_mode: ehai_core::config::SandboxMode,
 ) -> Result<PocCreated> {
     let feature = feature_slug(feature);
-    create_poc(root, home, &feature, prompt, None, env_config)
+    create_poc(root, home, &feature, prompt, None, env_config, sandbox_mode)
 }
 
 /// Create a new iteration of an existing POC.
@@ -193,6 +206,7 @@ pub fn poc_iterate(
     parent_n: u32,
     feedback: &str,
     env_config: &ehai_core::config::Env,
+    sandbox_mode: ehai_core::config::SandboxMode,
 ) -> Result<PocCreated> {
     let feature = feature_slug(feature);
     // Verify parent exists
@@ -202,7 +216,15 @@ pub fn poc_iterate(
             "poc-{parent_n} not found in feature '{feature}'"
         )));
     }
-    create_poc(root, home, &feature, feedback, Some(parent_n), env_config)
+    create_poc(
+        root,
+        home,
+        &feature,
+        feedback,
+        Some(parent_n),
+        env_config,
+        sandbox_mode,
+    )
 }
 
 fn create_poc(
@@ -212,11 +234,13 @@ fn create_poc(
     prompt: &str,
     parent: Option<u32>,
     env_config: &ehai_core::config::Env,
+    sandbox_mode: ehai_core::config::SandboxMode,
 ) -> Result<PocCreated> {
     let mut manifest = load_manifest(root, feature)?;
     let n = manifest.next_n();
     let branch = poc_branch(feature, n);
     let wt_path = worktree_path(home, root, feature, n);
+    sandbox_check(&wt_path, home, sandbox_mode)?;
 
     // Create parent directories
     if let Some(parent_dir) = wt_path.parent() {
@@ -270,6 +294,104 @@ fn create_poc(
         entry,
         design_context,
     })
+}
+
+/// Synthesise a new POC from parts of two or more existing POCs.
+///
+/// Each `source` is `(parent_n, description_of_what_to_take)`. Claude reads the
+/// referenced POCs' diffs and resynthesises the described parts; ehai just records
+/// lineage in `PocEntry::parts`.
+pub fn poc_compose(
+    root: &Path,
+    home: &Path,
+    feature: &str,
+    description: &str,
+    sources: Vec<(u32, String)>,
+    env_config: &ehai_core::config::Env,
+    sandbox_mode: ehai_core::config::SandboxMode,
+) -> Result<PocCreated> {
+    let feature = feature_slug(feature);
+    // Verify every source n exists
+    let manifest = load_manifest(root, &feature)?;
+    for (n, _) in &sources {
+        if manifest.get(*n).is_none() {
+            return Err(Error::Invalid(format!(
+                "poc-{n} not found in feature '{feature}'"
+            )));
+        }
+    }
+    let mut created = create_poc(
+        root,
+        home,
+        &feature,
+        description,
+        None,
+        env_config,
+        sandbox_mode,
+    )?;
+    // Patch lineage and re-save
+    created.entry.parts = sources;
+    let mut manifest = load_manifest(root, &feature)?;
+    if let Some(e) = manifest.get_mut(created.entry.n) {
+        e.parts.clone_from(&created.entry.parts);
+    }
+    save_manifest(root, &manifest)?;
+    Ok(created)
+}
+
+/// Promote a POC to main by opening a GitHub pull request.
+///
+/// Updates the manifest entry to `Promoted` and returns the PR HTML URL.
+#[allow(clippy::too_many_arguments)]
+pub async fn poc_promote(
+    root: &Path,
+    home: &Path,
+    feature: &str,
+    n: u32,
+    client: &ehai_tracker::github::Client,
+    repo_slug: &str,
+    default_branch: &str,
+    sandbox_mode: ehai_core::config::SandboxMode,
+) -> Result<String> {
+    let feature = feature_slug(feature);
+    let mut manifest = load_manifest(root, &feature)?;
+    let entry = manifest
+        .get(n)
+        .ok_or_else(|| Error::Invalid(format!("poc-{n} not found in '{feature}'")))?;
+    if matches!(entry.status, PocStatus::Promoted) {
+        return Err(Error::Invalid(format!("poc-{n} is already promoted")));
+    }
+    if matches!(entry.status, PocStatus::Archived) {
+        return Err(Error::Invalid(format!(
+            "poc-{n} is archived; restore it first"
+        )));
+    }
+    sandbox_check(&entry.worktree, home, sandbox_mode)?;
+
+    let branch = entry.branch.clone();
+    let prompt_preview: String = entry.prompt.chars().take(100).collect();
+    let parent_line = entry
+        .parent
+        .map(|p| format!("\n\nParent: poc-{p}"))
+        .unwrap_or_default();
+    let pr_title = format!("feat({feature}): poc-{n}");
+    let pr_body = format!(
+        "## POC `{feature}/poc-{n}`\n\n\
+         **Prompt:** {prompt_preview}{parent_line}\n\n\
+         _Auto-generated by ehai — review before merging._"
+    );
+
+    let pr_url = client
+        .create_pull_request(repo_slug, &branch, default_branch, &pr_title, &pr_body)
+        .await
+        .map_err(|e| Error::Invalid(e.to_string()))?;
+
+    if let Some(e) = manifest.get_mut(n) {
+        e.status = PocStatus::Promoted;
+    }
+    save_manifest(root, &manifest)?;
+    tracing::info!(n, feature = %feature, pr_url = %pr_url, "poc promoted");
+    Ok(pr_url)
 }
 
 /// Archive a POC branch and remove its worktree.
@@ -649,5 +771,32 @@ mod tests {
         let id2 = repo_id(d.path());
         assert_eq!(id1, id2);
         assert_eq!(id1.len(), 16);
+    }
+
+    #[test]
+    fn sandbox_check_restricted_blocks_outside_worktrees() {
+        use ehai_core::config::SandboxMode;
+        let home = std::path::Path::new("/home/user/.ehai");
+        // allowed: inside worktrees
+        assert!(sandbox_check(
+            &home.join("worktrees/abc/feature/poc-1"),
+            home,
+            SandboxMode::Restricted
+        )
+        .is_ok());
+        // blocked: outside worktrees
+        assert!(sandbox_check(
+            std::path::Path::new("/tmp/evil"),
+            home,
+            SandboxMode::Restricted
+        )
+        .is_err());
+        // off mode: always ok
+        assert!(sandbox_check(
+            std::path::Path::new("/tmp/anything"),
+            home,
+            SandboxMode::Off
+        )
+        .is_ok());
     }
 }

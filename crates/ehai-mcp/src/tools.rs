@@ -236,6 +236,62 @@ pub struct PocOpenArgs {
     pub repo_path: Option<String>,
 }
 
+/// One source for a compose operation: POC number + what to take from it.
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct PocSourcePart {
+    pub n: u32,
+    pub description: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct PocComposeArgs {
+    pub feature: String,
+    /// What to synthesise (passed to Claude as the design brief).
+    pub description: String,
+    /// Source POCs and what to take from each.
+    pub sources: Vec<PocSourcePart>,
+    #[serde(default)]
+    pub repo_path: Option<String>,
+}
+
+#[derive(Debug, Default, Deserialize, JsonSchema)]
+pub struct PocPromoteArgs {
+    pub feature: String,
+    pub n: u32,
+    /// Pass `"yes"` after the user confirms the confirmation question.
+    #[serde(default)]
+    pub confirmed: Option<String>,
+    #[serde(default)]
+    pub repo_path: Option<String>,
+}
+
+#[derive(Debug, Default, Deserialize, JsonSchema)]
+pub struct PrefsListArgs {
+    #[serde(default)]
+    pub repo_path: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct PrefsSetArgs {
+    pub key: String,
+    pub value: String,
+    /// `"global"` (default) or `"repo"`.
+    #[serde(default)]
+    pub scope: Option<String>,
+    #[serde(default)]
+    pub repo_path: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct PrefsDeleteArgs {
+    pub key: String,
+    /// `"global"` (default) or `"repo"`.
+    #[serde(default)]
+    pub scope: Option<String>,
+    #[serde(default)]
+    pub repo_path: Option<String>,
+}
+
 #[tool_router(router = tool_router, vis = "pub(crate)")]
 impl EhaiServer {
     #[tool(
@@ -441,6 +497,51 @@ impl EhaiServer {
         let this = self.clone();
         guard(async move { this.do_poc_open(a) }).await
     }
+
+    #[tool(
+        name = "poc_compose",
+        description = "Synthesise a new POC by taking described parts from two or more existing POCs. Returns the same design context as poc_new. Claude reads the referenced POCs' branches and writes a synthesised version; ehai records lineage."
+    )]
+    pub async fn poc_compose(&self, Parameters(a): Parameters<PocComposeArgs>) -> Out {
+        let this = self.clone();
+        guard(async move { this.do_poc_compose(a) }).await
+    }
+
+    #[tool(
+        name = "poc_promote",
+        description = "Promote a POC to the default branch by opening a GitHub pull request. Returns `needs_input` with a confirmation question on the first call; pass `confirmed: \"yes\"` to proceed."
+    )]
+    pub async fn poc_promote(&self, Parameters(a): Parameters<PocPromoteArgs>) -> Out {
+        let this = self.clone();
+        guard(async move { this.do_poc_promote(a).await }).await
+    }
+
+    #[tool(
+        name = "prefs_list",
+        description = "List all user preferences (global merged with repo). Returns scope and source for each entry."
+    )]
+    pub async fn prefs_list(&self, Parameters(a): Parameters<PrefsListArgs>) -> Out {
+        let this = self.clone();
+        guard(async move { this.do_prefs_list(a) }).await
+    }
+
+    #[tool(
+        name = "prefs_set",
+        description = "Set a user preference. `scope` is `global` (default) or `repo` (requires a repo). Source is always `explicit`."
+    )]
+    pub async fn prefs_set(&self, Parameters(a): Parameters<PrefsSetArgs>) -> Out {
+        let this = self.clone();
+        guard(async move { this.do_prefs_set(a) }).await
+    }
+
+    #[tool(
+        name = "prefs_delete",
+        description = "Delete a user preference by key. `scope` controls which file is updated."
+    )]
+    pub async fn prefs_delete(&self, Parameters(a): Parameters<PrefsDeleteArgs>) -> Out {
+        let this = self.clone();
+        guard(async move { this.do_prefs_delete(a) }).await
+    }
 }
 
 impl EhaiServer {
@@ -628,7 +729,9 @@ impl EhaiServer {
         out(
             json!({ "status": "ok", "slug": checked.value.slug(), "files": files,
                     "markdown": checked.value.to_markdown(), "patient_data": checked.action,
-                    "low_confidence_flags": checked.notes }),
+                    "low_confidence_flags": checked.notes,
+                    "role": self.ctx.role(),
+                    "presentation_hint": if self.ctx.role() == "pm" { "visual" } else { "technical" } }),
         )
     }
 
@@ -824,7 +927,9 @@ impl EhaiServer {
         out(
             json!({ "status": "ok", "markdown": r.to_markdown(), "percent_done": r.percent(),
                     "html_path": html_path,
-                    "patient_data_in_titles": (!flagged.is_empty()).then(|| format!("{} item title(s) look like they contain patient data; consider editing them", flagged.len())) }),
+                    "patient_data_in_titles": (!flagged.is_empty()).then(|| format!("{} item title(s) look like they contain patient data; consider editing them", flagged.len())),
+                    "role": self.ctx.role(),
+                    "presentation_hint": if self.ctx.role() == "pm" { "visual" } else { "technical" } }),
         )
     }
 
@@ -1050,6 +1155,7 @@ impl EhaiServer {
             &a.feature,
             &a.prompt,
             &self.ctx.config.env,
+            self.ctx.config.sandbox.mode,
         )
         .map_err(|e| e.to_string())?;
         out(json!({
@@ -1075,6 +1181,7 @@ impl EhaiServer {
             a.parent_n,
             &a.feedback,
             &self.ctx.config.env,
+            self.ctx.config.sandbox.mode,
         )
         .map_err(|e| e.to_string())?;
         out(json!({
@@ -1133,6 +1240,161 @@ impl EhaiServer {
             "command": info.command,
             "url": info.url
         }))
+    }
+
+    fn do_poc_compose(&self, a: PocComposeArgs) -> Out {
+        let root = self
+            .repo(a.repo_path.as_deref())?
+            .ok_or_else(|| "repo_path required".to_string())?;
+        let sources: Vec<(u32, String)> = a
+            .sources
+            .into_iter()
+            .map(|p| (p.n, p.description))
+            .collect();
+        let created = ehai_poc::poc_compose(
+            &root,
+            &self.ctx.home,
+            &a.feature,
+            &a.description,
+            sources,
+            &self.ctx.config.env,
+            self.ctx.config.sandbox.mode,
+        )
+        .map_err(|e| e.to_string())?;
+        let parent_ns: Vec<u32> = created.entry.parts.iter().map(|(n, _)| *n).collect();
+        out(json!({
+            "status": "ok",
+            "entry": created.entry,
+            "worktree_path": created.entry.worktree,
+            "branch": created.entry.branch,
+            "port": created.entry.port,
+            "url": format!("http://localhost:{}", created.entry.port),
+            "design_context": created.design_context,
+            "composed_from": parent_ns,
+            "instructions": "Write the composed POC code inside `worktree_path`, synthesising the described parts."
+        }))
+    }
+
+    async fn do_poc_promote(&self, a: PocPromoteArgs) -> Out {
+        // Confirm before creating a PR
+        if a.confirmed.as_deref() != Some("yes") {
+            return out(needs_input(
+                "Promote POC?",
+                format!(
+                    "Promote poc-{n} of '{feature}' to `main`? This opens a GitHub pull request.",
+                    n = a.n,
+                    feature = a.feature
+                ),
+                vec![
+                    opt(
+                        "Yes, create PR",
+                        "yes",
+                        "Open a pull request to the default branch",
+                    ),
+                    opt("Cancel", "no", "Do nothing"),
+                ],
+                "confirmed",
+            ));
+        }
+        let root = self
+            .repo(a.repo_path.as_deref())?
+            .ok_or_else(|| "repo_path required".to_string())?;
+        let repo_slug = self
+            .ctx
+            .config
+            .tracker
+            .github
+            .repo
+            .as_deref()
+            .ok_or_else(|| {
+                format!(
+                    "no repo configured; run `{} tracker set` first",
+                    self.ctx.brand()
+                )
+            })?;
+        let client = self.github_client()?;
+        let pr_url = ehai_poc::poc_promote(
+            &root,
+            &self.ctx.home,
+            &a.feature,
+            a.n,
+            &client,
+            repo_slug,
+            "main",
+            self.ctx.config.sandbox.mode,
+        )
+        .await
+        .map_err(|e| e.to_string())?;
+        out(json!({ "status": "ok", "pr_url": pr_url,
+                    "message": format!("poc-{n} promoted — review and merge the PR", n = a.n) }))
+    }
+
+    fn do_prefs_list(&self, a: PrefsListArgs) -> Out {
+        let root = self
+            .repo(a.repo_path.as_deref())
+            .ok()
+            .flatten()
+            .and_then(|p| p.canonicalize().ok());
+        let prefs = ehai_prefs::Prefs::merged(&self.ctx.home, root.as_deref());
+        let entries: Vec<serde_json::Value> = prefs
+            .entries
+            .iter()
+            .map(|p| {
+                json!({ "key": p.key, "value": p.value,
+                         "scope": format!("{:?}", p.scope).to_lowercase(),
+                         "source": format!("{:?}", p.source).to_lowercase() })
+            })
+            .collect();
+        out(
+            json!({ "status": "ok", "count": entries.len(), "prefs": entries,
+                    "context": prefs.to_context_text() }),
+        )
+    }
+
+    fn do_prefs_set(&self, a: PrefsSetArgs) -> Out {
+        use ehai_prefs::{Scope, Source};
+        let use_repo = a.scope.as_deref() == Some("repo");
+        if use_repo {
+            let root = self
+                .repo(a.repo_path.as_deref())?
+                .ok_or_else(|| "repo_path required for repo-scoped prefs".to_string())?;
+            let mut prefs = ehai_prefs::Prefs::load_repo(&root);
+            prefs.set(&a.key, &a.value, Scope::Repo, Source::Explicit);
+            prefs.save_repo(&root).map_err(|e| e.to_string())?;
+        } else {
+            let mut prefs = ehai_prefs::Prefs::load_global(&self.ctx.home);
+            prefs.set(&a.key, &a.value, Scope::Global, Source::Explicit);
+            prefs
+                .save_global(&self.ctx.home)
+                .map_err(|e| e.to_string())?;
+        }
+        out(json!({ "status": "ok", "key": a.key, "value": a.value,
+                    "scope": a.scope.as_deref().unwrap_or("global") }))
+    }
+
+    fn do_prefs_delete(&self, a: PrefsDeleteArgs) -> Out {
+        let use_repo = a.scope.as_deref() == Some("repo");
+        let deleted = if use_repo {
+            let root = self
+                .repo(a.repo_path.as_deref())?
+                .ok_or_else(|| "repo_path required for repo-scoped prefs".to_string())?;
+            let mut prefs = ehai_prefs::Prefs::load_repo(&root);
+            let d = prefs.delete(&a.key);
+            if d {
+                prefs.save_repo(&root).map_err(|e| e.to_string())?;
+            }
+            d
+        } else {
+            let mut prefs = ehai_prefs::Prefs::load_global(&self.ctx.home);
+            let d = prefs.delete(&a.key);
+            if d {
+                prefs
+                    .save_global(&self.ctx.home)
+                    .map_err(|e| e.to_string())?;
+            }
+            d
+        };
+        out(json!({ "status": "ok", "key": a.key, "deleted": deleted }))
     }
 }
 

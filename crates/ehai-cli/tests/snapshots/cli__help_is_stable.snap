@@ -20,6 +20,7 @@ Commands:
   team        Who can be assigned work and @mentioned on the connected project
   env         Make a worktree runnable: gitignored config, ports, dependencies, health check
   poc         Create and manage UI/UX proof-of-concept worktrees
+  prefs       View and edit output preferences (role, style, planning granularity)
   mcp         Run the MCP server on stdio (started by your AI harness, not by hand)
   config      Inspect configuration
   help        Print this message or the help of the given subcommand(s)

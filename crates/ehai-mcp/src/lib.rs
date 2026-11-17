@@ -81,30 +81,21 @@ impl EhaiServer {
         }
     }
 
-    /// Body of the `ehai://prefs` resource: role (and why it applies) plus the
-    /// user's preference file. Preference learning lands in M6; until then
-    /// this is the explicit profile only.
+    /// Body of the `ehai://prefs` resource: role context + learned preferences.
     pub fn prefs_text(&self) -> String {
-        let mut out = String::from("# ehai user preferences (edit with /ehai:prefs)\n");
-        out.push_str(&format!("role = \"{}\"\n", self.ctx.role()));
-        out.push_str(&format!(
-            "project_admin = {}\n",
-            self.ctx
-                .config
-                .access
-                .project_admin
-                .map_or("unknown".to_string(), |b| b.to_string())
-        ));
-        out.push_str(
-            "role_source = \"only an admin of the connected project chooses a role; \
-             everyone else is dev\"\n",
-        );
-        let file = ehai_core::paths::prefs_dir(&self.ctx.home).join("user.toml");
-        match std::fs::read_to_string(&file) {
-            Ok(body) => out.push_str(&body),
-            Err(_) => out.push_str("# nothing learned yet\n"),
-        }
-        out
+        let root = self.ctx.cwd.as_deref().and_then(ehai_core::git::toplevel);
+        let prefs = ehai_prefs::Prefs::merged(&self.ctx.home, root.as_deref());
+        let admin = self
+            .ctx
+            .config
+            .access
+            .project_admin
+            .map_or("unknown".to_string(), |b| b.to_string());
+        format!(
+            "role: {role}\nproject_admin: {admin}\n\n{prefs}",
+            role = self.ctx.role(),
+            prefs = prefs.to_context_text(),
+        )
     }
 
     fn adapter_ctx(&self) -> ehai_adapters::Ctx {
@@ -311,12 +302,16 @@ mod tests {
     fn prefs_text_includes_role_and_file() {
         let d = tempfile::tempdir().unwrap();
         let s = EhaiServer::new(ctx(d.path().into()));
-        assert!(s.prefs_text().contains("role = \"pm\""));
-        assert!(s.prefs_text().contains("project_admin = true"));
-        assert!(s.prefs_text().contains("nothing learned yet"));
+        assert!(s.prefs_text().contains("role: pm"));
+        assert!(s.prefs_text().contains("project_admin: true"));
+        assert!(s.prefs_text().contains("(none set)"));
         std::fs::create_dir_all(d.path().join("prefs")).unwrap();
-        std::fs::write(d.path().join("prefs/user.toml"), "detail = \"short\"\n").unwrap();
-        assert!(s.prefs_text().contains("detail = \"short\""));
+        std::fs::write(
+            d.path().join("prefs/user.toml"),
+            "[[entries]]\nkey = \"detail\"\nvalue = \"short\"\nscope = \"global\"\nsource = \"explicit\"\n",
+        )
+        .unwrap();
+        assert!(s.prefs_text().contains("detail = short"));
     }
 
     #[test]

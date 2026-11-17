@@ -1,0 +1,7 @@
+---
+source: crates/ehai-prefs/src/lib.rs
+expression: text
+---
+User preferences:
+- poc.style = dense
+- planning.granularity = story (explicit)

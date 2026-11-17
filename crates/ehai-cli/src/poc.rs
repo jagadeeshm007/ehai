@@ -1,4 +1,4 @@
-//! `ehai poc new|iterate|list|discard|compare|open`: POC worktree management (spec §5.4).
+//! `ehai poc new|iterate|compose|promote|list|discard|compare|open`: POC worktree management (spec §5.4).
 //! Thin wrappers over `ehai-poc`; repo root is resolved from the current directory.
 
 use anyhow::{Context, Result};
@@ -16,7 +16,14 @@ pub fn new_poc(
     prompt: &str,
 ) -> Result<String> {
     let root = repo_root()?;
-    let created = ehai_poc::poc_new(&root, home, feature, prompt, &config.env)?;
+    let created = ehai_poc::poc_new(
+        &root,
+        home,
+        feature,
+        prompt,
+        &config.env,
+        config.sandbox.mode,
+    )?;
     Ok(format!(
         "Created poc-{n} on branch {branch}\n\
          Worktree: {wt}\n\
@@ -39,7 +46,15 @@ pub fn iterate_poc(
     feedback: &str,
 ) -> Result<String> {
     let root = repo_root()?;
-    let created = ehai_poc::poc_iterate(&root, home, feature, parent, feedback, &config.env)?;
+    let created = ehai_poc::poc_iterate(
+        &root,
+        home,
+        feature,
+        parent,
+        feedback,
+        &config.env,
+        config.sandbox.mode,
+    )?;
     Ok(format!(
         "Created poc-{n} (↑ from poc-{parent}) on branch {branch}\n\
          Worktree: {wt}\n\
@@ -105,6 +120,68 @@ pub fn compare_pocs(
         .status()
         .or_else(|_| std::process::Command::new("xdg-open").arg(&path).status());
     Ok(format!("Report: {}", path.display()))
+}
+
+pub fn compose_poc(
+    home: &std::path::Path,
+    config: &Config,
+    feature: &str,
+    description: &str,
+    sources: Vec<(u32, String)>,
+) -> Result<String> {
+    let root = repo_root()?;
+    let created = ehai_poc::poc_compose(
+        &root,
+        home,
+        feature,
+        description,
+        sources,
+        &config.env,
+        config.sandbox.mode,
+    )?;
+    let parents = created
+        .entry
+        .parts
+        .iter()
+        .map(|(n, d)| format!("poc-{n}: {d}"))
+        .collect::<Vec<_>>()
+        .join(", ");
+    Ok(format!(
+        "Created poc-{n} (compose from {parents}) on branch {branch}\n\
+         Worktree: {wt}\n\
+         Port:     {port}",
+        n = created.entry.n,
+        branch = created.entry.branch,
+        wt = created.entry.worktree.display(),
+        port = created.entry.port,
+    ))
+}
+
+pub fn promote_poc(
+    home: &std::path::Path,
+    config: &Config,
+    feature: &str,
+    n: u32,
+) -> Result<String> {
+    let (_, token_obj) = ehai_tracker::github::client_from_env()?;
+    let repo_slug = config
+        .tracker
+        .github
+        .repo
+        .as_deref()
+        .ok_or_else(|| anyhow::anyhow!("no repo configured; run `ehai tracker set` first"))?;
+    let root = repo_root()?;
+    let pr_url = crate::tracker::block_on(ehai_poc::poc_promote(
+        &root,
+        home,
+        feature,
+        n,
+        &ehai_tracker::github::Client::new(&ehai_tracker::github::api_base(), &token_obj.value)?,
+        repo_slug,
+        "main",
+        config.sandbox.mode,
+    ))?;
+    Ok(format!("PR created: {pr_url}"))
 }
 
 pub fn open_poc(config: &Config, feature: &str, n: u32) -> Result<String> {
