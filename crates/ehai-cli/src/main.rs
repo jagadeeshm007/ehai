@@ -18,6 +18,7 @@ mod sys;
 mod team;
 mod tracker;
 mod ui;
+mod update;
 
 pub const VERSION_LINE: &str = concat!(
     env!("CARGO_PKG_VERSION"),
@@ -113,6 +114,15 @@ enum Command {
     /// Export or import config, prefs, and local tracker for device migration.
     #[command(subcommand)]
     Migration(migration::MigrationCmd),
+    /// Check for and install a newer release, with automatic rollback if it fails.
+    Update {
+        /// Override the configured update channel.
+        #[arg(long, value_parser = ["alpha", "beta", "stable"])]
+        channel: Option<String>,
+        /// Restore the previous binary instead of checking for an update.
+        #[arg(long)]
+        rollback: bool,
+    },
 }
 
 #[derive(Subcommand)]
@@ -292,6 +302,32 @@ fn run() -> Result<ExitCode> {
     };
     let config = Config::load(&opts);
 
+    // Background update check (spec §11): at most once a day, notify-only.
+    // Skipped for `mcp` (must keep stdout clean for the protocol), `update`
+    // itself, and `doctor` (already a health check). Runs after the command's
+    // own output, so it never delays the thing the user actually asked for.
+    let skip_notify = matches!(
+        cli.command,
+        Command::Mcp | Command::Update { .. } | Command::Doctor { .. } | Command::Uninstall
+    );
+    let notify_settings = config
+        .as_ref()
+        .ok()
+        .map(|c| (c.update.check, c.update.channel));
+
+    let result = run_command(cli, home.clone(), config);
+
+    if !skip_notify {
+        if let Some((check, channel)) = notify_settings {
+            if check {
+                update::maybe_notify(&home, channel);
+            }
+        }
+    }
+    result
+}
+
+fn run_command(cli: Cli, home: PathBuf, config: ehai_core::Result<Config>) -> Result<ExitCode> {
     match cli.command {
         Command::Mcp => {
             let config = config?;
@@ -577,8 +613,10 @@ fn run() -> Result<ExitCode> {
             match cmd {
                 ConfigCmd::Show => print!("{}", toml::to_string_pretty(&config?)?),
                 ConfigCmd::Path => {
-                    println!("global: {}", global.display());
-                    let repo = opts.cwd.as_deref().and_then(paths::find_repo_config);
+                    println!("global: {}", paths::global_config(&home).display());
+                    let repo = std::env::current_dir()
+                        .ok()
+                        .and_then(|d| paths::find_repo_config(&d));
                     match repo {
                         Some(r) => println!("repo:   {}", r.display()),
                         None => println!("repo:   (none; create {})", paths::REPO_CONFIG_FILE),
@@ -597,6 +635,20 @@ fn run() -> Result<ExitCode> {
         Command::Migration(cmd) => {
             migration::run(&cmd, &home)?;
             Ok(ExitCode::SUCCESS)
+        }
+        Command::Update { channel, rollback } => {
+            let config = config?;
+            let channel = channel.map(|c| match c.as_str() {
+                "alpha" => ehai_core::config::Channel::Alpha,
+                "beta" => ehai_core::config::Channel::Beta,
+                _ => ehai_core::config::Channel::Stable,
+            });
+            let ok = update::run(&home, &config, channel, rollback)?;
+            Ok(if ok {
+                ExitCode::SUCCESS
+            } else {
+                ExitCode::FAILURE
+            })
         }
     }
 }

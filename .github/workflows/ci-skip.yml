@@ -42,3 +42,6 @@ jobs:
   snapshots:
     runs-on: ubuntu-latest
     steps: [{ run: echo "doc-only change; skipped" }]
+  shellcheck:
+    runs-on: ubuntu-latest
+    steps: [{ run: echo "doc-only change; skipped" }]

@@ -89,3 +89,9 @@ jobs:
           tool: cargo-insta
       # Fails on mismatched, pending or orphaned snapshots.
       - run: cargo insta test --workspace --locked --check --unreferenced=reject
+
+  shellcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: shellcheck install/install.sh

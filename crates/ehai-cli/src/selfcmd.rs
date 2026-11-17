@@ -113,6 +113,9 @@ const OWNED: &[&str] = &[
     "worktrees",
     "cache",
     "ports.json",
+    "update-check.json",
+    "tracker.json",
+    "tracker.json.bak",
     ".doctor-probe",
 ];
 

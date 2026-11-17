@@ -25,6 +25,7 @@ impl Env {
             .env_remove("GITHUB_TOKEN")
             .env_remove("GH_TOKEN")
             .env("EHAI_GITHUB_API", "http://127.0.0.1:9")
+            .env("EHAI_RELEASES_API", "http://127.0.0.1:9")
             // never touch the developer's real Claude desktop config
             .env(
                 "EHAI_CLAUDE_DESKTOP_CONFIG",

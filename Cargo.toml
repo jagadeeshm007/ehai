@@ -21,6 +21,7 @@ ehai-guard = { path = "crates/ehai-guard" }
 ehai-planner = { path = "crates/ehai-planner" }
 ehai-poc = { path = "crates/ehai-poc" }
 ehai-prefs = { path = "crates/ehai-prefs" }
+ehai-update = { path = "crates/ehai-update" }
 
 
 anyhow = "1.0.104"
@@ -40,6 +41,12 @@ tracing = "0.1.44"
 tracing-appender = "0.2.5"
 tracing-subscriber = { version = "0.3.23", features = ["json", "env-filter"] }
 zip = "2.6.1"
+sha2 = "0.11.1"
+tar = "0.4.46"
+flate2 = "1.1.11"
+minisign-verify = "0.3.0"
+self-replace = "1.5.1"
+semver = "1.0.24"
 # dev
 assert_cmd = "2.2.2"
 insta = "1.49.0"

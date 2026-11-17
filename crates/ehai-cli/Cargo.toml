@@ -21,6 +21,7 @@ ehai-stack.workspace = true
 ehai-tracker.workspace = true
 ehai-env.workspace = true
 ehai-poc.workspace = true
+ehai-update.workspace = true
 tokio.workspace = true
 anyhow.workspace = true
 clap.workspace = true

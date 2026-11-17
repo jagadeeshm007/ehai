@@ -29,18 +29,22 @@ pub fn schema_version(t: &Table) -> u32 {
         .unwrap_or(1)
 }
 
-pub fn migrate(mut t: Table) -> Table {
+pub fn migrate(t: Table) -> Table {
+    migrate_with(t, STEPS, CURRENT_SCHEMA_VERSION)
+}
+
+/// The actual mechanism, parameterised over the steps and target version so
+/// it can be exercised against a simulated future schema in tests without
+/// touching the real [`STEPS`]/[`CURRENT_SCHEMA_VERSION`].
+fn migrate_with(mut t: Table, steps: &[Step], current: u32) -> Table {
     let from = schema_version(&t);
-    if from >= CURRENT_SCHEMA_VERSION {
+    if from >= current {
         return t;
     }
-    for step in &STEPS[(from.max(1) - 1) as usize..] {
+    for step in &steps[(from.max(1) - 1) as usize..] {
         t = step(t);
     }
-    t.insert(
-        "schema_version".into(),
-        Value::Integer(CURRENT_SCHEMA_VERSION.into()),
-    );
+    t.insert("schema_version".into(), Value::Integer(current.into()));
     t
 }
 
@@ -136,6 +140,65 @@ mod tests {
     fn future_versions_are_left_alone() {
         let t: Table = "schema_version = 99\nnew_thing = 1".parse().unwrap();
         assert_eq!(migrate(t.clone()), t);
+    }
+
+    /// Simulates a future v2 schema (spec §11A's "any v1 config → latest is
+    /// valid and preserves user values", exercised one version ahead of the
+    /// real `STEPS`/`CURRENT_SCHEMA_VERSION`, which stay at v1 until there
+    /// actually is a v2): a pure v1→v2 step renaming `[prefs] learning` to
+    /// `[prefs] enabled` and defaulting a brand-new `[prefs] verbosity` field.
+    fn v1_to_v2_step(mut t: Table) -> Table {
+        if let Some(Value::Table(prefs)) = t.get_mut("prefs") {
+            if let Some(v) = prefs.remove("learning") {
+                prefs.insert("enabled".into(), v);
+            }
+            prefs
+                .entry("verbosity")
+                .or_insert(Value::String("normal".into()));
+        }
+        t
+    }
+
+    #[test]
+    fn simulated_v2_migration_renames_a_key_and_adds_a_default() {
+        let mut v1 = Table::new();
+        v1.insert("brand".into(), toml::toml! { name = "ehai" }.into());
+        v1.insert("prefs".into(), toml::toml! { learning = false }.into());
+        // no schema_version key: defaults to v1, same as a config written by
+        // the very first release.
+
+        let v2 = migrate_with(v1, &[v1_to_v2_step], 2);
+
+        assert_eq!(v2["schema_version"].as_integer(), Some(2));
+        let prefs = v2["prefs"].as_table().unwrap();
+        assert_eq!(prefs.get("learning"), None, "old key is gone");
+        assert_eq!(
+            prefs["enabled"].as_bool(),
+            Some(false),
+            "user value preserved under the new name"
+        );
+        assert_eq!(
+            prefs["verbosity"].as_str(),
+            Some("normal"),
+            "new field defaulted"
+        );
+        // brand (untouched by this step) survives unchanged
+        assert_eq!(v2["brand"]["name"].as_str(), Some("ehai"));
+    }
+
+    #[test]
+    fn simulated_v2_migration_is_a_noop_for_an_already_v2_config() {
+        let mut v2 = Table::new();
+        v2.insert("schema_version".into(), Value::Integer(2));
+        v2.insert(
+            "prefs".into(),
+            toml::toml! { enabled = true verbosity = "quiet" }.into(),
+        );
+        let out = migrate_with(v2.clone(), &[v1_to_v2_step], 2);
+        assert_eq!(
+            out, v2,
+            "a config already on the target version is untouched"
+        );
     }
 
     #[test]

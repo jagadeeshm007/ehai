@@ -59,6 +59,12 @@ pub fn ports_registry(home: &Path) -> PathBuf {
     home.join("ports.json")
 }
 
+/// When the background update check last ran (spec §11: at most once a day,
+/// notify-only unless `update.auto`).
+pub fn update_check_cache(home: &Path) -> PathBuf {
+    home.join("update-check.json")
+}
+
 /// Nearest `.ehai.toml` walking up from `start`.
 pub fn find_repo_config(start: &Path) -> Option<PathBuf> {
     start
