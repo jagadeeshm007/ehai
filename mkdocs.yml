@@ -1,0 +1,64 @@
+site_name: ehai
+site_url: https://jagadeeshm007.github.io/ehai/
+site_description: AI-SDLC ops engine for any team — plan, track, and prototype from any AI harness
+repo_url: https://github.com/jagadeeshm007/ehai
+repo_name: jagadeeshm007/ehai
+docs_dir: docs
+site_dir: site
+
+theme:
+  name: material
+  custom_dir: docs/overrides
+  palette:
+    scheme: slate
+    primary: deep purple
+    accent: deep orange
+  font:
+    text: Inter
+    code: JetBrains Mono
+  icon:
+    repo: fontawesome/brands/github
+    logo: material/robot-outline
+  favicon: https://raw.githubusercontent.com/jagadeeshm007/ehai/main/docs/assets/favicon.png
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.instant
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+
+extra_css:
+  - stylesheets/claude.css
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+  - attr_list
+  - md_in_html
+
+nav:
+  - Home: index.md
+  - Guide:
+      - Quickstart: guide/quickstart.md
+      - Data Policy: guide/compliance.md
+  - Reference:
+      - MCP Tools: reference/mcp-tools.md
+      - Config: reference/config.md
+  - Decisions: DECISIONS.md

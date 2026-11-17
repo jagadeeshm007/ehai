@@ -1,0 +1,80 @@
+/* Claude-inspired palette for ehai docs (MkDocs Material slate base) */
+
+[data-md-color-scheme="slate"] {
+  /* Deep plum backgrounds matching Claude's dark canvas */
+  --md-default-bg-color:        #0d0d14;
+  --md-default-bg-color--light: #13131f;
+  --md-default-bg-color--lighter: #1a1a2e;
+  --md-default-bg-color--lightest: #22223a;
+
+  /* Sandy warm text — Claude's signature off-white */
+  --md-default-fg-color:         #ede8db;
+  --md-default-fg-color--light:  #c9c3b6;
+  --md-default-fg-color--lighter: #9e9890;
+  --md-default-fg-color--lightest: #6b6760;
+
+  /* Purple primary — deeper than Material's default deep-purple */
+  --md-primary-fg-color:         #6d28d9;
+  --md-primary-fg-color--light:  #7c3aed;
+  --md-primary-fg-color--dark:   #5b21b6;
+  --md-primary-bg-color:         #ede8db;
+
+  /* Coral/orange accent — Claude's highlight color */
+  --md-accent-fg-color:          #f97316;
+  --md-accent-fg-color--transparent: #f9731620;
+
+  /* Code blocks */
+  --md-code-bg-color:            #13131f;
+  --md-code-fg-color:            #e2ddcc;
+
+  /* Links */
+  --md-typeset-a-color:          #a78bfa;
+
+  /* Admonitions */
+  --md-admonition-bg-color:      #13131f;
+}
+
+/* Soften the header */
+.md-header {
+  background-color: #0d0d14;
+  border-bottom: 1px solid #2a2a40;
+}
+
+/* Nav sidebar */
+.md-nav__title {
+  color: #a78bfa;
+  font-weight: 600;
+}
+
+.md-nav__link--active {
+  color: #f97316 !important;
+  font-weight: 600;
+}
+
+/* Code copy button */
+.md-clipboard {
+  color: #6d28d9;
+}
+
+/* Inline code */
+.md-typeset code:not(.md-code__content) {
+  background-color: #1a1a2e;
+  color: #c4b5fd;
+  border-radius: 3px;
+  padding: 0.1em 0.3em;
+}
+
+/* Table header */
+.md-typeset table th {
+  background-color: #1a1a2e;
+  color: #a78bfa;
+}
+
+/* Admonition note/tip */
+.md-typeset .admonition.note {
+  border-color: #6d28d9;
+}
+
+.md-typeset .admonition.tip {
+  border-color: #f97316;
+}

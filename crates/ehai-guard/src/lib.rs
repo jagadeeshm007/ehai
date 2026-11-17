@@ -1,5 +1,6 @@
-//! Compliance guard (spec §9): find PHI/PII in text ehai is about to write to a
-//! tracker, a PRD, a POC fixture, a log or a report, and decide what happens:
+//! Compliance guard (spec §9): find sensitive data/PII in text ehai is about to
+//! write to a tracker, a PRD, a POC fixture, a log or a report, and decide what
+//! happens:
 //!
 //! - `off`: nothing is checked.
 //! - `warn`: findings go back to the user, who chooses redact / keep / cancel.
@@ -7,8 +8,9 @@
 //!   ones are surfaced, never silently rewritten.
 //!
 //! Findings record *what kind* of data was found and *where*, never the value.
+//! Which rules are active depends on the configured [`ComplianceProfile`].
 
-use ehai_core::config::{ComplianceMode, CustomPattern};
+use ehai_core::config::{ComplianceMode, ComplianceProfile, CustomPattern};
 use regex::{Regex, RegexBuilder};
 use serde::Serialize;
 
@@ -29,7 +31,7 @@ pub enum Error {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Confidence {
-    /// Structured identifiers (SSN, MRN, member id, DOB, email, phone...).
+    /// Structured identifiers (SSN, credit card, email, phone…).
     High,
     /// Heuristics (a name next to a medical term). Never auto-redacted.
     Low,
@@ -65,7 +67,7 @@ struct Rule {
     kind: String,
     re: Regex,
     confidence: Confidence,
-    /// Extra check on the match (e.g. SSN area numbers), `true` = keep.
+    /// Extra check on the match, `true` = keep.
     valid: fn(&str) -> bool,
 }
 
@@ -73,76 +75,25 @@ pub struct Guard {
     rules: Vec<Rule>,
 }
 
-const MEDICAL_TERMS: &str = "patient|diagnos\\w*|prescri\\w*|diabetes|cancer|tumou?r|hiv|aids|hepatitis|depression|anxiety|bipolar|schizophreni\\w*|pregnan\\w*|asthma|dementia|alzheimer\\w*|chemotherapy|dialysis|surgery|admitted|discharged|medication|allerg\\w*|mg\\b";
+// ── Health profile constants ───────────────────────────────────────────────
 
-/// Capitalised words that commonly start UI copy or stories, not names.
+const HEALTH_TERMS: &str = "patient|diagnos\\w*|prescri\\w*|diabetes|cancer|tumou?r|hiv|aids|hepatitis|depression|anxiety|bipolar|schizophreni\\w*|pregnan\\w*|asthma|dementia|alzheimer\\w*|chemotherapy|dialysis|surgery|admitted|discharged|medication|allerg\\w*|mg\\b";
+
+/// Capitalised words that commonly start UI copy or stories, not personal names.
 const NOT_NAMES: &[&str] = &[
-    "As",
-    "Given",
-    "When",
-    "Then",
-    "And",
-    "But",
-    "The",
-    "A",
-    "An",
-    "If",
-    "User",
-    "Users",
-    "Patient",
-    "Patients",
-    "Doctor",
-    "Book",
-    "View",
-    "Add",
-    "Edit",
-    "Show",
-    "New",
-    "My",
-    "Our",
-    "Dr",
-    "Mr",
-    "Mrs",
-    "Ms",
-    "Care",
-    "Team",
-    "Admin",
-    "Home",
-    "Settings",
-    "Screen",
-    "Page",
-    "Button",
-    "Story",
-    "Epic",
-    "Task",
-    "Bug",
-    "Appointment",
-    "Appointments",
-    "List",
-    "Profile",
-    "Record",
-    "Records",
-    "Visit",
-    "Visits",
-    "Login",
-    "Sign",
-    "Dashboard",
-    "Search",
-    "Open",
-    "Save",
-    "Cancel",
-    "Submit",
+    "As", "Given", "When", "Then", "And", "But", "The", "A", "An", "If",
+    "User", "Users", "Patient", "Patients", "Doctor", "Book", "View", "Add",
+    "Edit", "Show", "New", "My", "Our", "Dr", "Mr", "Mrs", "Ms", "Care",
+    "Team", "Admin", "Home", "Settings", "Screen", "Page", "Button", "Story",
+    "Epic", "Task", "Bug", "Appointment", "Appointments", "List", "Profile",
+    "Record", "Records", "Visit", "Visits", "Login", "Sign", "Dashboard",
+    "Search", "Open", "Save", "Cancel", "Submit",
 ];
+
+// ── Helpers ────────────────────────────────────────────────────────────────
 
 fn any(_: &str) -> bool {
     true
-}
-
-/// US SSN: not area 000/666/9xx, group 00 or serial 0000.
-fn valid_ssn(m: &str) -> bool {
-    let digits: String = m.chars().filter(char::is_ascii_digit).collect();
-    let (area, group, serial) = (&digits[0..3], &digits[3..5], &digits[5..9]);
-    area != "000" && area != "666" && !area.starts_with('9') && group != "00" && serial != "0000"
 }
 
 fn ci(pattern: &str) -> Regex {
@@ -152,70 +103,79 @@ fn ci(pattern: &str) -> Regex {
         .expect("built-in patterns compile")
 }
 
-impl Guard {
-    pub fn new(custom: &[CustomPattern]) -> Result<Self, Error> {
-        let date = r"(?:\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4}|\d{4}-\d{2}-\d{2}|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.? \d{1,2},? \d{4})";
-        let high = |kind: &str, re: Regex, valid: fn(&str) -> bool| Rule {
-            kind: kind.into(),
-            re,
-            confidence: Confidence::High,
-            valid,
-        };
-        let mut rules = vec![
-            high(
-                "ssn",
-                Regex::new(r"\b\d{3}-\d{2}-\d{4}\b").expect("ssn"),
-                valid_ssn,
-            ),
-            high(
-                "mrn",
-                ci(r"\b(?:mrn|medical record (?:number|no\.?|#))\s*[:#]?\s*[a-z0-9-]{4,}\b"),
-                any,
-            ),
-            high(
-                "dob",
-                ci(&format!(
-                    r"\b(?:dob|d\.o\.b\.|date of birth|born(?: on)?)\s*[:\-]?\s*{date}"
-                )),
-                any,
-            ),
-            high(
-                "insurance-id",
-                ci(
-                    r"\b(?:member|policy|insurance|subscriber|medicaid|medicare)\s*(?:id|#|number|no\.?)\s*[:#]?\s*[a-z0-9-]{5,}\b",
-                ),
-                any,
-            ),
-            high(
-                "email",
-                ci(r"\b[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}\b"),
-                any,
-            ),
-            high(
-                "phone",
-                Regex::new(r"(?:\+?1[\s.-]?)?(?:\(\d{3}\)\s?|\b\d{3}[\s.-])\d{3}[\s.-]\d{4}\b")
-                    .expect("phone"),
-                any,
-            ),
-            high(
-                "address",
-                ci(
-                    r"\b\d{1,5}\s+(?:[a-z0-9]+\s+){1,4}(?:street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|court|ct|way|place|pl)\b\.?",
-                ),
-                any,
-            ),
-        ];
+fn high(kind: &str, re: Regex, valid: fn(&str) -> bool) -> Rule {
+    Rule { kind: kind.into(), re, confidence: Confidence::High, valid }
+}
+
+fn low(kind: &str, re: Regex, valid: fn(&str) -> bool) -> Rule {
+    Rule { kind: kind.into(), re, confidence: Confidence::Low, valid }
+}
+
+/// US SSN: not area 000/666/9xx, group 00 or serial 0000.
+fn valid_ssn(m: &str) -> bool {
+    let digits: String = m.chars().filter(char::is_ascii_digit).collect();
+    let (area, group, serial) = (&digits[0..3], &digits[3..5], &digits[5..9]);
+    area != "000" && area != "666" && !area.starts_with('9') && group != "00" && serial != "0000"
+}
+
+/// Luhn check for credit card numbers (strips non-digits first).
+fn valid_luhn(m: &str) -> bool {
+    let digits: Vec<u32> = m.chars().filter_map(|c| c.to_digit(10)).collect();
+    if digits.len() < 13 || digits.len() > 19 {
+        return false;
+    }
+    let sum: u32 = digits
+        .iter()
+        .rev()
+        .enumerate()
+        .map(|(i, &d)| {
+            if i % 2 == 1 {
+                let v = d * 2;
+                if v > 9 { v - 9 } else { v }
+            } else {
+                d
+            }
+        })
+        .sum();
+    sum.is_multiple_of(10)
+}
+
+// ── Rule sets by profile ───────────────────────────────────────────────────
+
+fn tech_rules() -> Vec<Rule> {
+    let date = r"(?:\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4}|\d{4}-\d{2}-\d{2}|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.? \d{1,2},? \d{4})";
+    vec![
+        high("ssn", Regex::new(r"\b\d{3}-\d{2}-\d{4}\b").expect("ssn"), valid_ssn),
+        high("dob", ci(&format!(r"\b(?:dob|d\.o\.b\.|date of birth|born(?: on)?)\s*[:\-]?\s*{date}")), any),
+        high("email", ci(r"\b[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}\b"), any),
+        high("phone", Regex::new(r"(?:\+?1[\s.-]?)?(?:\(\d{3}\)\s?|\b\d{3}[\s.-])\d{3}[\s.-]\d{4}\b").expect("phone"), any),
+        high(
+            "address",
+            ci(r"\b\d{1,5}\s+(?:[a-z0-9]+\s+){1,4}(?:street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|court|ct|way|place|pl)\b\.?"),
+            any,
+        ),
+    ]
+}
+
+fn health_rules() -> Vec<Rule> {
+    vec![
+        high(
+            "mrn",
+            ci(r"\b(?:mrn|medical record (?:number|no\.?|#))\s*[:#]?\s*[a-z0-9-]{4,}\b"),
+            any,
+        ),
+        high(
+            "insurance-id",
+            ci(r"\b(?:member|policy|insurance|subscriber|medicaid|medicare)\s*(?:id|#|number|no\.?)\s*[:#]?\s*[a-z0-9-]{5,}\b"),
+            any,
+        ),
         // Name + medical term in either order, within one sentence.
-        rules.push(Rule {
-            kind: "name-with-medical-term".into(),
-            re: Regex::new(&format!(
-                r"(?i:\b(?:{MEDICAL_TERMS}))[^.\n]{{0,60}}?\b[A-Z][a-z]+ [A-Z][a-z]+\b|\b[A-Z][a-z]+ [A-Z][a-z]+\b[^.\n]{{0,60}}?(?i:\b(?:{MEDICAL_TERMS}))"
-            ))
-            .expect("name heuristic"),
-            confidence: Confidence::Low,
-            valid: |m| {
-                // some adjacent capitalised pair must look like a name: neither word an
-                // ordinary UI/story word ("Book Appointment", "Patient John" → "John Smith")
+        low(
+            "name-with-medical-term",
+            Regex::new(&format!(
+                r"(?i:\b(?:{HEALTH_TERMS}))[^.\n]{{0,60}}?\b[A-Z][a-z]+ [A-Z][a-z]+\b|\b[A-Z][a-z]+ [A-Z][a-z]+\b[^.\n]{{0,60}}?(?i:\b(?:{HEALTH_TERMS}))"
+            )).expect("name heuristic"),
+            |m| {
                 let words: Vec<&str> = m.split(|c: char| !c.is_alphanumeric()).filter(|w| !w.is_empty()).collect();
                 let is_name = |w: &str| {
                     let mut c = w.chars();
@@ -223,7 +183,61 @@ impl Guard {
                 };
                 words.windows(2).any(|p| is_name(p[0]) && is_name(p[1]))
             },
-        });
+        ),
+    ]
+}
+
+fn finance_rules() -> Vec<Rule> {
+    vec![
+        // Credit card: 13-19 digits (may include spaces/dashes), Luhn-validated.
+        high(
+            "credit-card",
+            Regex::new(r"\b(?:\d[ -]?){13,19}\b").expect("credit-card"),
+            valid_luhn,
+        ),
+        // IBAN: country code + check digits + BBAN (structural only, no checksum).
+        high(
+            "iban",
+            Regex::new(r"\b[A-Z]{2}\d{2}[A-Z0-9]{4,32}\b").expect("iban"),
+            any,
+        ),
+        // US ABA routing number, keyword-anchored to cut false positives.
+        high(
+            "routing-number",
+            ci(r"\b(?:routing|ABA)[\s:/-]*(?:number|no\.?)?\s*[:#]?\s*\d{9}\b"),
+            any,
+        ),
+    ]
+}
+
+fn gdpr_rules() -> Vec<Rule> {
+    vec![
+        // Simplified EU passport: 1-2 uppercase letters + 7-9 digits.
+        high(
+            "eu-passport",
+            Regex::new(r"\b[A-Z]{1,2}\d{7,9}\b").expect("eu-passport"),
+            any,
+        ),
+        // Data-subject language near a name-like pair (Low confidence).
+        low(
+            "gdpr-data-subject",
+            ci(r"\b(?:data subject|right to erasure|right to be forgotten|gdpr|consent withdrawn?)[^.\n]{0,80}?\b[A-Z][a-z]+ [A-Z][a-z]+\b|\b[A-Z][a-z]+ [A-Z][a-z]+\b[^.\n]{0,80}?\b(?:data subject|right to erasure|right to be forgotten|gdpr|consent withdrawn?)"),
+            any,
+        ),
+    ]
+}
+
+// ── Guard ──────────────────────────────────────────────────────────────────
+
+impl Guard {
+    pub fn new(profile: ComplianceProfile, custom: &[CustomPattern]) -> Result<Self, Error> {
+        let mut rules = tech_rules();
+        match profile {
+            ComplianceProfile::Tech => {}
+            ComplianceProfile::Health => rules.extend(health_rules()),
+            ComplianceProfile::Finance => rules.extend(finance_rules()),
+            ComplianceProfile::Gdpr => rules.extend(gdpr_rules()),
+        }
         for p in custom {
             rules.push(Rule {
                 kind: p.name.clone(),
@@ -343,21 +357,34 @@ mod tests {
     use proptest::prelude::*;
 
     fn g() -> Guard {
-        Guard::new(&[]).unwrap()
+        Guard::new(ComplianceProfile::Tech, &[]).unwrap()
+    }
+
+    fn g_health() -> Guard {
+        Guard::new(ComplianceProfile::Health, &[]).unwrap()
+    }
+
+    fn g_finance() -> Guard {
+        Guard::new(ComplianceProfile::Finance, &[]).unwrap()
+    }
+
+    fn g_gdpr() -> Guard {
+        Guard::new(ComplianceProfile::Gdpr, &[]).unwrap()
+    }
+
+    fn kinds_of(guard: &Guard, text: &str) -> Vec<String> {
+        guard.scan(text).into_iter().map(|f| f.kind).collect()
     }
 
     fn kinds(text: &str) -> Vec<String> {
-        g().scan(text).into_iter().map(|f| f.kind).collect()
+        kinds_of(&g(), text)
     }
 
     #[test]
-    fn detects_structured_identifiers() {
+    fn detects_tech_identifiers() {
         assert_eq!(kinds("SSN 123-45-6789 on file"), ["ssn"]);
-        assert_eq!(kinds("MRN: 00482913"), ["mrn"]);
-        assert_eq!(kinds("Medical record number #A1234-55"), ["mrn"]);
         assert_eq!(kinds("DOB 04/12/1987"), ["dob"]);
         assert_eq!(kinds("date of birth: March 3, 1990"), ["dob"]);
-        assert_eq!(kinds("Member ID: XJH4433219"), ["insurance-id"]);
         assert_eq!(kinds("mail jane.doe@example.org"), ["email"]);
         assert_eq!(kinds("call (555) 123-4567"), ["phone"]);
         assert_eq!(kinds("call +1 555.123.4567"), ["phone"]);
@@ -365,14 +392,60 @@ mod tests {
     }
 
     #[test]
+    fn detects_health_identifiers() {
+        let h = g_health();
+        assert_eq!(kinds_of(&h, "MRN: 00482913"), ["mrn"]);
+        assert_eq!(kinds_of(&h, "Medical record number #A1234-55"), ["mrn"]);
+        assert_eq!(kinds_of(&h, "Member ID: XJH4433219"), ["insurance-id"]);
+        // Tech rules still active in health profile
+        assert_eq!(kinds_of(&h, "SSN 123-45-6789"), ["ssn"]);
+    }
+
+    #[test]
+    fn detects_finance_identifiers() {
+        let f = g_finance();
+        // Visa test card — passes Luhn
+        assert_eq!(kinds_of(&f, "card 4111111111111111"), ["credit-card"]);
+        assert_eq!(kinds_of(&f, "IBAN DE89370400440532013000"), ["iban"]);
+        assert_eq!(kinds_of(&f, "routing number 021000021"), ["routing-number"]);
+        // Tech rules still active
+        assert_eq!(kinds_of(&f, "user@example.com"), ["email"]);
+    }
+
+    #[test]
+    fn detects_gdpr_identifiers() {
+        let g_g = g_gdpr();
+        assert_eq!(kinds_of(&g_g, "passport PA1234567"), ["eu-passport"]);
+        // Tech rules still active
+        assert_eq!(kinds_of(&g_g, "user@example.com"), ["email"]);
+    }
+
+    #[test]
+    fn mrn_not_detected_in_tech_profile() {
+        // MRN should NOT trigger in the default tech profile
+        assert!(g().scan("MRN: 00482913").is_empty());
+    }
+
+    #[test]
+    fn credit_card_not_detected_in_tech_profile() {
+        assert!(g().scan("4111111111111111").is_empty());
+    }
+
+    #[test]
+    fn luhn_rejects_invalid_cards() {
+        // 4111111111111112 fails Luhn
+        assert!(g_finance().scan("card 4111111111111112").is_empty());
+    }
+
+    #[test]
     fn avoids_common_false_positives() {
         for clean in [
-            "As a patient I can book an appointment",
-            "Given the patient is signed in, When they open Book Appointment, Then they see slots",
-            "Version 1.2.3 released on 2026-11-17",
+            "As a user I can book an appointment",
+            "Given the user is signed in, When they open Book Appointment, Then they see slots",
+            "Version 1.2.3 released on 2026-11-18",
             "SSN-like but invalid 000-12-3456 and 666-12-3456 and 900-12-3456",
             "Story points: 3, priority P1, size M",
-            "Show patient list with 20 rows per page",
+            "Show user list with 20 rows per page",
         ] {
             assert!(
                 g().scan(clean)
@@ -388,7 +461,7 @@ mod tests {
 
     #[test]
     fn name_with_medical_term_is_low_confidence() {
-        let f = g().scan("Patient John Smith was diagnosed last week");
+        let f = g_health().scan("Patient John Smith was diagnosed last week");
         assert_eq!(f.len(), 1);
         assert_eq!(
             (f[0].kind.as_str(), f[0].confidence),
@@ -398,21 +471,18 @@ mod tests {
 
     #[test]
     fn modes() {
+        let guard = g_health();
         let text = "Follow up with jane@example.org about John Smith's diabetes";
-        assert_eq!(g().check(ComplianceMode::Off, text), Outcome::Clean);
-        match g().check(ComplianceMode::Warn, text) {
+        assert_eq!(guard.check(ComplianceMode::Off, text), Outcome::Clean);
+        match guard.check(ComplianceMode::Warn, text) {
             Outcome::Ask { findings, redacted } => {
                 assert_eq!(findings.len(), 2);
                 assert!(redacted.contains("[REDACTED:email]") && redacted.contains("John Smith"));
             }
             o => panic!("{o:?}"),
         }
-        match g().check(ComplianceMode::Strict, text) {
-            Outcome::Redacted {
-                text,
-                findings,
-                remaining,
-            } => {
+        match guard.check(ComplianceMode::Strict, text) {
+            Outcome::Redacted { text, findings, remaining } => {
                 assert!(!text.contains("jane@example.org"));
                 assert_eq!(findings.len(), 1);
                 assert_eq!(
@@ -423,7 +493,7 @@ mod tests {
             o => panic!("{o:?}"),
         }
         assert_eq!(
-            g().check(ComplianceMode::Strict, "Add a booking screen"),
+            guard.check(ComplianceMode::Strict, "Add a booking screen"),
             Outcome::Clean
         );
     }
@@ -434,13 +504,13 @@ mod tests {
             name: "clinic-id".into(),
             regex: r"\bCLN-\d{6}\b".into(),
         };
-        let g = Guard::new(&[p]).unwrap();
+        let g = Guard::new(ComplianceProfile::Tech, &[p]).unwrap();
         assert_eq!(g.scan("ref CLN-123456")[0].kind, "clinic-id");
         let bad = CustomPattern {
             name: "x".into(),
             regex: "(".into(),
         };
-        assert!(Guard::new(&[bad]).is_err());
+        assert!(Guard::new(ComplianceProfile::Tech, &[bad]).is_err());
     }
 
     #[test]
@@ -457,13 +527,12 @@ mod tests {
     }
 
     proptest! {
-        /// No false negatives on generated PHI embedded in ordinary prose.
+        /// No false negatives on generated tech PII embedded in ordinary prose.
         #[test]
-        fn generated_phi_is_always_found(
+        fn generated_tech_pii_always_found(
             prefix in "[a-z ]{0,40}",
             suffix in "[a-z ]{0,40}",
             ssn in ssn(),
-            mrn in "[0-9]{6,10}",
             user in "[a-z]{1,10}",
             host in "[a-z]{2,10}",
             (m, d, y) in (1u32..=12, 1u32..=28, 1930u32..2020),
@@ -472,11 +541,30 @@ mod tests {
             let g = g();
             for (sample, kind) in [
                 (format!("SSN {ssn}"), "ssn"),
-                (format!("MRN {mrn}"), "mrn"),
                 (format!("{user}@{host}.com"), "email"),
                 (format!("DOB {m}/{d}/{y}"), "dob"),
                 (format!("({area}) 555-0142"), "phone"),
-                (format!("member id {mrn}"), "insurance-id"),
+            ] {
+                let text = format!("{prefix} {sample} {suffix}");
+                let found = g.scan(&text);
+                prop_assert!(found.iter().any(|f| f.kind == kind), "{} not found in {:?}: {:?}", kind, text, found);
+                let red = Guard::redact(&text, &found);
+                prop_assert!(!red.contains(&sample), "redaction removes {}", kind);
+            }
+        }
+
+        /// No false negatives on generated health PII.
+        #[test]
+        fn generated_health_pii_always_found(
+            prefix in "[a-z ]{0,40}",
+            suffix in "[a-z ]{0,40}",
+            mrn in "[0-9]{6,10}",
+            member_id in "[a-z0-9]{5,10}",
+        ) {
+            let g = g_health();
+            for (sample, kind) in [
+                (format!("MRN {mrn}"), "mrn"),
+                (format!("member id {member_id}"), "insurance-id"),
             ] {
                 let text = format!("{prefix} {sample} {suffix}");
                 let found = g.scan(&text);

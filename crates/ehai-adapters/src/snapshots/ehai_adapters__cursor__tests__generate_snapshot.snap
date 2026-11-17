@@ -56,9 +56,9 @@ When you need input from the user, ask with your harness's multiple-choice quest
 - Never ask what you can detect from the repo, the config, or a tool from the `ehai` MCP server.
 - If a `ehai` tool returns `"status": "needs_input"`, ask exactly its `question` with its `options` through the question tool. Then call **the same tool again with the same arguments**, plus `retry_param` set to the chosen option's `value`.
 
-## Patient data
+## Sensitive data
 
-This is a health-tech product. Never put real patient data in plans, tasks, mock data or examples — no real names with conditions, dates of birth, record numbers, member ids, phone numbers, emails or addresses. Use obviously made-up examples ("Test Patient A"). `ehai` tools check what they write and will ask if they find something.
+Never put real sensitive data (personally identifiable information) in plans, tasks, mock data or examples — no real names with identifiers, dates of birth, ID numbers, phone numbers, emails or addresses. Use obviously made-up examples ("Jane Example", "user@example.com"). `ehai` tools check what they write and will ask if they detect something.
 
 === ehai-plan.mdc ===
 ---
@@ -103,9 +103,9 @@ When you need input from the user, ask with your harness's multiple-choice quest
 - Never ask what you can detect from the repo, the config, or a tool from the `ehai` MCP server.
 - If a `ehai` tool returns `"status": "needs_input"`, ask exactly its `question` with its `options` through the question tool. Then call **the same tool again with the same arguments**, plus `retry_param` set to the chosen option's `value`.
 
-## Patient data
+## Sensitive data
 
-This is a health-tech product. Never put real patient data in plans, tasks, mock data or examples — no real names with conditions, dates of birth, record numbers, member ids, phone numbers, emails or addresses. Use obviously made-up examples ("Test Patient A"). `ehai` tools check what they write and will ask if they find something.
+Never put real sensitive data (personally identifiable information) in plans, tasks, mock data or examples — no real names with identifiers, dates of birth, ID numbers, phone numbers, emails or addresses. Use obviously made-up examples ("Jane Example", "user@example.com"). `ehai` tools check what they write and will ask if they detect something.
 
 === ehai-breakdown.mdc ===
 ---
@@ -145,9 +145,9 @@ When you need input from the user, ask with your harness's multiple-choice quest
 - Never ask what you can detect from the repo, the config, or a tool from the `ehai` MCP server.
 - If a `ehai` tool returns `"status": "needs_input"`, ask exactly its `question` with its `options` through the question tool. Then call **the same tool again with the same arguments**, plus `retry_param` set to the chosen option's `value`.
 
-## Patient data
+## Sensitive data
 
-This is a health-tech product. Never put real patient data in plans, tasks, mock data or examples — no real names with conditions, dates of birth, record numbers, member ids, phone numbers, emails or addresses. Use obviously made-up examples ("Test Patient A"). `ehai` tools check what they write and will ask if they find something.
+Never put real sensitive data (personally identifiable information) in plans, tasks, mock data or examples — no real names with identifiers, dates of birth, ID numbers, phone numbers, emails or addresses. Use obviously made-up examples ("Jane Example", "user@example.com"). `ehai` tools check what they write and will ask if they detect something.
 
 === ehai-sync.mdc ===
 ---
@@ -185,9 +185,9 @@ When you need input from the user, ask with your harness's multiple-choice quest
 - Never ask what you can detect from the repo, the config, or a tool from the `ehai` MCP server.
 - If a `ehai` tool returns `"status": "needs_input"`, ask exactly its `question` with its `options` through the question tool. Then call **the same tool again with the same arguments**, plus `retry_param` set to the chosen option's `value`.
 
-## Patient data
+## Sensitive data
 
-This is a health-tech product. Never put real patient data in plans, tasks, mock data or examples — no real names with conditions, dates of birth, record numbers, member ids, phone numbers, emails or addresses. Use obviously made-up examples ("Test Patient A"). `ehai` tools check what they write and will ask if they find something.
+Never put real sensitive data (personally identifiable information) in plans, tasks, mock data or examples — no real names with identifiers, dates of birth, ID numbers, phone numbers, emails or addresses. Use obviously made-up examples ("Jane Example", "user@example.com"). `ehai` tools check what they write and will ask if they detect something.
 
 === ehai-status.mdc ===
 ---
@@ -222,9 +222,9 @@ When you need input from the user, ask with your harness's multiple-choice quest
 - Never ask what you can detect from the repo, the config, or a tool from the `ehai` MCP server.
 - If a `ehai` tool returns `"status": "needs_input"`, ask exactly its `question` with its `options` through the question tool. Then call **the same tool again with the same arguments**, plus `retry_param` set to the chosen option's `value`.
 
-## Patient data
+## Sensitive data
 
-This is a health-tech product. Never put real patient data in plans, tasks, mock data or examples — no real names with conditions, dates of birth, record numbers, member ids, phone numbers, emails or addresses. Use obviously made-up examples ("Test Patient A"). `ehai` tools check what they write and will ask if they find something.
+Never put real sensitive data (personally identifiable information) in plans, tasks, mock data or examples — no real names with identifiers, dates of birth, ID numbers, phone numbers, emails or addresses. Use obviously made-up examples ("Jane Example", "user@example.com"). `ehai` tools check what they write and will ask if they detect something.
 
 === ehai-triage.mdc ===
 ---
@@ -240,9 +240,9 @@ Report: $ARGUMENTS
 1. If the report is vague, ask at most 3 questions with the question tool: what happened vs. what was expected, how often / how many people, where (screen, platform).
 2. Decide, and explain briefly:
    - type: **Bug**, **Story** (new behaviour) or **Task**,
-   - priority: P0 (patients or safety blocked, no workaround) · P1 (major, workaround exists) · P2 (minor) · P3 (cosmetic),
+   - priority: P0 (critical impact, no workaround) · P1 (major, workaround exists) · P2 (minor) · P3 (cosmetic),
    - size XS–XL if you can tell.
-3. Write a clear title and a description with steps to reproduce (for bugs) or acceptance criteria (for stories). No real patient data.
+3. Write a clear title and a description with steps to reproduce (for bugs) or acceptance criteria (for stories). No real sensitive data.
 4. Call `triage`. If it returns `needs_input` because similar items exist, ask the user whether it's one of those or new, and call again with their choice.
 5. Report what happened with a link to the item.
 
@@ -262,9 +262,9 @@ When you need input from the user, ask with your harness's multiple-choice quest
 - Never ask what you can detect from the repo, the config, or a tool from the `ehai` MCP server.
 - If a `ehai` tool returns `"status": "needs_input"`, ask exactly its `question` with its `options` through the question tool. Then call **the same tool again with the same arguments**, plus `retry_param` set to the chosen option's `value`.
 
-## Patient data
+## Sensitive data
 
-This is a health-tech product. Never put real patient data in plans, tasks, mock data or examples — no real names with conditions, dates of birth, record numbers, member ids, phone numbers, emails or addresses. Use obviously made-up examples ("Test Patient A"). `ehai` tools check what they write and will ask if they find something.
+Never put real sensitive data (personally identifiable information) in plans, tasks, mock data or examples — no real names with identifiers, dates of birth, ID numbers, phone numbers, emails or addresses. Use obviously made-up examples ("Jane Example", "user@example.com"). `ehai` tools check what they write and will ask if they detect something.
 
 === ehai-assign.mdc ===
 ---
@@ -303,9 +303,9 @@ When you need input from the user, ask with your harness's multiple-choice quest
 - Never ask what you can detect from the repo, the config, or a tool from the `ehai` MCP server.
 - If a `ehai` tool returns `"status": "needs_input"`, ask exactly its `question` with its `options` through the question tool. Then call **the same tool again with the same arguments**, plus `retry_param` set to the chosen option's `value`.
 
-## Patient data
+## Sensitive data
 
-This is a health-tech product. Never put real patient data in plans, tasks, mock data or examples — no real names with conditions, dates of birth, record numbers, member ids, phone numbers, emails or addresses. Use obviously made-up examples ("Test Patient A"). `ehai` tools check what they write and will ask if they find something.
+Never put real sensitive data (personally identifiable information) in plans, tasks, mock data or examples — no real names with identifiers, dates of birth, ID numbers, phone numbers, emails or addresses. Use obviously made-up examples ("Jane Example", "user@example.com"). `ehai` tools check what they write and will ask if they detect something.
 
 === ehai-prefs.mdc ===
 ---
@@ -336,6 +336,6 @@ When you need input from the user, ask with your harness's multiple-choice quest
 - Never ask what you can detect from the repo, the config, or a tool from the `ehai` MCP server.
 - If a `ehai` tool returns `"status": "needs_input"`, ask exactly its `question` with its `options` through the question tool. Then call **the same tool again with the same arguments**, plus `retry_param` set to the chosen option's `value`.
 
-## Patient data
+## Sensitive data
 
-This is a health-tech product. Never put real patient data in plans, tasks, mock data or examples — no real names with conditions, dates of birth, record numbers, member ids, phone numbers, emails or addresses. Use obviously made-up examples ("Test Patient A"). `ehai` tools check what they write and will ask if they find something.
+Never put real sensitive data (personally identifiable information) in plans, tasks, mock data or examples — no real names with identifiers, dates of birth, ID numbers, phone numbers, emails or addresses. Use obviously made-up examples ("Jane Example", "user@example.com"). `ehai` tools check what they write and will ask if they detect something.

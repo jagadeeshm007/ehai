@@ -515,14 +515,14 @@ pub(crate) fn sample() -> Breakdown {
         epics: vec![Epic {
             id: "e1".into(),
             title: "Self-service booking".into(),
-            description: "Patients manage visits in the app.".into(),
+            description: "Users manage visits in the app.".into(),
             priority: Priority::P1,
             stories: vec![
                 Story {
                     id: "s1".into(),
                     title: "See free slots".into(),
                     description:
-                        "As a patient, I want to see free slots, so that I can pick a time.".into(),
+                        "As a user, I want to see free slots, so that I can pick a time.".into(),
                     acceptance: vec![ac(
                         "I am signed in",
                         "I open Book",
@@ -559,7 +559,7 @@ pub(crate) fn sample() -> Breakdown {
                 Story {
                     id: "s2".into(),
                     title: "Confirm a booking".into(),
-                    description: "As a patient, I want to confirm a slot.".into(),
+                    description: "As a user, I want to confirm a slot.".into(),
                     acceptance: vec![ac(
                         "I picked a slot",
                         "I tap Confirm",

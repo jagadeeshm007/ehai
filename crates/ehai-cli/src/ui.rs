@@ -318,7 +318,7 @@ mod tests {
         let role = p.select("Your role", &roles())?;
         let hs = p.multiselect("Harnesses to wire up", &harnesses())?;
         let strict = p.confirm("Strict compliance?", false)?;
-        let name = p.input("Project name", "health-app")?;
+        let name = p.input("Project name", "my-app")?;
         p.step("Write config", &mut || Ok("~/.ehai/config.toml".into()))?;
         p.step("Register MCP", &mut || {
             Err(StepError {
@@ -340,7 +340,7 @@ mod tests {
                 "dev".into(),
                 vec!["claude-code".into(), "codex".into()],
                 false,
-                "health-app".into()
+                "my-app".into()
             )
         );
         insta::assert_snapshot!(String::from_utf8(p.into_inner()).unwrap());

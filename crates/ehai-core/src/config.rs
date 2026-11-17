@@ -89,8 +89,28 @@ pub struct Access {
 #[serde(default)]
 pub struct Compliance {
     pub mode: ComplianceMode,
+    /// Domain profile that selects built-in detection rules.
+    pub profile: ComplianceProfile,
     /// Organisation-specific identifiers to detect, on top of the built-ins.
     pub patterns: Vec<CustomPattern>,
+}
+
+/// Which built-in detection rules are active.
+///
+/// Profiles are additive: `Tech` rules are always included; each profile
+/// adds its domain-specific identifiers on top of that base.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum ComplianceProfile {
+    /// Universal digital PII: SSN, email, phone, street address, DOB.
+    #[default]
+    Tech,
+    /// Tech + medical records (MRN, insurance/member ID, name near medical terms).
+    Health,
+    /// Tech + financial identifiers (credit card, IBAN, bank routing number).
+    Finance,
+    /// Tech + EU personal data patterns (passport, data-subject heuristic).
+    Gdpr,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]

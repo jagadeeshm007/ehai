@@ -9,6 +9,9 @@
 *.pending-snap
 *.snap.new
 
+# MkDocs build output
+/site/
+
 # AI-DLC per-user / machine-local state (created by global hooks)
 aidlc/active-space
 aidlc/.aidlc-clone-id

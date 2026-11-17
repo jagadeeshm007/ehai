@@ -418,3 +418,35 @@ ADR-0027 recorded that "the Claude desktop skills-ZIP idea was tried and reverte
 - The tool is always auto-run after `save_prd` (no user opt-in). The user only sees the gap questions, not the tool calls.
 - PHI check applies to any answer values before they are written back to the PRD — same `self.check()` path as `save_prd`.
 - The `observe_interaction` call in `save_prd` records `last_plan_complexity` (count of risks + flows) so later tool invocations can adapt to the user's planning style over time.
+
+## ADR-0032 — MIT license
+**Date:** 2026-11-18 · **Status:** accepted
+
+ehai is published under the MIT license (copyright JagadeeshMandala, 2026). MIT is the minimum-friction permissive license: downstream users can build on ehai without copyleft concerns, and it matches what the Rust ecosystem majority uses. `Cargo.toml` updated from `UNLICENSED` → `MIT`; `LICENSE` file added at repo root.
+
+## ADR-0033 — Domain profile compliance guard
+**Date:** 2026-11-18 · **Status:** accepted
+
+**Problem:** the original guard was built with health-tech PII patterns as the only rule set, which meant the tool's default was inappropriate for most users and exposed health framing to everyone.
+
+**Solution:** a layered domain profile system. `Tech` is the default and covers universal digital PII (SSN, email, phone, address, DOB). `Health`, `Finance`, and `Gdpr` each add domain-specific patterns on top of `Tech` — they never replace or remove the base rules. `Guard::new(profile, custom)` constructs the rule set by starting with `tech_rules()` and extending; custom patterns are always appended last.
+
+**Key choices:**
+- Additive (not exclusive) profiles avoid accidentally missing basic email/phone detection when a team selects a specialized profile.
+- Finance credit card uses regex + Luhn check to avoid 9-digit false positives (bank numbers, zip codes, etc.).
+- Routing numbers are keyword-anchored to cut false positives from arbitrary 9-digit sequences.
+- GDPR EU passport uses a simplified structural regex; country-specific checksums are not implemented (they add complexity for marginal false-positive reduction).
+- Low-confidence findings (name + medical term, GDPR data-subject heuristic) are surfaced but never auto-redacted in `strict` mode.
+- MCP API: `phi` → `policy`, `PhiChoice` → `SensitiveDataChoice` (pre-1.0 break, acceptable).
+
+## ADR-0034 — MkDocs Material for GitHub Pages docs
+**Date:** 2026-11-18 · **Status:** accepted
+
+**Choice:** MkDocs Material, deployed via `gh-deploy` to `gh-pages` branch on push. Triggered only on changes to `docs/**`, `mkdocs.yml`, or the docs workflow — never on code changes (kept separate from CI).
+
+**Alternatives rejected:**
+- mdBook: Rust-native but weaker navigation, no tabs/admonitions, smaller theme ecosystem.
+- Docusaurus: React build pipeline, heavier dependency footprint, overkill for reference docs at this scale.
+- Mintlify/Docuo: hosted SaaS, adds an external dependency and account requirement.
+
+**Palette:** dark-purple (`#6d28d9`) primary, coral/orange (`#f97316`) accent, deep-plum background (`#0d0d14`), sandy off-white text (`#ede8db`) — matches Claude's visual identity. Applied via `docs/stylesheets/claude.css` extra CSS on the Material `slate` scheme. The `docs/overrides/` directory is kept empty as a placeholder for future Jinja2 template overrides; MkDocs only uses it if the directory exists and contains files.

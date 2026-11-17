@@ -35,10 +35,10 @@ fn out(v: Value) -> Out {
     }
 }
 
-/// How to handle possible patient data the guard found (warn mode).
+/// How to handle possible sensitive data the guard found (warn mode).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
-pub enum PhiChoice {
+pub enum SensitiveDataChoice {
     Redact,
     Keep,
     Cancel,
@@ -74,9 +74,9 @@ pub struct SavePrdArgs {
     /// repository the server was started in, if any.
     #[serde(default)]
     pub repo_path: Option<String>,
-    /// Answer to a patient-data question from an earlier call.
+    /// Answer to a sensitive-data question from an earlier call.
     #[serde(default)]
-    pub phi: Option<PhiChoice>,
+    pub policy: Option<SensitiveDataChoice>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -89,7 +89,7 @@ pub struct PlanRef {
 pub struct SaveBreakdownArgs {
     pub breakdown: Breakdown,
     #[serde(default)]
-    pub phi: Option<PhiChoice>,
+    pub policy: Option<SensitiveDataChoice>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -100,7 +100,7 @@ pub struct SyncArgs {
     #[serde(default)]
     pub apply: bool,
     #[serde(default)]
-    pub phi: Option<PhiChoice>,
+    pub policy: Option<SensitiveDataChoice>,
 }
 
 #[derive(Debug, Default, Deserialize, JsonSchema)]
@@ -122,7 +122,7 @@ pub struct TriageArgs {
     #[serde(default)]
     pub decision: Option<String>,
     #[serde(default)]
-    pub phi: Option<PhiChoice>,
+    pub policy: Option<SensitiveDataChoice>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -165,7 +165,7 @@ pub struct CommentArgs {
     #[serde(default)]
     pub mentions: Vec<String>,
     #[serde(default)]
-    pub phi: Option<PhiChoice>,
+    pub policy: Option<SensitiveDataChoice>,
 }
 
 #[derive(Debug, Default, Deserialize, JsonSchema)]
@@ -289,9 +289,9 @@ pub struct PlanExploreArgs {
     /// Answers from the user. Leave empty to retrieve gaps without updating.
     #[serde(default)]
     pub answers: Vec<ExploreAnswer>,
-    /// How to handle patient data if found in an answer.
+    /// How to handle sensitive data if found in an answer.
     #[serde(default)]
-    pub phi: Option<PhiChoice>,
+    pub policy: Option<SensitiveDataChoice>,
 }
 
 #[derive(Debug, Default, Deserialize, JsonSchema)]
@@ -333,7 +333,7 @@ impl EhaiServer {
 
     #[tool(
         name = "save_prd",
-        description = "Validate and save a PRD (problem, users, goals, scope, flows as Mermaid, screens, metrics with numbers, risks). Writes it under ~/.ehai/plans and as docs/prd/<slug>.md in the repository. Returns `invalid` with problems to fix, or `needs_input` if possible patient data was found."
+        description = "Validate and save a PRD (problem, users, goals, scope, flows as Mermaid, screens, metrics with numbers, risks). Writes it under ~/.ehai/plans and as docs/prd/<slug>.md in the repository. Returns `invalid` with problems to fix, or `needs_input` if possible sensitive data was found."
     )]
     pub async fn save_prd(&self, Parameters(a): Parameters<SavePrdArgs>) -> Out {
         let this = self.clone();
@@ -413,7 +413,7 @@ impl EhaiServer {
 
     #[tool(
         name = "guard_check",
-        description = "Check text for patient data (PHI/PII) under the configured compliance mode. Reports the kinds found, never the values."
+        description = "Check text for sensitive data (PII) under the configured compliance profile and mode. Reports the kinds found, never the values."
     )]
     pub async fn guard_check(&self, Parameters(a): Parameters<GuardArgs>) -> Out {
         let this = self.clone();
@@ -609,14 +609,18 @@ impl EhaiServer {
     }
 
     fn guard(&self) -> Result<Guard, String> {
-        Guard::new(&self.ctx.config.compliance.patterns).map_err(|e| e.to_string())
+        Guard::new(
+            self.ctx.config.compliance.profile,
+            &self.ctx.config.compliance.patterns,
+        )
+        .map_err(|e| e.to_string())
     }
 
     /// Run the guard over every string inside `value`.
     fn check<T: Serialize + DeserializeOwned>(
         &self,
         value: &T,
-        phi: Option<PhiChoice>,
+        policy: Option<SensitiveDataChoice>,
         what: &str,
     ) -> Result<Guarded<T>, String> {
         let mode = self.ctx.config.compliance.mode;
@@ -652,14 +656,14 @@ impl EhaiServer {
                 }
             },
         );
-        let (chosen, action) = match (mode, phi) {
+        let (chosen, action) = match (mode, policy) {
             _ if kinds.is_empty() => (original, "clean"),
             (ComplianceMode::Strict, _) => (redacted, "redacted"),
             (_, None) => {
                 return Ok(Guarded::Ask(needs_input(
-                    "Patient data",
+                    "Sensitive data",
                     format!(
-                    "This {what} looks like it contains patient data ({}). How should I handle it?",
+                    "This {what} looks like it contains sensitive data ({}). How should I handle it?",
                     ehai_guard::summarize_kinds(kinds.iter().map(String::as_str))
                 ),
                     vec![
@@ -675,12 +679,12 @@ impl EhaiServer {
                         ),
                         opt("Cancel", "cancel", "Write nothing"),
                     ],
-                    "phi",
+                    "policy",
                 )))
             }
-            (_, Some(PhiChoice::Redact)) => (redacted, "redacted"),
-            (_, Some(PhiChoice::Keep)) => (original, "kept"),
-            (_, Some(PhiChoice::Cancel)) => {
+            (_, Some(SensitiveDataChoice::Redact)) => (redacted, "redacted"),
+            (_, Some(SensitiveDataChoice::Keep)) => (original, "kept"),
+            (_, Some(SensitiveDataChoice::Cancel)) => {
                 return Err(format!("cancelled: the {what} was not written"))
             }
         };
@@ -786,7 +790,7 @@ impl EhaiServer {
         if !problems.is_empty() {
             return out(json!({ "status": "invalid", "problems": problems }));
         }
-        let checked = match self.check(&a.prd, a.phi, "PRD")? {
+        let checked = match self.check(&a.prd, a.policy,"PRD")? {
             Guarded::Ask(q) => return out(q),
             Guarded::Ready(c) => c,
         };
@@ -813,7 +817,7 @@ impl EhaiServer {
         );
         out(
             json!({ "status": "ok", "slug": checked.value.slug(), "files": files,
-                    "markdown": checked.value.to_markdown(), "patient_data": checked.action,
+                    "markdown": checked.value.to_markdown(), "sensitive_data": checked.action,
                     "low_confidence_flags": checked.notes,
                     "role": self.ctx.role(),
                     "presentation_hint": if self.ctx.role() == "pm" { "visual" } else { "technical" } }),
@@ -854,8 +858,8 @@ impl EhaiServer {
                     _ => {}
                 }
             }
-            // phi check on the updated PRD before saving
-            let checked = match self.check(&prd, a.phi, "PRD")? {
+            // data policy check on the updated PRD before saving
+            let checked = match self.check(&prd, a.policy, "PRD")? {
                 Guarded::Ask(q) => return out(q),
                 Guarded::Ready(c) => c,
             };
@@ -894,7 +898,7 @@ impl EhaiServer {
         if !problems.is_empty() {
             return out(json!({ "status": "invalid", "problems": problems }));
         }
-        let checked = match self.check(&a.breakdown, a.phi, "breakdown")? {
+        let checked = match self.check(&a.breakdown, a.policy,"breakdown")? {
             Guarded::Ask(q) => return out(q),
             Guarded::Ready(c) => c,
         };
@@ -911,7 +915,7 @@ impl EhaiServer {
         out(
             json!({ "status": "ok", "prd": b.prd, "items": b.rows().len(), "preview": b.preview(),
                     "note": (!prd_saved).then_some("no saved PRD with this slug; save the PRD too so the plan has context"),
-                    "patient_data": checked.action }),
+                    "sensitive_data": checked.action }),
         )
     }
 
@@ -922,7 +926,7 @@ impl EhaiServer {
             .list_items(&Filter::default())
             .await
             .map_err(|e| e.to_string())?;
-        let desired = match self.check(&b.to_desired_with(&numbers(&remote)), a.phi, "plan")? {
+        let desired = match self.check(&b.to_desired_with(&numbers(&remote)), a.policy,"plan")? {
             Guarded::Ask(q) => return out(q),
             Guarded::Ready(c) => c,
         };
@@ -962,7 +966,7 @@ impl EhaiServer {
             let resolved: Vec<_> = self
                 .check(
                     &b.to_desired_with(&numbers(&after)),
-                    Some(a.phi.unwrap_or(PhiChoice::Redact)),
+                    Some(a.policy.unwrap_or(SensitiveDataChoice::Redact)),
                     "plan",
                 )
                 .ok()
@@ -1081,7 +1085,7 @@ impl EhaiServer {
         out(
             json!({ "status": "ok", "markdown": r.to_markdown(), "percent_done": r.percent(),
                     "html_path": html_path,
-                    "patient_data_in_titles": (!flagged.is_empty()).then(|| format!("{} item title(s) look like they contain patient data; consider editing them", flagged.len())),
+                    "sensitive_data_in_titles": (!flagged.is_empty()).then(|| format!("{} item title(s) look like they contain sensitive data; consider editing them", flagged.len())),
                     "role": self.ctx.role(),
                     "presentation_hint": if self.ctx.role() == "pm" { "visual" } else { "technical" } }),
         )
@@ -1098,7 +1102,7 @@ impl EhaiServer {
                 title: a.title.clone(),
                 description: a.description.clone(),
             },
-            a.phi,
+            a.policy,
             "report",
         )? {
             Guarded::Ask(q) => return out(q),
@@ -1270,7 +1274,7 @@ impl EhaiServer {
                 Err(e) => return out(e),
             }
         };
-        let checked = match self.check(&a.body, a.phi, "comment")? {
+        let checked = match self.check(&a.body, a.policy,"comment")? {
             Guarded::Ask(q) => return out(q),
             Guarded::Ready(c) => c,
         };

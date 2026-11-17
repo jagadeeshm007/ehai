@@ -27,7 +27,7 @@ use rmcp::{tool_handler, RoleServer, ServerHandler, ServiceExt};
 
 mod tools;
 
-pub use tools::PhiChoice;
+pub use tools::SensitiveDataChoice;
 
 pub const PREFS_URI: &str = "ehai://prefs";
 
@@ -172,7 +172,7 @@ impl ServerHandler for EhaiServer {
              status and triages bugs. Read {PREFS_URI} for the user's role before producing \
              output. Ask the user through your multiple-choice question tool. When a tool returns \
              \"status\": \"needs_input\", ask its question, then call the same tool again with \
-             `retry_param` set to the chosen value. Never put real patient data in anything you write.",
+             `retry_param` set to the chosen value. Never put real sensitive data in anything you write.",
             brand = self.ctx.brand()
         ))
     }

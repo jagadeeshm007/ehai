@@ -8,7 +8,7 @@
 use std::io;
 use std::path::{Path, PathBuf};
 
-use ehai_core::config::{self, ComplianceMode, Role, SandboxMode};
+use ehai_core::config::{self, ComplianceMode, ComplianceProfile, Role, SandboxMode};
 use ehai_core::Config;
 use ehai_stack::RepoScan;
 
@@ -81,6 +81,7 @@ pub struct Answers {
     pub role: String,
     pub harnesses: Vec<String>,
     pub compliance: String,
+    pub profile: String,
     pub sandbox: String,
     pub onboard_repo: bool,
     pub tracker: Option<ProjectChoice>,
@@ -326,6 +327,7 @@ pub fn ask(
             .compliance
             .clone()
             .unwrap_or_else(|| mode_str(config.compliance.mode)),
+        profile: profile_str(config.compliance.profile),
         sandbox: args
             .sandbox
             .clone()
@@ -358,6 +360,7 @@ pub fn ask(
         GhMissing,
         Tracker,
         Compliance,
+        Profile,
         Sandbox,
         Repo,
     }
@@ -377,6 +380,7 @@ pub fn ask(
     }
     if args.compliance.is_none() {
         todo.push(Q::Compliance);
+        todo.push(Q::Profile);
     }
     if args.sandbox.is_none() {
         todo.push(Q::Sandbox);
@@ -443,22 +447,33 @@ pub fn ask(
             }
             Q::Compliance => p
                 .select(
-                    "How strict should the patient-data guard be?",
+                    "How strict should the data policy guard be?",
                     &[
                         mark(
                             Choice::new("warn", "Warn")
-                                .hint("flag possible PHI and ask before writing"),
+                                .hint("flag sensitive data and ask before writing"),
                             &a.compliance,
                         ),
                         mark(
                             Choice::new("strict", "Strict")
-                                .hint("block and redact PHI, synthetic data only"),
+                                .hint("auto-redact sensitive data, synthetic data only in POCs"),
                             &a.compliance,
                         ),
                         mark(Choice::new("off", "Off").hint("no checks"), &a.compliance),
                     ],
                 )
                 .map(|v| a.compliance = v),
+            Q::Profile => p
+                .select(
+                    "What kind of data does your product handle?",
+                    &[
+                        mark(Choice::new("tech", "General software / tech").hint("email, phone, SSN, address"), &a.profile),
+                        mark(Choice::new("health", "Healthcare").hint("+ medical records, insurance IDs"), &a.profile),
+                        mark(Choice::new("finance", "Financial services").hint("+ credit card, IBAN, routing numbers"), &a.profile),
+                        mark(Choice::new("gdpr", "EU / GDPR scope").hint("+ EU passport, data-subject patterns"), &a.profile),
+                    ],
+                )
+                .map(|v| a.profile = v),
             Q::Sandbox => p
                 .select(
                     "How should agent-run commands be sandboxed?",
@@ -570,6 +585,16 @@ fn preselect_harnesses(d: &Detected, config: &Config) -> Vec<String> {
         .collect()
 }
 
+fn profile_str(p: ComplianceProfile) -> String {
+    match p {
+        ComplianceProfile::Tech => "tech",
+        ComplianceProfile::Health => "health",
+        ComplianceProfile::Finance => "finance",
+        ComplianceProfile::Gdpr => "gdpr",
+    }
+    .into()
+}
+
 fn mode_str(m: ComplianceMode) -> String {
     match m {
         ComplianceMode::Off => "off",
@@ -619,6 +644,7 @@ fn apply(
         config::edit_file(&global, |t| {
             config::set(t, "", "role", a.role.as_str());
             config::set(t, "compliance", "mode", a.compliance.as_str());
+            config::set(t, "compliance", "profile", a.profile.as_str());
             config::set(t, "sandbox", "mode", a.sandbox.as_str());
             config::set(
                 t,
@@ -796,6 +822,7 @@ mod tests {
                 role: "both".into(),
                 harnesses: vec!["claude-code".into()],
                 compliance: "warn".into(),
+                profile: "tech".into(),
                 sandbox: "restricted".into(),
                 onboard_repo: true,
                 tracker: None,
@@ -805,9 +832,9 @@ mod tests {
         let out = String::from_utf8(p.into_inner()).unwrap();
         assert_eq!(
             out.lines().filter(|l| l.starts_with("? ")).count(),
-            4,
-            "at most 5 questions, and Role is skipped entirely with no GitHub \
-             detected (nobody to confirm as admin):\n{out}"
+            5,
+            "5 questions: harnesses, compliance, profile, sandbox, repo (Role skipped \
+             with no GitHub detected):\n{out}"
         );
     }
 
@@ -926,6 +953,7 @@ mod tests {
             role: "pm".into(),
             harnesses: vec![],
             compliance: "strict".into(),
+            profile: "tech".into(),
             sandbox: "off".into(),
             onboard_repo: true,
             tracker: None,

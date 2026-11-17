@@ -1,6 +1,6 @@
 # CLAUDE.md — Build "ehai": the AI-SDLC Ops Engine
 
-You are a senior Rust systems engineer and product-minded tool builder. You are building **ehai**, an AI-SDLC operations tool for a **health-tech organization**. Read this whole file before writing code. Follow the milestones in order. Do not skip tests.
+You are a senior Rust systems engineer and product-minded tool builder. You are building **ehai**, an AI-SDLC operations tool for **any organization**. Read this whole file before writing code. Follow the milestones in order. Do not skip tests.
 
 > Project state: see `docs/PROGRESS.md` (what's done / next) and `docs/DECISIONS.md` (ADRs). Release repo: `jagadeeshm007/ehai`. Min OS: macOS 12, Windows 10 1809, Linux 5.13 (ADR-0007).
 
@@ -12,7 +12,7 @@ You are a senior Rust systems engineer and product-minded tool builder. You are 
 - Work **milestone by milestone** (section 12). At the end of each milestone: all tests green, `cargo clippy --all-targets -- -D warnings` clean, `cargo fmt --check` clean, docs updated, one commit with a clear message.
 - Keep a living `docs/PROGRESS.md` (what's done, what's next, open questions) and `docs/DECISIONS.md` (ADR-style, one entry per non-obvious decision).
 - Harness config paths and formats (Claude Code, Codex, Gemini CLI, Cursor, etc.) change often. **Verify against current official docs before implementing each adapter**, and record the source + date in `DECISIONS.md`.
-- Never commit secrets, `.env` files, or real patient data — not even in tests or fixtures.
+- Never commit secrets, `.env` files, or real sensitive data — not even in tests or fixtures.
 
 ---
 
@@ -40,7 +40,7 @@ ehai helps a **non-technical PM** plan product requirements and tasks, pushes th
 6. **Main is sacred.** POCs never modify `main`, the default branch, or the user's current working tree, and are never merged/pushed unless the user explicitly asks.
 7. **Ask through native question UI.** Every user-facing question goes through the harness's multiple-choice UI (see section 7).
 8. **Learn and adapt.** ehai observes user choices and keeps an editable preferences profile that improves future output (section 8).
-9. **Configurable compliance.** Health-tech guardrails, configurable from off to strict (section 9).
+9. **Configurable data policy.** Domain-profile compliance guard (`tech` default; `health`, `finance`, `gdpr` optional profiles), configurable from off to strict (section 9).
 10. **Do it for the user.** Setup and day-to-day flows auto-detect and auto-configure as much as possible. Ask only for what cannot be detected, and confirm before risky actions. Default answers are always pre-filled.
 11. **Beautiful, smooth terminal UX.** Every interactive terminal flow (install, init, tracker switch, doctor, update) must feel polished: a guided wizard, arrow-key selection, spinners and progress, clear success and error states (section 5.0).
 12. **Role-aware, any surface.** A PM may use the Claude desktop app **or the Claude Code CLI**; devs may use any harness. ehai adapts its output to the user's role (section 8.2).

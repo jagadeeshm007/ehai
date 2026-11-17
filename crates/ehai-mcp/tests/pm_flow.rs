@@ -1,6 +1,6 @@
 //! The whole PM flow through the MCP tools, against a fake GitHub:
 //! PRD → breakdown → sync preview → sync → re-sync (no-op) → status → triage,
-//! plus the patient-data guard in warn and strict modes.
+//! plus the sensitive-data guard in warn and strict modes.
 
 #![allow(clippy::field_reassign_with_default)] // test setup reads better field by field
 
@@ -8,7 +8,7 @@ use std::path::Path;
 
 use ehai_core::config::{ComplianceMode, Role};
 use ehai_core::Config;
-use ehai_mcp::{Context, EhaiServer, Github, PhiChoice};
+use ehai_mcp::{Context, EhaiServer, Github, SensitiveDataChoice};
 use rmcp::handler::server::wrapper::Parameters;
 use serde_json::{json, Map, Value};
 
@@ -192,40 +192,40 @@ async fn plan_breakdown_sync_status_triage() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn patient_data_is_caught_in_warn_and_strict() {
+async fn sensitive_data_is_caught_in_warn_and_strict() {
     let gh = wiremock::MockServer::start().await;
     ehai_tracker::fake::mount(&gh).await;
     let home = tempfile::tempdir().unwrap();
     let mut leaky = prd();
-    leaky["problem"] = json!("Patient MRN 00482913 (jane@example.org) waited 3 hours.");
+    leaky["problem"] = json!("SSN 123-45-6789 (jane@example.org) on file.");
 
     // warn: ask first; cancel writes nothing; redact writes a clean PRD
     let s = server(home.path(), &gh.uri(), ComplianceMode::Warn);
     let r = val(s.save_prd(p(json!({ "prd": leaky }))).await);
     assert_eq!(r["status"], "needs_input");
-    assert_eq!(r["retry_param"], "phi");
+    assert_eq!(r["retry_param"], "policy");
     assert!(
-        r["question"].as_str().unwrap().contains("mrn ×1, email ×1"),
+        r["question"].as_str().unwrap().contains("ssn ×1, email ×1"),
         "{r}"
     );
-    assert!(!r.to_string().contains("00482913"), "values never echoed");
+    assert!(!r.to_string().contains("123-45-6789"), "values never echoed");
     let e = s
-        .save_prd(p(json!({ "prd": leaky, "phi": PhiChoice::Cancel })))
+        .save_prd(p(json!({ "prd": leaky, "policy": SensitiveDataChoice::Cancel })))
         .await
         .err()
         .expect("tool error");
     assert!(e.contains("cancelled"));
     assert!(ehai_planner::list_plans(home.path()).is_empty());
     let r = val(s
-        .save_prd(p(json!({ "prd": leaky, "phi": "redact" })))
+        .save_prd(p(json!({ "prd": leaky, "policy": "redact" })))
         .await);
-    assert_eq!(r["patient_data"], "redacted");
+    assert_eq!(r["sensitive_data"], "redacted");
     let md = std::fs::read_to_string(home.path().join("plans/online-appointment-booking/prd.md"))
         .unwrap();
     assert!(
-        !md.contains("00482913")
+        !md.contains("123-45-6789")
             && !md.contains("jane@example.org")
-            && md.contains("[REDACTED:mrn]")
+            && md.contains("[REDACTED:ssn]")
     );
 
     // strict: redacted without asking
@@ -233,7 +233,7 @@ async fn patient_data_is_caught_in_warn_and_strict() {
     let s = server(home2.path(), &gh.uri(), ComplianceMode::Strict);
     let r = val(s.save_prd(p(json!({ "prd": leaky }))).await);
     assert_eq!(
-        (r["status"].as_str(), r["patient_data"].as_str()),
+        (r["status"].as_str(), r["sensitive_data"].as_str()),
         (Some("ok"), Some("redacted"))
     );
 
@@ -357,18 +357,18 @@ async fn team_assign_and_comment_tools() {
     assert_eq!(r["status"], "needs_input");
     assert_eq!(r["retry_param"], "item");
 
-    // comment with a mention and a PHI-bearing body (warn mode asks first)
+    // comment with a mention and a PII-bearing body (warn mode asks first)
     let r = val(
-        s.comment_task(p(json!({ "item": item_ref, "body": "Patient MRN 00482913 asked about this.", "mentions": ["priya"] })))
+        s.comment_task(p(json!({ "item": item_ref, "body": "SSN 123-45-6789 on file per priya.", "mentions": ["priya"] })))
             .await,
     );
     assert_eq!(r["status"], "needs_input");
     let r = val(
-        s.comment_task(p(json!({ "item": item_ref, "body": "Patient MRN 00482913 asked about this.", "mentions": ["priya"], "phi": "redact" })))
+        s.comment_task(p(json!({ "item": item_ref, "body": "SSN 123-45-6789 on file per priya.", "mentions": ["priya"], "policy": "redact" })))
             .await,
     );
     assert_eq!(r["status"], "ok", "{r}");
     let last = fake.comments().last().unwrap().clone();
     assert!(last.starts_with("@priya"), "{last}");
-    assert!(!last.contains("00482913"), "{last}");
+    assert!(!last.contains("123-45-6789"), "{last}");
 }

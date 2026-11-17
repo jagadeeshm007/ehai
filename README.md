@@ -1,6 +1,6 @@
 # ehai
 
-AI-SDLC ops engine for health-tech teams.
+AI-SDLC ops engine for any team.
 
 - **PMs** plan requirements and push them to GitHub Projects (or local storage without GitHub).
 - **Developers** carry tasks through the dev lifecycle from any AI coding harness.
@@ -208,18 +208,24 @@ The ZIP contains your `config.toml`, learned preferences (`prefs/user.toml`), an
 
 ---
 
-## Health-tech compliance
+## Data policy
 
 ```toml
 # ~/.ehai/config.toml
 [compliance]
-mode = "warn"   # off | warn | strict
+mode = "warn"     # off | warn | strict
+profile = "tech"  # tech (default) | health | finance | gdpr
 ```
 
-- `warn`: surface PHI/PII findings (SSN, MRN, DOB, phone, email, insurance ID, name + medical term) and ask redact / keep / cancel before writing.
-- `strict`: auto-redact High-confidence findings; report Low.
+- `profile = "tech"`: detects SSN, email, phone, street address, DOB — universal digital PII.
+- `profile = "health"`: adds medical record numbers, insurance/member IDs, name near medical terms.
+- `profile = "finance"`: adds credit card numbers, IBAN, bank routing numbers.
+- `profile = "gdpr"`: adds EU passport patterns and data-subject language.
+- `warn`: surface findings and ask redact / keep / cancel before writing.
+- `strict`: auto-redact High-confidence findings; surface Low-confidence ones.
 - Applies to: tracker writes, PRDs, POC mock data, reports, logs.
-- Values are never logged — only kinds and counts (e.g. `mrn ×1, email ×1`).
+- Values are never logged — only kinds and counts (e.g. `ssn ×1, email ×2`).
+- Add custom patterns with `patterns = [{name = "my-id", regex = "\\bMY-\\d{6}\\b"}]`.
 
 ---
 

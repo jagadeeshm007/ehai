@@ -41,11 +41,12 @@ The `{{brand}}` MCP server exposes: `ping`, `save_prd`, `get_plan`, `list_plans`
 
 Resource: `ehai://prefs` — your role (`pm`/`dev`/`both`) and learned preferences.
 
-## Health-tech guardrails
+## Data policy guardrails
 
-This tool is built for health-tech environments. Never put real patient data
-(names with conditions, dates of birth, member IDs, phone numbers, emails, or
-addresses) in plans, tasks, mock data or examples. `{{brand}}` tools check what
-they write and will ask if they detect something suspicious.
+This tool is designed for teams that handle sensitive data. Never put real
+personally identifiable information (names with identifiers, dates of birth,
+ID numbers, phone numbers, emails, or addresses) in plans, tasks, mock data
+or examples. `{{brand}}` tools check what they write and will ask if they
+detect something suspicious.
 
 Run `{{brand}} doctor` if tools are not responding.
