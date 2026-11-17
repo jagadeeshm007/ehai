@@ -12,6 +12,7 @@ publish.workspace = true
 ehai-adapters.workspace = true
 ehai-core.workspace = true
 ehai-env.workspace = true
+ehai-poc.workspace = true
 ehai-guard.workspace = true
 ehai-planner.workspace = true
 ehai-tracker.workspace = true

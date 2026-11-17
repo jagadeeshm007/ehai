@@ -1,7 +1,9 @@
 //! Repo scan for onboarding: which apps live where, their frameworks, package
 //! managers, design-system libraries, env file *names* and team conventions.
 //! Pure file inspection plus read-only git; never reads env file contents.
-//! M5 extends this with design-token extraction.
+
+pub mod tokens;
+pub use tokens::{extract_design_tokens, load_or_extract, DesignProfile};
 
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};

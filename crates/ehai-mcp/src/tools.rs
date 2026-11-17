@@ -180,6 +180,62 @@ pub struct EnvCheckArgs {
     pub repo_path: Option<String>,
 }
 
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct PocNewArgs {
+    /// Short feature name, e.g. "login-screen". Slugified automatically.
+    pub feature: String,
+    /// What to build. Passed verbatim into the POC context for Claude to use.
+    pub prompt: String,
+    /// Repo root; defaults to current directory.
+    #[serde(default)]
+    pub repo_path: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct PocIterateArgs {
+    pub feature: String,
+    /// The poc number to iterate on (e.g. 1 → produces poc-2).
+    pub parent_n: u32,
+    /// Feedback / change request for this iteration.
+    pub feedback: String,
+    #[serde(default)]
+    pub repo_path: Option<String>,
+}
+
+#[derive(Debug, Default, Deserialize, JsonSchema)]
+pub struct PocListArgs {
+    /// Filter by feature; omit to list all.
+    #[serde(default)]
+    pub feature: Option<String>,
+    #[serde(default)]
+    pub repo_path: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct PocDiscardArgs {
+    pub feature: String,
+    pub n: u32,
+    #[serde(default)]
+    pub repo_path: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct PocCompareArgs {
+    pub feature: String,
+    /// POC numbers to compare side-by-side.
+    pub ns: Vec<u32>,
+    #[serde(default)]
+    pub repo_path: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct PocOpenArgs {
+    pub feature: String,
+    pub n: u32,
+    #[serde(default)]
+    pub repo_path: Option<String>,
+}
+
 #[tool_router(router = tool_router, vis = "pub(crate)")]
 impl EhaiServer {
     #[tool(
@@ -328,6 +384,62 @@ impl EhaiServer {
     pub async fn env_check(&self, Parameters(a): Parameters<EnvCheckArgs>) -> Out {
         let this = self.clone();
         guard(async move { this.do_env_check(a) }).await
+    }
+
+    // ── POC tools (dev + both only) ──────────────────────────────────────
+
+    #[tool(
+        name = "poc_new",
+        description = "Create a new UI/UX proof-of-concept in an isolated git worktree. Returns the design profile (colors, spacing, typography, component inventory, nav patterns) extracted from the source codebase, the worktree path, the branch name, and the allocated port. Use the returned design_context to write the POC code inside `worktree_path`."
+    )]
+    pub async fn poc_new(&self, Parameters(a): Parameters<PocNewArgs>) -> Out {
+        let this = self.clone();
+        guard(async move { this.do_poc_new(a) }).await
+    }
+
+    #[tool(
+        name = "poc_iterate",
+        description = "Iterate on an existing POC. Creates a new worktree branched from the same base, records parent lineage, and returns the same design context as poc_new. Write updated code into the new `worktree_path`."
+    )]
+    pub async fn poc_iterate(&self, Parameters(a): Parameters<PocIterateArgs>) -> Out {
+        let this = self.clone();
+        guard(async move { this.do_poc_iterate(a) }).await
+    }
+
+    #[tool(
+        name = "poc_list",
+        description = "List POCs for a feature or all features, with status, lineage, and screenshots."
+    )]
+    pub async fn poc_list(&self, Parameters(a): Parameters<PocListArgs>) -> Out {
+        let this = self.clone();
+        guard(async move { this.do_poc_list(a) }).await
+    }
+
+    #[tool(
+        name = "poc_discard",
+        description = "Archive a POC (creates ehai-archive/<feature>/poc-<n> branch, removes worktree). Nothing is permanently deleted."
+    )]
+    pub async fn poc_discard(&self, Parameters(a): Parameters<PocDiscardArgs>) -> Out {
+        let this = self.clone();
+        guard(async move { this.do_poc_discard(a) }).await
+    }
+
+    #[tool(
+        name = "poc_compare",
+        description = "Generate a side-by-side HTML comparison report for the listed POC numbers of a feature. Returns the report path."
+    )]
+    pub async fn poc_compare(&self, Parameters(a): Parameters<PocCompareArgs>) -> Out {
+        let this = self.clone();
+        guard(async move { this.do_poc_compare(a) }).await
+    }
+
+    #[tool(
+        name = "poc_open",
+        description = "Return the worktree path, dev-server command, port, and URL for a POC so the dev server can be started. Does NOT start it automatically — run the returned `command` inside `worktree_path`."
+    )]
+    pub async fn poc_open(&self, Parameters(a): Parameters<PocOpenArgs>) -> Out {
+        let this = self.clone();
+        guard(async move { this.do_poc_open(a) }).await
     }
 }
 
@@ -924,6 +1036,103 @@ impl EhaiServer {
             checked.action,
         );
         out(json!({ "status": "ok", "title": item.title, "url": item.url }))
+    }
+
+    // ── POC handlers ──────────────────────────────────────────────────────
+
+    fn do_poc_new(&self, a: PocNewArgs) -> Out {
+        let root = self
+            .repo(a.repo_path.as_deref())?
+            .ok_or_else(|| "repo_path required".to_string())?;
+        let created = ehai_poc::poc_new(
+            &root,
+            &self.ctx.home,
+            &a.feature,
+            &a.prompt,
+            &self.ctx.config.env,
+        )
+        .map_err(|e| e.to_string())?;
+        out(json!({
+            "status": "ok",
+            "entry": created.entry,
+            "worktree_path": created.entry.worktree,
+            "branch": created.entry.branch,
+            "port": created.entry.port,
+            "url": format!("http://localhost:{}", created.entry.port),
+            "design_context": created.design_context,
+            "instructions": "Write the POC code inside `worktree_path`. Do not modify any files outside it. Run the dev server on the allocated `port`."
+        }))
+    }
+
+    fn do_poc_iterate(&self, a: PocIterateArgs) -> Out {
+        let root = self
+            .repo(a.repo_path.as_deref())?
+            .ok_or_else(|| "repo_path required".to_string())?;
+        let created = ehai_poc::poc_iterate(
+            &root,
+            &self.ctx.home,
+            &a.feature,
+            a.parent_n,
+            &a.feedback,
+            &self.ctx.config.env,
+        )
+        .map_err(|e| e.to_string())?;
+        out(json!({
+            "status": "ok",
+            "entry": created.entry,
+            "worktree_path": created.entry.worktree,
+            "branch": created.entry.branch,
+            "port": created.entry.port,
+            "url": format!("http://localhost:{}", created.entry.port),
+            "design_context": created.design_context,
+            "parent_n": a.parent_n,
+            "instructions": "Write the iterated POC code inside `worktree_path`."
+        }))
+    }
+
+    fn do_poc_list(&self, a: PocListArgs) -> Out {
+        let root = self
+            .repo(a.repo_path.as_deref())?
+            .ok_or_else(|| "repo_path required".to_string())?;
+        let entries = ehai_poc::poc_list(&root, a.feature.as_deref()).map_err(|e| e.to_string())?;
+        out(json!({ "status": "ok", "count": entries.len(), "pocs": entries }))
+    }
+
+    fn do_poc_discard(&self, a: PocDiscardArgs) -> Out {
+        let root = self
+            .repo(a.repo_path.as_deref())?
+            .ok_or_else(|| "repo_path required".to_string())?;
+        ehai_poc::poc_discard(&root, &self.ctx.home, &a.feature, a.n).map_err(|e| e.to_string())?;
+        let archive = format!(
+            "ehai-archive/{}/poc-{}",
+            ehai_poc::feature_slug(&a.feature),
+            a.n
+        );
+        out(json!({ "status": "ok", "archived_as": archive }))
+    }
+
+    fn do_poc_compare(&self, a: PocCompareArgs) -> Out {
+        let root = self
+            .repo(a.repo_path.as_deref())?
+            .ok_or_else(|| "repo_path required".to_string())?;
+        let path = ehai_poc::poc_compare(&root, &self.ctx.home, &a.feature, &a.ns)
+            .map_err(|e| e.to_string())?;
+        out(json!({ "status": "ok", "report": path }))
+    }
+
+    fn do_poc_open(&self, a: PocOpenArgs) -> Out {
+        let root = self
+            .repo(a.repo_path.as_deref())?
+            .ok_or_else(|| "repo_path required".to_string())?;
+        let info = ehai_poc::poc_open_info(&root, &a.feature, a.n).map_err(|e| e.to_string())?;
+        out(json!({
+            "status": "ok",
+            "worktree_path": info.worktree,
+            "port": info.port,
+            "branch": info.branch,
+            "command": info.command,
+            "url": info.url
+        }))
     }
 }
 

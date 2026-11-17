@@ -19,6 +19,7 @@ ehai-adapters = { path = "crates/ehai-adapters" }
 ehai-tracker = { path = "crates/ehai-tracker" }
 ehai-guard = { path = "crates/ehai-guard" }
 ehai-planner = { path = "crates/ehai-planner" }
+ehai-poc = { path = "crates/ehai-poc" }
 
 
 anyhow = "1.0.104"

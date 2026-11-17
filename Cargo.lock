@@ -560,6 +560,7 @@ dependencies = [
  "ehai-core",
  "ehai-env",
  "ehai-mcp",
+ "ehai-poc",
  "ehai-stack",
  "ehai-tracker",
  "insta",
@@ -623,6 +624,7 @@ dependencies = [
  "ehai-env",
  "ehai-guard",
  "ehai-planner",
+ "ehai-poc",
  "ehai-tracker",
  "rmcp",
  "schemars",
@@ -650,10 +652,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "ehai-poc"
+version = "0.1.0-alpha.1"
+dependencies = [
+ "ehai-core",
+ "ehai-env",
+ "ehai-stack",
+ "insta",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tracing",
+]
+
+[[package]]
 name = "ehai-stack"
 version = "0.1.0-alpha.1"
 dependencies = [
  "ehai-core",
+ "regex",
  "serde",
  "serde_json",
  "tempfile",

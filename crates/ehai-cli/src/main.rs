@@ -9,6 +9,7 @@ mod doctor;
 mod env;
 mod init;
 mod logging;
+mod poc;
 mod role;
 mod selfcmd;
 mod sys;
@@ -96,6 +97,9 @@ enum Command {
     /// Make a worktree runnable: gitignored config, ports, dependencies, health check.
     #[command(subcommand)]
     Env(EnvCmd),
+    /// Create and manage UI/UX proof-of-concept worktrees.
+    #[command(subcommand)]
+    Poc(PocCmd),
     /// Run the MCP server on stdio (started by your AI harness, not by hand).
     Mcp,
     /// Inspect configuration.
@@ -151,6 +155,36 @@ enum EnvCmd {
     Check { path: Option<PathBuf> },
     /// Read-only: missing keys plus the configured smoke checks.
     Doctor { path: Option<PathBuf> },
+}
+
+#[derive(Subcommand)]
+enum PocCmd {
+    /// Create a new POC in an isolated worktree.
+    New {
+        feature: String,
+        /// What to build (passed to Claude as the design brief).
+        prompt: String,
+    },
+    /// Iterate on an existing POC.
+    Iterate {
+        feature: String,
+        /// POC number to iterate on.
+        parent: u32,
+        /// Change request / feedback.
+        feedback: String,
+    },
+    /// List POCs (all features, or one).
+    List { feature: Option<String> },
+    /// Archive a POC branch and remove its worktree.
+    Discard { feature: String, n: u32 },
+    /// Open a side-by-side HTML comparison report in the browser.
+    Compare {
+        feature: String,
+        /// POC numbers to compare (space-separated).
+        ns: Vec<u32>,
+    },
+    /// Print the worktree path, dev-server command, and URL for a POC.
+    Open { feature: String, n: u32 },
 }
 
 #[derive(Subcommand)]
@@ -306,6 +340,37 @@ fn run() -> Result<ExitCode> {
                 }
                 EnvCmd::Check { path } => println!("{}", env::check(path.as_deref())?),
                 EnvCmd::Doctor { path } => println!("{}", env::doctor(&config, path.as_deref())?),
+            }
+            Ok(ExitCode::SUCCESS)
+        }
+        Command::Poc(cmd) => {
+            let config = config?;
+            match cmd {
+                PocCmd::New { feature, prompt } => {
+                    println!("{}", poc::new_poc(&home, &config, &feature, &prompt)?)
+                }
+                PocCmd::Iterate {
+                    feature,
+                    parent,
+                    feedback,
+                } => {
+                    println!(
+                        "{}",
+                        poc::iterate_poc(&home, &config, &feature, parent, &feedback)?
+                    )
+                }
+                PocCmd::List { feature } => {
+                    println!("{}", poc::list_pocs(&config, feature.as_deref())?)
+                }
+                PocCmd::Discard { feature, n } => {
+                    println!("{}", poc::discard_poc(&home, &config, &feature, n)?)
+                }
+                PocCmd::Compare { feature, ns } => {
+                    println!("{}", poc::compare_pocs(&home, &config, &feature, &ns)?)
+                }
+                PocCmd::Open { feature, n } => {
+                    println!("{}", poc::open_poc(&config, &feature, n)?)
+                }
             }
             Ok(ExitCode::SUCCESS)
         }
