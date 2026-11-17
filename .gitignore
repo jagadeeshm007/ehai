@@ -1,0 +1,18 @@
+/target
+.env
+.env.*
+!.env.example
+!.env.sample
+*.local.*
+.ehai/cache/
+.ehai/pocs/
+*.pending-snap
+*.snap.new
+
+# AI-DLC per-user / machine-local state (created by global hooks)
+aidlc/active-space
+aidlc/.aidlc-clone-id
+aidlc/.aidlc-sessions/
+aidlc/spaces/*/intents/active-intent
+aidlc/spaces/*/intents/.aidlc-*
+**/aidlc/spaces/*/intents/**/.aidlc-engine/

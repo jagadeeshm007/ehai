@@ -1,0 +1,126 @@
+# Tag-only release: v0.1.0-alpha.1, v1.2.3, ...
+# Secrets: MINISIGN_KEY (contents of a password-less minisign secret key, `minisign -G -W`).
+name: Release
+
+on:
+  push:
+    tags: ["v*.*.*", "v*.*.*-*"]
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      prerelease: ${{ steps.v.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: v
+        shell: bash
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          ws=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[] | select(.name == "ehai-cli") | .version')
+          if [ "$tag" != "$ws" ]; then
+            echo "::error::tag v$tag does not match workspace version $ws"
+            exit 1
+          fi
+          echo "version=$ws" >> "$GITHUB_OUTPUT"
+          if [[ "$ws" == *-* ]]; then echo "prerelease=true"; else echo "prerelease=false"; fi >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: verify
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { target: x86_64-unknown-linux-musl, os: ubuntu-latest, zig: true }
+          - { target: aarch64-unknown-linux-musl, os: ubuntu-latest, zig: true }
+          - { target: x86_64-apple-darwin, os: macos-latest }
+          - { target: aarch64-apple-darwin, os: macos-latest }
+          - { target: x86_64-pc-windows-msvc, os: windows-latest }
+    runs-on: ${{ matrix.os }}
+    env:
+      MACOSX_DEPLOYMENT_TARGET: "12.0" # min supported macOS (ADR-0007)
+    steps:
+      - uses: actions/checkout@v7
+      - run: rustup target add ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+      - if: matrix.zig
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-zigbuild
+      - if: matrix.zig
+        run: pip install ziglang
+      - name: Build
+        shell: bash
+        run: |
+          if [ "${{ matrix.zig }}" = "true" ]; then
+            cargo zigbuild --release --locked -p ehai-cli --target ${{ matrix.target }}
+          else
+            cargo build --release --locked -p ehai-cli --target ${{ matrix.target }}
+          fi
+      - name: Package
+        shell: bash
+        run: |
+          name="ehai-${{ needs.verify.outputs.version }}-${{ matrix.target }}"
+          mkdir -p "dist/$name"
+          cp README.md "dist/$name/"
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            cp "target/${{ matrix.target }}/release/ehai.exe" "dist/$name/"
+            (cd dist && 7z a "$name.zip" "$name" >/dev/null)
+          else
+            cp "target/${{ matrix.target }}/release/ehai" "dist/$name/"
+            tar -C dist -czf "dist/$name.tar.gz" "$name"
+          fi
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dist-${{ matrix.target }}
+          path: dist/ehai-*.*
+          if-no-files-found: error
+
+  publish:
+    needs: [verify, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: dist-*
+          path: dist
+          merge-multiple: true
+      - name: Checksums and signature
+        env:
+          MINISIGN_KEY: ${{ secrets.MINISIGN_KEY }}
+        run: |
+          cd dist
+          sha256sum ehai-* > SHA256SUMS
+          if [ -z "$MINISIGN_KEY" ]; then
+            echo "::error::MINISIGN_KEY secret is not set"
+            exit 1
+          fi
+          sudo apt-get install -y -qq minisign
+          umask 077
+          printf '%s\n' "$MINISIGN_KEY" > "$RUNNER_TEMP/minisign.key"
+          minisign -S -s "$RUNNER_TEMP/minisign.key" -m SHA256SUMS
+          rm -f "$RUNNER_TEMP/minisign.key"
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: git-cliff
+      - run: git cliff --latest --strip header > RELEASE_NOTES.md
+      - uses: softprops/action-gh-release@v3
+        with:
+          body_path: RELEASE_NOTES.md
+          prerelease: ${{ needs.verify.outputs.prerelease == 'true' }}
+          files: |
+            dist/ehai-*
+            dist/SHA256SUMS
+            dist/SHA256SUMS.minisig

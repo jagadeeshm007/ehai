@@ -1,0 +1,44 @@
+# Mirror of ci.yml for doc-only changes: same check names, no work, so required
+# status checks never block a docs PR. Keep `paths-ignore` equal to ci.yml `paths`.
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: &code-paths
+      - "crates/**"
+      - "templates/**"
+      - "install/**"
+      - "tests/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "deny.toml"
+      - "rust-toolchain.toml"
+      - ".github/workflows/**"
+  pull_request:
+    paths-ignore: *code-paths
+
+permissions: {}
+
+jobs:
+  fmt:
+    runs-on: ubuntu-latest
+    steps: [{ run: echo "doc-only change; skipped" }]
+  clippy:
+    runs-on: ubuntu-latest
+    steps: [{ run: echo "doc-only change; skipped" }]
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ubuntu-latest
+    steps: [{ run: echo "doc-only change; skipped" }]
+  deny:
+    runs-on: ubuntu-latest
+    steps: [{ run: echo "doc-only change; skipped" }]
+  coverage:
+    runs-on: ubuntu-latest
+    steps: [{ run: echo "doc-only change; skipped" }]
+  snapshots:
+    runs-on: ubuntu-latest
+    steps: [{ run: echo "doc-only change; skipped" }]

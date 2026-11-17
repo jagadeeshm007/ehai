@@ -1,0 +1,42 @@
+[workspace]
+resolver = "2"
+members = ["crates/*"]
+
+[workspace.package]
+version = "0.1.0-alpha.1"
+edition = "2021"
+rust-version = "1.89"
+license = "UNLICENSED"
+repository = "https://github.com/jagadeeshm943/ehai"
+publish = false
+
+[workspace.dependencies]
+ehai-core = { path = "crates/ehai-core" }
+anyhow = "1.0.104"
+clap = { version = "4.6.8", features = ["derive", "env"] }
+cliclack = "0.5.7"
+console = "0.16.6"
+schemars = "1.2.3"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+thiserror = "2.0.21"
+toml = "1.2.1"
+tracing = "0.1.44"
+tracing-appender = "0.2.5"
+tracing-subscriber = { version = "0.3.23", features = ["json", "env-filter"] }
+# dev
+assert_cmd = "2.2.2"
+insta = "1.49.0"
+proptest = "1.12.0"
+tempfile = "3.27.0"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true

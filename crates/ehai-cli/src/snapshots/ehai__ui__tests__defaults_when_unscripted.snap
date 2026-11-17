@@ -1,0 +1,18 @@
+---
+source: crates/ehai-cli/src/ui.rs
+assertion_line: 328
+expression: "String::from_utf8(p.into_inner()).unwrap()"
+---
+== ehai 0.1.0-alpha.1 ==
+[Detected]
+  git 2.53
+  gh: not found
+! Claude desktop not found
+? Your role → dev
+? Harnesses to wire up → claude-code,codex
+? Strict compliance? → n
+? Project name → health-app
+✔ Write config — ~/.ehai/config.toml
+✖ Register MCP — claude not on PATH
+  fix: install Claude Code, then rerun
+-- You're ready
