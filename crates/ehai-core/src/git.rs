@@ -33,9 +33,42 @@ pub fn toplevel(dir: &Path) -> Option<std::path::PathBuf> {
     try_run(dir, &["rev-parse", "--show-toplevel"]).map(Into::into)
 }
 
+/// `owner/name` from a GitHub remote URL (https, ssh or scp-style), else `None`.
+pub fn github_slug(remote: &str) -> Option<String> {
+    let r = remote.trim();
+    let path = r
+        .strip_prefix("git@github.com:")
+        .or_else(|| r.strip_prefix("ssh://git@github.com/"))
+        .or_else(|| r.strip_prefix("https://github.com/"))
+        .or_else(|| r.strip_prefix("http://github.com/"))?;
+    let path = path.trim_end_matches('/').trim_end_matches(".git");
+    let (owner, name) = path.split_once('/')?;
+    (!owner.is_empty() && !name.is_empty() && !name.contains('/'))
+        .then(|| format!("{owner}/{name}"))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn github_slugs() {
+        for r in [
+            "git@github.com:octo/app.git",
+            "https://github.com/octo/app",
+            "https://github.com/octo/app.git/",
+            "ssh://git@github.com/octo/app.git",
+        ] {
+            assert_eq!(github_slug(r).as_deref(), Some("octo/app"), "{r}");
+        }
+        for r in [
+            "https://gitlab.com/octo/app",
+            "git@github.com:octo",
+            "https://github.com/a/b/c",
+        ] {
+            assert_eq!(github_slug(r), None, "{r}");
+        }
+    }
 
     #[test]
     fn toplevel_and_errors() {

@@ -12,6 +12,9 @@ use ehai_core::config::{self, ComplianceMode, Role, SandboxMode};
 use ehai_core::Config;
 use ehai_stack::RepoScan;
 
+use ehai_tracker::github::ProjectSummary;
+
+use crate::tracker::{block_on, ProjectChoice};
 use crate::ui::{Choice, Prompter, StepError};
 
 /// Answers that can be given as flags (CI / scripting). A flag skips its question.
@@ -32,6 +35,28 @@ pub struct InitArgs {
     /// Don't create a profile for the current repo.
     #[arg(long)]
     pub no_repo: bool,
+    /// Connect this existing GitHub project number.
+    #[arg(long, conflicts_with_all = ["tracker_create", "no_tracker"])]
+    pub tracker_project: Option<u64>,
+    /// Create a GitHub project with this title and connect it.
+    #[arg(long, value_name = "TITLE", conflicts_with = "no_tracker")]
+    pub tracker_create: Option<String>,
+    /// Don't ask about the tracker.
+    #[arg(long)]
+    pub no_tracker: bool,
+}
+
+/// What init found out about GitHub Projects access.
+#[derive(Debug, Clone, Default)]
+pub struct GithubDetect {
+    pub login: String,
+    /// Owner whose projects are offered: the repo's org when you belong to it.
+    pub owner: String,
+    /// `None` = can't tell (fine-grained token).
+    pub scope_ok: Option<bool>,
+    pub projects: Vec<ProjectSummary>,
+    /// `owner/name` of the current repo, used for issues.
+    pub repo: Option<String>,
 }
 
 /// Everything init detects up front.
@@ -48,6 +73,7 @@ pub struct Detected {
     pub claude_desktop: bool,
     pub chrome: Option<PathBuf>,
     pub repo: Option<(PathBuf, RepoScan)>,
+    pub github: Option<GithubDetect>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -57,6 +83,7 @@ pub struct Answers {
     pub compliance: String,
     pub sandbox: String,
     pub onboard_repo: bool,
+    pub tracker: Option<ProjectChoice>,
 }
 
 pub fn run(
@@ -68,7 +95,7 @@ pub fn run(
 ) -> io::Result<bool> {
     let brand = &config.brand.name;
     p.intro(&format!("{brand} {}", ehai_core::VERSION))?;
-    let detected = detect(p, cwd)?;
+    let detected = detect(p, cwd, !args.no_tracker)?;
     p.note("Here's what I found", &summary(&detected))?;
     let answers = ask(p, &detected, config, args)?;
     let ok = apply(p, home, config, &detected, &answers)?;
@@ -81,7 +108,7 @@ pub fn run(
     Ok(ok)
 }
 
-fn detect(p: &mut dyn Prompter, cwd: &Path) -> io::Result<Detected> {
+fn detect(p: &mut dyn Prompter, cwd: &Path, github: bool) -> io::Result<Detected> {
     use crate::sys;
     let mut d = Detected {
         os: format!("{} {}", std::env::consts::OS, std::env::consts::ARCH),
@@ -154,6 +181,46 @@ fn detect(p: &mut dyn Prompter, cwd: &Path) -> io::Result<Detected> {
             None => "not in a git repo".into(),
         })
     })?;
+    if github {
+        p.step("GitHub Projects", &mut || {
+            let (client, _) = crate::tracker::client().map_err(|e| StepError {
+                message: e.to_string(),
+                fix: None,
+            })?;
+            let viewer = block_on(client.viewer()).map_err(crate::tracker::fail)?;
+            let repo = crate::tracker::detected_repo(cwd);
+            let owner = repo
+                .as_deref()
+                .and_then(|r| r.split('/').next())
+                .filter(|o| *o == viewer.login || viewer.orgs.iter().any(|x| x == o))
+                .unwrap_or(&viewer.login)
+                .to_string();
+            let scope_ok = block_on(client.scopes())
+                .ok()
+                .and_then(|s| ehai_tracker::auth::has_project_scope(s.as_deref()));
+            let projects = if scope_ok == Some(false) {
+                vec![]
+            } else {
+                block_on(client.projects(&owner)).unwrap_or_default()
+            };
+            let msg = match scope_ok {
+                Some(false) => format!(
+                    "signed in as {}, but Projects needs `{}`",
+                    viewer.login,
+                    ehai_tracker::auth::SCOPE_FIX
+                ),
+                _ => format!("{} projects for {owner}", projects.len()),
+            };
+            d.github = Some(GithubDetect {
+                login: viewer.login,
+                owner,
+                scope_ok,
+                projects,
+                repo,
+            });
+            Ok(msg)
+        })?;
+    }
     Ok(d)
 }
 
@@ -186,6 +253,22 @@ pub fn summary(d: &Detected) -> String {
             d.other_harnesses.join(", ")
         ));
     }
+    lines.push(format!(
+        "Tracker       {}",
+        match &d.github {
+            None => "GitHub not reachable (connect later with `tracker set`)".to_string(),
+            Some(g) if g.scope_ok == Some(false) => format!(
+                "GitHub {} — run `{}` to enable Projects",
+                g.login,
+                ehai_tracker::auth::SCOPE_FIX
+            ),
+            Some(g) => format!(
+                "GitHub Projects ({} found for {})",
+                g.projects.len(),
+                g.owner
+            ),
+        }
+    ));
     lines.push(format!("Claude app    {}", yes_no(d.claude_desktop)));
     lines.push(format!(
         "Chrome        {} (POC screenshots)",
@@ -239,13 +322,23 @@ pub fn ask(
             .clone()
             .unwrap_or_else(|| sandbox_str(config.sandbox.mode)),
         onboard_repo: d.repo.is_some() && !args.no_repo,
+        tracker: match (&args.tracker_project, &args.tracker_create) {
+            (Some(n), _) => Some(ProjectChoice::Existing(*n)),
+            (_, Some(t)) => Some(ProjectChoice::Create(t.clone())),
+            _ => None,
+        },
     };
+    let ask_tracker = !args.no_tracker
+        && args.tracker_project.is_none()
+        && args.tracker_create.is_none()
+        && d.github.as_ref().is_some_and(|g| g.scope_ok != Some(false));
 
     // Questions in order; each is skipped when a flag (or detection) answered it.
     #[derive(Clone, Copy)]
     enum Q {
         Role,
         Harnesses,
+        Tracker,
         Compliance,
         Sandbox,
         Repo,
@@ -256,6 +349,9 @@ pub fn ask(
     }
     if args.harnesses.is_empty() && !d.harnesses.is_empty() {
         todo.push(Q::Harnesses);
+    }
+    if ask_tracker {
+        todo.push(Q::Tracker);
     }
     if args.compliance.is_none() {
         todo.push(Q::Compliance);
@@ -306,6 +402,23 @@ pub fn ask(
                     .collect();
                 p.multiselect("Which tools should I set up?", &choices)
                     .map(|v| a.harnesses = v)
+            }
+            Q::Tracker => {
+                let g = d
+                    .github
+                    .as_ref()
+                    .expect("asked only when GitHub was detected");
+                let current = (config.tracker.github.owner.as_deref() == Some(g.owner.as_str()))
+                    .then_some(config.tracker.github.project)
+                    .flatten();
+                crate::tracker::ask_project(
+                    p,
+                    &g.projects,
+                    &crate::tracker::default_title(g.repo.as_deref()),
+                    true,
+                    current,
+                )
+                .map(|v| a.tracker = v)
             }
             Q::Compliance => p
                 .select(
@@ -472,6 +585,38 @@ fn apply(
         })?;
     }
 
+    if let Some(choice) = &a.tracker {
+        match crate::tracker::client() {
+            Ok((client, _)) => {
+                let (owner, repo) = d.github.as_ref().map_or_else(
+                    || {
+                        (
+                            config.tracker.github.owner.clone().unwrap_or_default(),
+                            None,
+                        )
+                    },
+                    |g| (g.owner.clone(), g.repo.clone()),
+                );
+                ok &= crate::tracker::connect_project(
+                    p,
+                    home,
+                    &client,
+                    &owner,
+                    choice,
+                    repo.as_deref(),
+                )?;
+            }
+            Err(e) => {
+                ok &= p.step("GitHub project", &mut || {
+                    Err(StepError {
+                        message: e.to_string(),
+                        fix: Some("run `gh auth login`, or set GITHUB_TOKEN".into()),
+                    })
+                })?;
+            }
+        }
+    }
+
     if let (true, Some((root, scan))) = (a.onboard_repo, &d.repo) {
         ok &= retrying(p, "Save repo profile", &mut || {
             scan.write_profile(root)
@@ -540,6 +685,7 @@ mod tests {
             claude_desktop: true,
             chrome: Some("/usr/bin/google-chrome".into()),
             repo: repo.map(|r| (r.to_path_buf(), RepoScan::default())),
+            github: None,
         }
     }
 
@@ -561,6 +707,7 @@ mod tests {
                 compliance: "warn".into(),
                 sandbox: "restricted".into(),
                 onboard_repo: true,
+                tracker: None,
             }
         );
         let out = String::from_utf8(p.into_inner()).unwrap();
@@ -606,6 +753,48 @@ mod tests {
     }
 
     #[test]
+    fn tracker_question_defaults_to_skip_and_respects_scope() {
+        let mut d = detected(None);
+        let gh = GithubDetect {
+            login: "octo".into(),
+            owner: "acme".into(),
+            scope_ok: Some(true),
+            projects: vec![ProjectSummary {
+                owner: "acme".into(),
+                number: 4,
+                title: "Clinic".into(),
+                url: String::new(),
+                closed: false,
+            }],
+            repo: Some("acme/clinic".into()),
+        };
+        d.github = Some(gh.clone());
+        let mut p = PlainPrompter::new(Vec::new());
+        assert_eq!(
+            ask(&mut p, &d, &Config::default(), &InitArgs::default())
+                .unwrap()
+                .tracker,
+            None
+        );
+        let mut p = PlainPrompter::scripted(Vec::new(), &["both", "claude-code", "4"]);
+        let a = ask(&mut p, &d, &Config::default(), &InitArgs::default()).unwrap();
+        assert_eq!(a.tracker, Some(ProjectChoice::Existing(4)));
+
+        // missing scope: no question, the summary explains the fix
+        d.github = Some(GithubDetect {
+            scope_ok: Some(false),
+            projects: vec![],
+            ..gh
+        });
+        let mut p = PlainPrompter::new(Vec::new());
+        ask(&mut p, &d, &Config::default(), &InitArgs::default()).unwrap();
+        assert!(!String::from_utf8(p.into_inner())
+            .unwrap()
+            .contains("tracked"));
+        assert!(summary(&d).contains("gh auth refresh -s project"));
+    }
+
+    #[test]
     fn summary_card_snapshot() {
         insta::assert_snapshot!(summary(&detected(None)));
     }
@@ -622,6 +811,7 @@ mod tests {
             compliance: "strict".into(),
             sandbox: "off".into(),
             onboard_repo: true,
+            tracker: None,
         };
         let mut p = PlainPrompter::new(Vec::new());
         assert!(apply(&mut p, home.path(), &Config::default(), &d, &a).unwrap());

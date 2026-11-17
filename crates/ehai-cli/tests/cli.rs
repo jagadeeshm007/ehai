@@ -20,6 +20,11 @@ impl Env {
         for (k, _) in std::env::vars().filter(|(k, _)| k.starts_with("EHAI_")) {
             c.env_remove(k);
         }
+        // never reach real GitHub from tests
+        c.env("EHAI_NO_GH", "1")
+            .env_remove("GITHUB_TOKEN")
+            .env_remove("GH_TOKEN")
+            .env("EHAI_GITHUB_API", "http://127.0.0.1:9");
         c.env("EHAI_HOME", self.home.path())
             .env("NO_COLOR", "1")
             .current_dir(self.cwd.path());
@@ -326,4 +331,92 @@ fn disconnect_requires_an_id_or_all() {
     let out = env.cmd().arg("disconnect").output().unwrap();
     assert!(!out.status.success());
     assert!(String::from_utf8_lossy(&out.stderr).contains("--all"));
+}
+
+/// `tracker set/status/schema`, doctor and `init --tracker-project` against a fake
+/// GitHub (no network). Commands run on a blocking thread so the fake keeps serving.
+#[tokio::test(flavor = "multi_thread")]
+async fn tracker_commands_against_fake_github() {
+    let server = wiremock::MockServer::start().await;
+    let fake = ehai_tracker::fake::mount(&server).await;
+    let env = std::sync::Arc::new(Env::new());
+    let api = server.uri();
+    let run = move |args: &'static [&'static str]| {
+        let env = env.clone();
+        let api = api.clone();
+        async move {
+            tokio::task::spawn_blocking(move || {
+                let out = env
+                    .cmd()
+                    .env("EHAI_GITHUB_API", &api)
+                    .env("GITHUB_TOKEN", "test-token")
+                    .args(args)
+                    .output()
+                    .unwrap();
+                (
+                    out.status.success(),
+                    stdout(&out) + &String::from_utf8_lossy(&out.stderr),
+                )
+            })
+            .await
+            .unwrap()
+        }
+    };
+
+    let (ok, out) = run(&["tracker", "status"]).await;
+    assert!(
+        !ok && out.contains("tracker set"),
+        "unconfigured status explains what to do: {out}"
+    );
+
+    let (ok, out) = run(&[
+        "tracker",
+        "set",
+        "--owner",
+        "octo",
+        "--project",
+        "1",
+        "--repo",
+        "octo/app",
+        "--yes",
+    ])
+    .await;
+    assert!(ok, "{out}");
+    assert!(out.contains("octo (via $GITHUB_TOKEN)"), "{out}");
+    assert!(
+        out.contains("created Priority, Size, Type, Iteration"),
+        "{out}"
+    );
+    let fields = fake.field_names();
+    for f in ["Status", "Priority", "Size", "Type", "Iteration"] {
+        assert!(fields.iter().any(|x| x == f), "{f} in {fields:?}");
+    }
+
+    let (ok, out) = run(&["tracker", "schema"]).await;
+    assert!(ok && out.contains("already set up"), "{out}");
+    let (ok, out) = run(&["tracker", "status"]).await;
+    assert!(
+        ok && out.contains("octo #1 (0 items), issues in octo/app"),
+        "{out}"
+    );
+    let (ok, out) = run(&["doctor"]).await;
+    assert!(
+        ok && out.contains("✔ Tracker (octo #1) — reachable, 0 items"),
+        "{out}"
+    );
+
+    let (ok, out) = run(&[
+        "init",
+        "--yes",
+        "--harness",
+        "none",
+        "--no-repo",
+        "--tracker-project",
+        "1",
+    ])
+    .await;
+    assert!(ok && out.contains("GitHub project — octo #1"), "{out}");
+
+    let (ok, out) = run(&["tracker", "set", "linear"]).await;
+    assert!(!ok && out.contains("isn't available yet"), "{out}");
 }

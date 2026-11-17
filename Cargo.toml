@@ -7,7 +7,7 @@ version = "0.1.0-alpha.1"
 edition = "2021"
 rust-version = "1.89"
 license = "UNLICENSED"
-repository = "https://github.com/jagadeeshm943/ehai"
+repository = "https://github.com/jagadeeshm007/ehai"
 publish = false
 
 [workspace.dependencies]
@@ -15,11 +15,13 @@ ehai-core = { path = "crates/ehai-core" }
 ehai-stack = { path = "crates/ehai-stack" }
 ehai-mcp = { path = "crates/ehai-mcp" }
 ehai-adapters = { path = "crates/ehai-adapters" }
+ehai-tracker = { path = "crates/ehai-tracker" }
 
 
 anyhow = "1.0.104"
 rmcp = { version = "3.10.0", features = ["server", "macros", "transport-io"] }
-tokio = { version = "1.54.1", features = ["rt", "macros", "io-std"] }
+tokio = { version = "1.54.1", features = ["rt", "macros", "io-std", "time"] }
+reqwest = { version = "0.13.5", features = ["json"] }
 clap = { version = "4.6.8", features = ["derive", "env"] }
 cliclack = "0.5.7"
 console = "0.16.6"
@@ -36,6 +38,7 @@ assert_cmd = "2.2.2"
 insta = "1.49.0"
 proptest = "1.12.0"
 tempfile = "3.27.0"
+wiremock = "0.6.5"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

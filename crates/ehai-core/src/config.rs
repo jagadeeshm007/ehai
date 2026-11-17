@@ -127,6 +127,23 @@ pub enum Channel {
 #[serde(default)]
 pub struct Tracker {
     pub kind: TrackerKind,
+    pub github: GithubTracker,
+}
+
+/// GitHub Projects v2 target, set by `ehai tracker set` or `ehai init`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(default)]
+pub struct GithubTracker {
+    /// User or org login that owns the project.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub owner: Option<String>,
+    /// Project number (the `N` in `/projects/N`).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub project: Option<u64>,
+    /// `owner/name` of the repo work items are created in as issues. Without it,
+    /// items are project draft issues (no comments or PR links).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub repo: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]

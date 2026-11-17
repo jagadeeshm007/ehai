@@ -71,6 +71,34 @@ pub fn run(
         }
     }
 
+    if let Ok(cfg) = config {
+        let g = &cfg.tracker.github;
+        if let (Some(owner), Some(number)) = (&g.owner, g.project) {
+            let label = format!("Tracker ({owner} #{number})");
+            ok &= p.step(&label, &mut || {
+                let (client, token) = crate::tracker::client()
+                    .map_err(|e| fail(e.to_string(), "run `gh auth login`, or set GITHUB_TOKEN"))?;
+                let scopes =
+                    crate::tracker::block_on(client.scopes()).map_err(crate::tracker::fail)?;
+                if ehai_tracker::auth::has_project_scope(scopes.as_deref()) == Some(false) {
+                    return Err(fail(
+                        "GitHub login lacks the `project` scope",
+                        ehai_tracker::auth::SCOPE_FIX,
+                    ));
+                }
+                let t = crate::tracker::configured(cfg, client)
+                    .map_err(|e| fail(e.to_string(), "run `ehai tracker set`"))?;
+                let n = crate::tracker::block_on(ehai_tracker::Tracker::list_items(
+                    &t,
+                    &Default::default(),
+                ))
+                .map_err(crate::tracker::fail)?
+                .len();
+                Ok(format!("reachable, {n} items (token via {})", token.source))
+            })?;
+        }
+    }
+
     p.outro(if ok {
         "All checks passed"
     } else {

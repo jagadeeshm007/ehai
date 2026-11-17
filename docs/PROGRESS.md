@@ -57,13 +57,30 @@
 - `ehai connect <id>` / `ehai disconnect <id>|--all` connect and disconnect harnesses.
 - `ehai uninstall` removes everything in one command and is tested to leave no traces.
 
-## Next — M2: Tracker
-- `Tracker` trait plus the GitHub Projects v2 adapter (GraphQL, reqwest + rustls), with contract tests (wiremock) and an opt-in live test (`EHAI_LIVE_GH=1`).
-- GitHub auth: `gh auth token` → `GITHUB_TOKEN`/`GH_TOKEN` → device flow, with the token in the keychain (`keyring`) or a 0600 file.
-- `ehai tracker set`, `ensure_schema`, and the idempotent sync engine (`ehai-id` footer).
-- Add the tracker + project question to `init`, with the project list fetched live and a "Create new" option (ADR-0013).
+### M2 — Tracker (2026-11-17)
+- `ehai-tracker`:
+  - `Tracker` trait, status/priority/size/type enums, and an `ehai-id` footer.
+  - `MemoryTracker` (the reference implementation).
+  - The GitHub Projects v2 adapter: issues in a repo or draft items, a non-destructive `ensure_schema`, pagination, and retries with backoff.
+  - The idempotent sync engine (`sync::plan` / `sync::sync`).
+  - GitHub auth via `gh` or env, with `project`-scope detection.
+- Shared contract suite: runs against the memory tracker and against GitHub on a stateful fake server (`fake` feature). It includes a test that a schema update keeps existing card statuses.
+- Opt-in live test (`EHAI_LIVE_GH=1`). The read-only part passed against real GitHub as `jagadeeshm007`; the full run needs `gh auth refresh -s project`.
+- CLI:
+  - `ehai tracker set [--owner --project|--create --repo|--no-repo]`, `tracker status` and `tracker schema`.
+  - `init` gained a "Where should work be tracked?" step (defaults to Skip, plus `--tracker-project/--tracker-create/--no-tracker`).
+  - `doctor` checks the token, the scope and project reachability.
+- The release repo moved to `jagadeeshm007/ehai`.
+
+## Next — M3: PM flow
+- `/ehai:plan`, `/ehai:breakdown`, `/ehai:sync`, `/ehai:status` and `/ehai:triage` as MCP tools, command templates and Claude desktop skills.
+- `ehai-planner`: PRD model, epic → story → task breakdown with Given/When/Then, and producing `sync::Desired` items.
+- `ehai-guard` (PHI detector) integrated into tracker writes, PRDs and reports.
+- Claude desktop adapter. Verify the `claude_desktop_config.json` format first.
 
 ## Open questions
-- `MINISIGN_KEY` secret: generate with `minisign -G -W` and add it to `jagadeeshm943/ehai` before the first tag.
+- Run the full live tracker test once: `gh auth refresh -s project`, then `EHAI_LIVE_GH=1 cargo test -p ehai-tracker --test live -- --nocapture`.
+- OAuth device flow needs an ehai OAuth App client id (ADR-0017). Who registers it, and under which org?
+- `MINISIGN_KEY` secret: generate with `minisign -G -W` and add it to `jagadeeshm007/ehai` before the first tag.
 - Claude desktop integration (M3): stdio via `claude_desktop_config.json`, or streamable HTTP. Verify the current docs first.
 - The interactive wizard path (cliclack on a real TTY) is exercised manually. Automated tests cover the same logic through the plain/scripted prompter.

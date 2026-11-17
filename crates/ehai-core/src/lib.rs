@@ -3,6 +3,7 @@
 pub mod blocks;
 pub mod brand;
 pub mod config;
+pub mod date;
 pub mod error;
 pub mod git;
 pub mod migrate;

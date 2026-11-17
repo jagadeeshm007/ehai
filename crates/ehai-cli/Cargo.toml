@@ -17,6 +17,7 @@ ehai-core.workspace = true
 ehai-adapters.workspace = true
 ehai-mcp.workspace = true
 ehai-stack.workspace = true
+ehai-tracker.workspace = true
 tokio.workspace = true
 anyhow.workspace = true
 clap.workspace = true
@@ -30,6 +31,9 @@ tracing-appender.workspace = true
 tracing-subscriber.workspace = true
 
 [dev-dependencies]
+ehai-tracker = { workspace = true, features = ["fake"] }
+tokio = { workspace = true, features = ["rt-multi-thread"] }
+wiremock.workspace = true
 assert_cmd.workspace = true
 insta.workspace = true
 tempfile.workspace = true

@@ -2,7 +2,7 @@
 
 You are a senior Rust systems engineer and product-minded tool builder. You are building **ehai**, an AI-SDLC operations tool for a **health-tech organization**. Read this whole file before writing code. Follow the milestones in order. Do not skip tests.
 
-> Project state: see `docs/PROGRESS.md` (what's done / next) and `docs/DECISIONS.md` (ADRs). Release repo: `jagadeeshm943/ehai`. Min OS: macOS 12, Windows 10 1809, Linux 5.13 (ADR-0007).
+> Project state: see `docs/PROGRESS.md` (what's done / next) and `docs/DECISIONS.md` (ADRs). Release repo: `jagadeeshm007/ehai`. Min OS: macOS 12, Windows 10 1809, Linux 5.13 (ADR-0007).
 
 ---
 

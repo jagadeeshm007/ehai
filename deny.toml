@@ -5,8 +5,9 @@ all-features = true
 yanked = "deny"
 
 [licenses]
-# Only licenses actually in the tree; extend as new deps land (rustls brings ISC etc.).
-allow = ["MIT", "Apache-2.0", "Unicode-3.0"]
+# Only licenses actually in the tree; all permissive. ISC/BSD-3/MIT-0 arrive with
+# rustls + aws-lc, CDLA-Permissive-2.0 with webpki root certificates (M2).
+allow = ["MIT", "Apache-2.0", "Unicode-3.0", "ISC", "BSD-3-Clause", "MIT-0", "CDLA-Permissive-2.0"]
 confidence-threshold = 0.9
 
 [licenses.private]

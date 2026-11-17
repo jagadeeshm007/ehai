@@ -16,6 +16,7 @@ Commands:
   adapters    Manage harness integrations (Claude Code, ...)
   self        Manage the ehai installation itself
   uninstall   Remove ehai completely: harness integrations, PATH entry, ~/.ehai
+  tracker     Connect and inspect the work tracker (GitHub Projects)
   mcp         Run the MCP server on stdio (started by your AI harness, not by hand)
   config      Inspect configuration
   help        Print this message or the help of the given subcommand(s)

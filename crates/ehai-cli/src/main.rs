@@ -10,6 +10,7 @@ mod init;
 mod logging;
 mod selfcmd;
 mod sys;
+mod tracker;
 mod ui;
 
 pub const VERSION_LINE: &str = concat!(
@@ -75,6 +76,9 @@ enum Command {
     SelfCmd(SelfCmd),
     /// Remove ehai completely: harness integrations, PATH entry, ~/.ehai.
     Uninstall,
+    /// Connect and inspect the work tracker (GitHub Projects).
+    #[command(subcommand)]
+    Tracker(TrackerCmd),
     /// Run the MCP server on stdio (started by your AI harness, not by hand).
     Mcp,
     /// Inspect configuration.
@@ -98,6 +102,16 @@ enum AdaptersCmd {
     Remove { id: String },
     /// Re-render every enabled adapter (after an update or a brand change).
     Regenerate,
+}
+
+#[derive(Subcommand)]
+enum TrackerCmd {
+    /// Pick (or create) the GitHub project to track work in.
+    Set(tracker::SetArgs),
+    /// Show the connected project and how many items it has.
+    Status,
+    /// Create any missing project fields (Status, Priority, Size, Type, Iteration).
+    Schema,
 }
 
 #[derive(Subcommand)]
@@ -188,6 +202,25 @@ fn run() -> Result<ExitCode> {
                 }
                 Ok(())
             })())?;
+            Ok(ExitCode::SUCCESS)
+        }
+        Command::Tracker(cmd) => {
+            let config = config?;
+            match cmd {
+                TrackerCmd::Set(args) => {
+                    let cwd = std::env::current_dir()?;
+                    let mut p = ui::prompter(cli.yes);
+                    let ok = tracker::set(p.as_mut(), &home, &cwd, &args)
+                        .inspect_err(exit_if_cancelled)?;
+                    return Ok(if ok {
+                        ExitCode::SUCCESS
+                    } else {
+                        ExitCode::FAILURE
+                    });
+                }
+                TrackerCmd::Status => println!("{}", tracker::status(&config)?),
+                TrackerCmd::Schema => println!("{}", tracker::schema(&config)?),
+            }
             Ok(ExitCode::SUCCESS)
         }
         Command::Connect { ids } => {
@@ -389,6 +422,16 @@ fn set_enabled(home: &std::path::Path, id: &str, on: bool) -> Result<()> {
         );
     })?;
     Ok(())
+}
+
+/// Same as [`cancellable`] for errors that went through `anyhow`.
+fn exit_if_cancelled(e: &anyhow::Error) {
+    if e.downcast_ref::<std::io::Error>()
+        .is_some_and(|io| io.kind() == std::io::ErrorKind::Interrupted)
+    {
+        eprintln!("Cancelled. Nothing was changed.");
+        std::process::exit(130);
+    }
 }
 
 /// Esc/Ctrl-C in a prompt: say so plainly and exit 130 instead of printing an error.

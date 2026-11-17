@@ -1,6 +1,6 @@
 ---
 source: crates/ehai-cli/src/init.rs
-assertion_line: 515
+assertion_line: 799
 expression: summary(&detected(None))
 ---
 System        linux x86_64
@@ -8,6 +8,7 @@ Git           git version 2.53.0
 GitHub CLI    signed in
 Harnesses     Claude Code
               also found: Cursor (support coming soon)
+Tracker       GitHub not reachable (connect later with `tracker set`)
 Claude app    yes
 Chrome        yes (POC screenshots)
 Repo          none (run init inside a repo to onboard it)

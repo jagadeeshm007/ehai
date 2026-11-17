@@ -1,0 +1,33 @@
+[package]
+name = "ehai-tracker"
+description = "ehai tracker abstraction, GitHub Projects v2 adapter and idempotent sync engine"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+ehai-core.workspace = true
+reqwest.workspace = true
+schemars.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+wiremock = { workspace = true, optional = true }
+
+[features]
+# Fake GitHub server for tests (contract suite, CLI end-to-end tests).
+fake = ["dep:wiremock"]
+
+[dev-dependencies]
+ehai-tracker = { path = ".", features = ["fake"] }
+proptest.workspace = true
+tokio = { workspace = true, features = ["rt-multi-thread"] }
+wiremock.workspace = true
+
+[lints]
+workspace = true

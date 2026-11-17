@@ -7,7 +7,7 @@ ADR-style log. One entry per non-obvious decision. Newest last.
 ## ADR-0001 — Release repository
 **Date:** 2026-11-17 · **Status:** accepted
 
-Releases are published to the private repo **`jagadeeshm943/ehai`**. The owner/name appears in `Cargo.toml` (`workspace.package.repository`) and will be used by `install/` and `ehai-update` (M8). It can move to an org later; keep it in those few places.
+Releases are published to the private repo **`jagadeeshm007/ehai`**. (Changed from `jagadeeshm943/ehai` on 2026-11-17, before any release: `jagadeeshm007` is the account `gh` is signed into.) The owner/name appears in `Cargo.toml` (`workspace.package.repository`) and will be used by `install/` and `ehai-update` (M8). It can move to an org later; keep it in those few places.
 
 ## ADR-0002 — Create crates when a milestone needs them
 **Date:** 2026-11-17 · **Status:** accepted
@@ -159,3 +159,42 @@ Re-check before bumping.
   - Skips file logging, so it doesn't recreate `~/.ehai/logs`.
   - Repo `.ehai/` profiles are left alone: they belong to the repo and may be committed.
 - **Testing:** the rc-file location is passed in explicitly (`remove_files(home, user_home)`), so tests can never touch the developer's real dotfiles. A sandboxed-`HOME` lifecycle test proves that install → connect → disconnect → uninstall leaves no traces and restores `.bashrc` byte-for-byte.
+
+## ADR-0017 — Tracker: GitHub Projects v2 via hand-written GraphQL
+**Date:** 2026-11-17 · **Status:** accepted
+**Sources:** GitHub's live GraphQL schema, introspected 2026-11-17 (`CreateProjectV2FieldInput`, `ProjectV2SingleSelectFieldOptionInput` with optional `id`, `UpdateProjectV2FieldInput`, `ProjectV2FieldValue`, `ProjectV2IterationFieldConfigurationInput`).
+
+- **Trait:** `Tracker` uses native `async fn`-in-trait (`-> impl Future + Send`) with no `async-trait` dependency. Adapters are used generically. Linear and Jira are refused with a clear message until their adapters exist.
+- **Hand-written GraphQL:** 15 documents in `github::q`, instead of `graphql_client` (schema download + codegen for that few operations).
+- **Contract suite:**
+  - One `contract()` runs against `MemoryTracker` (the reference) and `GithubProjects` + `FakeGithub`, a stateful wiremock GraphQL server behind the `fake` feature.
+  - The fake models GitHub dropping a card's value when its option id disappears, so a destructive schema update would fail the tests.
+- **Work items:**
+  - Issues in the configured repo, added to the project, so they get comments and PR links.
+  - Without a repo they're project draft items, which have no comments.
+- **`ehai-id`:** an invisible `<!-- ehai-id: … -->` body footer.
+  - The id charset is limited (`[A-Za-z0-9._-]`, no `--`), so it can't close the comment.
+  - A footer followed by user text isn't treated as ours.
+- **`ensure_schema` is never destructive:**
+  - It creates missing Status/Priority/Size/Type single-selects and an Iteration field (a failure there is only a warning).
+  - It adds missing options by sending existing options back **with their ids**, which keeps every card's value.
+  - A same-named non-single-select field is reported, never touched.
+- **Sync engine** (`sync::plan` is pure; `sync::sync` applies it):
+  - Matches by `ehai-id` only.
+  - Status is set only on create; afterwards the board owns it.
+  - Orphans are reported, never deleted.
+  - Per-item failures are collected.
+  - Idempotence is property-tested.
+- **Reliability:** 30 s timeout per request. Up to 3 attempts with backoff on network errors, 5xx, 429 and secondary rate limits (`Retry-After` honoured, capped at 30 s). 401 and `INSUFFICIENT_SCOPES` become actionable auth errors.
+- **Auth:**
+  - Order is `gh auth token`, then `GITHUB_TOKEN`, then `GH_TOKEN`. The token is read per run and never stored by ehai.
+  - **OAuth device flow and keychain storage are deferred:** device flow needs ehai's own registered OAuth App client id, and borrowing another app's id would be impersonation. Both arrive together once the org registers an app.
+  - Missing `project` scope is detected from `X-OAuth-Scopes`. ehai shows `gh auth refresh -s project` and never runs it (user decision).
+  - Fine-grained tokens report no scopes, so ehai just tries.
+- **`init` tracker question:**
+  - It defaults to **Skip** unless a project is already connected, so `init --yes` never modifies a GitHub project nobody picked.
+  - CI uses `--tracker-project N`, `--tracker-create TITLE` or `--no-tracker`.
+  - It offers the repo's org projects when the user belongs to the org.
+  - With this question, init asks at most 6 questions ("about 5", spec §14).
+- **TLS:** reqwest 0.13's default rustls (aws-lc-rs + platform verifier, so corporate TLS proxies work). `deny.toml` now allows ISC, BSD-3-Clause, MIT-0 and CDLA-Permissive-2.0. No OpenSSL in the tree.
+- **Tests stay offline:** CLI tests set `EHAI_NO_GH=1` and point `EHAI_GITHUB_API` at a fake or a dead port, so they never reach real GitHub. The live test runs only with `EHAI_LIVE_GH=1` and uses draft items, so no issues land in any repo. It deletes its throwaway project afterwards.
