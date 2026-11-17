@@ -56,6 +56,16 @@ pub enum Role {
 #[serde(default)]
 pub struct Compliance {
     pub mode: ComplianceMode,
+    /// Organisation-specific identifiers to detect, on top of the built-ins.
+    pub patterns: Vec<CustomPattern>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+pub struct CustomPattern {
+    /// Label shown in findings, e.g. `clinic-id`.
+    pub name: String,
+    /// Regular expression (Rust `regex` syntax).
+    pub regex: String,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]

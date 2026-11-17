@@ -1,0 +1,28 @@
+---
+source: crates/ehai-planner/src/report.rs
+assertion_line: 404
+expression: r.to_markdown()
+---
+# Status — 2026-11-17
+
+**40% done** · 2 of 5 items · 0 blocked · 1 stale · 1 risk
+
+| Epic | Progress | Done |
+|---|---|---|
+| Other work | `██████████` 100% | 1/1 |
+| Self-service booking | `██░░░░░░░░` 25% | 1/4 |
+
+```mermaid
+pie title Items by status
+  "Done" : 2
+  "In Progress" : 2
+  "Todo" : 1
+```
+
+## Stale
+
+- [See free slots](https://github.com/o/r/issues/s1) — no change since 2026-10-01
+
+## Risks
+
+- [Confirm a booking](https://github.com/o/r/issues/s2) — P0 not started

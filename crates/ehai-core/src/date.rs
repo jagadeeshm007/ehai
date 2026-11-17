@@ -4,10 +4,15 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Today as `YYYY-MM-DD` (UTC).
 pub fn today_utc() -> String {
+    days_ago(0)
+}
+
+/// The UTC date `n` days ago as `YYYY-MM-DD`.
+pub fn days_ago(n: i64) -> String {
     let days = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_or(0, |d| d.as_secs() / 86_400);
-    civil(days as i64)
+    civil(days as i64 - n)
 }
 
 /// Days since 1970-01-01 → `YYYY-MM-DD` (Howard Hinnant's civil_from_days).
@@ -32,5 +37,6 @@ mod tests {
         assert_eq!(super::civil(19_723), "2024-01-01");
         assert_eq!(super::civil(11_016), "2000-02-29");
         assert_eq!(super::today_utc().len(), 10);
+        assert!(super::days_ago(14) < super::today_utc());
     }
 }

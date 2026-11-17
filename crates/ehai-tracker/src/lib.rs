@@ -84,6 +84,8 @@ pub struct Item {
     pub size: Option<Size>,
     pub kind: Option<Kind>,
     pub closed: bool,
+    /// Last change, ISO-8601 UTC (`2026-11-17T09:30:00Z`); compares as a string.
+    pub updated_at: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -254,6 +256,7 @@ mod tests {
             size: None,
             kind: Some(Kind::Task),
             closed: false,
+            updated_at: None,
         };
         assert!(Filter::default().matches(&item));
         assert!(Filter {

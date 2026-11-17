@@ -1,6 +1,6 @@
 //! Harness adapters. Each one can detect its harness, generate its files, install,
 //! verify (status) and remove — idempotently and reversibly (spec §10).
-//! M1 ships Claude Code; M7 adds Codex, Gemini CLI, Cursor, OpenCode, VS Code,
+//! Claude Code (M1) and Claude desktop (M3) so far; M7 adds Codex, Gemini CLI, Cursor, OpenCode, VS Code,
 //! Windsurf and AGENTS.md behind the same trait.
 
 use std::path::{Path, PathBuf};
@@ -8,6 +8,7 @@ use std::path::{Path, PathBuf};
 use ehai_core::Brand;
 
 pub mod claude_code;
+pub mod claude_desktop;
 mod templates;
 
 pub use templates::render;
@@ -67,7 +68,10 @@ pub trait Harness {
 
 /// Adapters available in this build.
 pub fn all() -> Vec<Box<dyn Harness>> {
-    vec![Box::new(claude_code::ClaudeCode::from_env())]
+    vec![
+        Box::new(claude_code::ClaudeCode::from_env()),
+        Box::new(claude_desktop::ClaudeDesktop::from_env()),
+    ]
 }
 
 pub fn by_id(id: &str) -> Option<Box<dyn Harness>> {

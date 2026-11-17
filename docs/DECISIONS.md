@@ -219,3 +219,55 @@ Re-check before bumping.
   - `updateProjectV2Field` with existing option ids keeps a card's value (In Progress survived adding Backlog and In Review).
   - `Work type`/Priority/Size/Iteration creation works.
   - The throwaway project is deleted.
+
+## ADR-0020 — Compliance guard: confidence levels, kinds-only reporting
+**Date:** 2026-11-17 · **Status:** accepted
+
+- **Built-in detectors** (`ehai-guard`, regex):
+  - SSN (with area/group/serial validity checks)
+  - MRN / medical record number
+  - DOB (keyword plus date)
+  - insurance/member/policy id, email, phone, street address
+  - a **name next to a medical term** heuristic
+  - Org-specific patterns come from `compliance.patterns`.
+- **Confidence levels:**
+  - Structured identifiers are **High**.
+  - The name heuristic is **Low**: it's surfaced but never auto-redacted, because rewriting phrases like "Book Appointment" in strict mode would corrupt PRDs. A stop-list of UI/story words keeps "Given the patient… Book Appointment" from being flagged.
+- **Modes:**
+  - `warn` returns findings and lets the user choose redact / keep / cancel.
+  - `strict` redacts High automatically and reports Low.
+  - `off` skips checks.
+- **Values are never reported:** a finding has a kind and a byte span only. Questions, tool output and the audit log name kinds ("mrn ×1, email ×1").
+- **Audit log:** monthly JSONL files under ehai's home (`audit` dir), one locked append per write. It records command, target, location, kinds and action.
+- **Tests:** a property test checks that generated SSN/MRN/email/DOB/phone/member-id samples in random prose are always found and removed by redaction.
+
+## ADR-0021 — PM flow: the harness writes, the engine shapes, checks and syncs
+**Date:** 2026-11-17 · **Status:** accepted
+
+- **Division of labour:** interviewing, writing and classifying are the harness model's job. `ehai-planner` gives the output a fixed shape (`Prd`, `Breakdown` → `Epic` → `Story` → `Task`, Given/When/Then), validates it and renders it.
+  - PRD validation: metrics need a number, flows must be Mermaid.
+  - Breakdown validation: ids unique and valid, dependencies known, no cycles, every story has criteria.
+  - Outputs: Markdown tables, Mermaid graphs, a self-contained HTML report.
+  - It also produces `sync::Desired` items keyed `<prd-slug>.<id>` (≤ 64 chars).
+- **Storage:** plans live in `~/.ehai/plans/<slug>/` (so Claude desktop works without a repo). PRDs are also written to `docs/prd/<slug>.md` when a repo is known.
+- **Tools:** `save_prd`, `get_plan`, `list_plans`, `save_breakdown`, `sync_plan` (preview by default, `apply: true` to write), `status_report` (optional HTML) and `triage` (duplicate check by content-word Jaccard ≥ 0.35), plus `guard_check` and `ping`.
+- **`needs_input`:** questions use `{status:"needs_input", question, header, options[{label,value,description}], multi_select, retry_param}`. The harness asks through its own question UI and calls the same tool again with `retry_param` set to the chosen value. This works in every MCP client; MCP elicitation can be added later without changing tools.
+- **Schema before sync:** `sync_plan` runs `ensure_schema` before writing. The PM-flow test caught that a project without ehai's fields made every later sync show phantom "updates", because the field values couldn't be set.
+- **Status reports:**
+  - Epics are excluded from counts; their progress is derived from their stories and tasks.
+  - "Blocked" means started while a dependency is unfinished.
+  - "Stale" means In Progress/In Review with no change in 14 days (ISO timestamps compare as strings).
+  - "Risk" means a P0 that hasn't started.
+  - Linked-PR counts are left for the dev flow (M6).
+
+## ADR-0022 — Claude desktop: config entry + MCP prompts, not skills
+**Date:** 2026-11-17 · **Status:** accepted
+**Sources (2026-11-17):** support.claude.com "Using Skills in Claude" (custom skills are ZIP uploads in Settings only), Claude desktop MCP setup guides, and the file on this Linux machine (`~/.config/Claude/claude_desktop_config.json`).
+
+- **Config entry:** the adapter edits only `mcpServers.<brand>`.
+  - Key order is preserved (`serde_json` `preserve_order`; this adds the Zlib-licensed `foldhash`).
+  - A `.json.ehai-backup` is taken before the first edit.
+  - A file that isn't valid JSON is refused, never overwritten.
+  - The lock file lives in `~/.ehai/adapters/`, never in Claude's directory.
+  - The desktop app needs a full quit and relaunch afterwards; the install message says so.
+- **Why prompts:** the PM flows reach desktop as **MCP prompts** served by the same server, rendered from the same templates as the Claude Code skills. That gives one source and zero manual steps. ZIP skill export can be added if the team wants skills there too.

@@ -65,6 +65,7 @@ impl Tracker for MemoryTracker {
             size: n.size,
             kind: n.kind,
             closed: false,
+            updated_at: Some(format!("{}T00:00:00Z", ehai_core::date::today_utc())),
         };
         s.items.push(item.clone());
         Ok(item)

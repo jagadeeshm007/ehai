@@ -1,0 +1,29 @@
+---
+source: crates/ehai-planner/src/breakdown.rs
+assertion_line: 515
+expression: b.preview()
+---
+| ID | Type | Title | Priority | Size | Platforms | Depends on |
+|---|---|---|---|---|---|---|
+| e1 | Epic | Self-service booking | P1 |  |  |  |
+| s1 | Story | See free slots | P1 | M | rn, go |  |
+| t1 | Task | Slots API | P1 | S | go |  |
+| t2 | Task | Slot picker screen | P1 | M | rn | t1 |
+| s2 | Story | Confirm a booking | P0 | S | rn | s1 |
+
+**1 epic · 2 stories · 2 tasks**
+
+```mermaid
+flowchart LR
+  n_e1["Epic: Self-service booking"]
+  n_s1["Story: See free slots"]
+  n_t1["Task: Slots API"]
+  n_t2["Task: Slot picker screen"]
+  n_s2["Story: Confirm a booking"]
+  n_e1 --- n_s1
+  n_s1 --- n_t1
+  n_s1 --- n_t2
+  n_t1 -.->|blocks| n_t2
+  n_e1 --- n_s2
+  n_s1 -.->|blocks| n_s2
+```

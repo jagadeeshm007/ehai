@@ -72,14 +72,33 @@
   - `doctor` checks the token, the scope and project reachability.
 - The release repo moved to `jagadeeshm007/ehai`.
 
-## Next — M3: PM flow
-- `/ehai:plan`, `/ehai:breakdown`, `/ehai:sync`, `/ehai:status` and `/ehai:triage` as MCP tools, command templates and Claude desktop skills.
-- `ehai-planner`: PRD model, epic → story → task breakdown with Given/When/Then, and producing `sync::Desired` items.
-- `ehai-guard` (PHI detector) integrated into tracker writes, PRDs and reports.
-- Claude desktop adapter. Verify the `claude_desktop_config.json` format first.
+### M3 — PM flow (2026-11-17)
+- `ehai-guard`:
+  - Detects SSN, MRN, DOB, member id, email, phone, address, name + medical term, plus custom patterns.
+  - Confidence levels; off/warn/strict modes.
+  - A value-free JSONL audit log.
+  - Property-tested: no false negatives on generated PHI.
+- `ehai-planner`:
+  - PRD and breakdown models with validation (measurable metrics, Mermaid flows, dependency cycles, acceptance criteria).
+  - Markdown, Mermaid and board preview.
+  - Conversion to tracker items.
+  - Status report (Markdown + Mermaid + self-contained HTML).
+  - Triage duplicate detection.
+- MCP server:
+  - 9 tools (`save_prd`, `get_plan`, `list_plans`, `save_breakdown`, `sync_plan`, `status_report`, `triage`, `guard_check`, `ping`).
+  - 7 prompts, each mirroring a skill.
+  - `needs_input` questions; every write is guarded and audited.
+- Claude Code skills `/ehai:plan`, `breakdown`, `sync`, `status` and `triage` (role-aware, native questions, no real patient data).
+- Claude desktop adapter: an `mcpServers` entry in `claude_desktop_config.json`; the flows arrive as MCP prompts.
+- Verified live: the plugin passes `claude plugin validate`, the MCP server shows ✔ Connected, and the real binary serves 9 tools and 7 prompts.
+
+## Next — M4: Env provisioning
+- `ehai-env`: discover gitignored config (`.env*`, local configs, native files), copy or symlink, check against `.env.example`, isolate ports (`.env.ehai.local`, `~/.ehai/ports.json`), install dependencies per stack, run a health check, and never stage env files.
+- `ehai env sync|check|doctor`, plus the same as MCP tools.
+- Fixture repos: RN Expo, Vite React, Next.js, Go, FastAPI and a pnpm monorepo.
 
 ## Open questions
 - OAuth device flow needs an ehai OAuth App client id (ADR-0017). Who registers it, and under which org?
 - `MINISIGN_KEY` secret: generate with `minisign -G -W` and add it to `jagadeeshm007/ehai` before the first tag.
-- Claude desktop integration (M3): stdio via `claude_desktop_config.json`, or streamable HTTP. Verify the current docs first.
+- Claude desktop: are ZIP skill uploads wanted in addition to the MCP prompts (ADR-0022)?
 - The interactive wizard path (cliclack on a real TTY) is exercised manually. Automated tests cover the same logic through the plain/scripted prompter.

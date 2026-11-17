@@ -5,7 +5,7 @@ AI-SDLC ops engine for health-tech teams:
 - Developers carry tasks through the dev lifecycle from any AI coding harness.
 - Anyone can generate isolated UI/UX proof-of-concepts that match the app's design system.
 
-> **Status:** `0.1.0-alpha.1`, M2 (GitHub Projects tracker + sync engine). See [docs/PROGRESS.md](docs/PROGRESS.md).
+> **Status:** `0.1.0-alpha.1`, M3 (PM flow: plan → breakdown → sync → status → triage, PHI guard, Claude desktop). See [docs/PROGRESS.md](docs/PROGRESS.md).
 
 ## Install from source
 ```bash
@@ -32,7 +32,11 @@ ehai init
 | `ehai config path` | Global and repo config locations |
 | `ehai config schema` | JSON schema for `config.toml` |
 
-Inside Claude Code: `/ehai:help`, `/ehai:prefs` (MCP server `ehai`, resource `ehai://prefs`).
+Inside Claude Code: `/ehai:plan`, `/ehai:breakdown`, `/ehai:sync`, `/ehai:status`, `/ehai:triage`, `/ehai:prefs`, `/ehai:help`.
+
+In Claude desktop (`ehai connect claude-desktop`, then fully quit and reopen the app): the same flows appear as prompts under the `ehai` connector.
+
+Patient data: everything ehai writes is checked (`compliance.mode = off | warn | strict`); findings are logged by kind only, never by value.
 
 GitHub Projects needs the `project` scope on your `gh` login: `gh auth refresh -s project`.
 

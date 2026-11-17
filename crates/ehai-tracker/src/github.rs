@@ -481,6 +481,7 @@ fn parse_item(n: &Value) -> Option<Item> {
         size: get("size").and_then(Size::from_label),
         kind: get("work type").or(get("type")).and_then(Kind::from_label),
         closed: c["closed"].as_bool().unwrap_or(false),
+        updated_at: n["updatedAt"].as_str().map(String::from),
     })
 }
 
@@ -730,6 +731,38 @@ impl Tracker for GithubProjects {
     }
 }
 
+/// API root: `EHAI_GITHUB_API` when set (tests point it at a fake), else GitHub.
+pub fn api_base() -> String {
+    std::env::var("EHAI_GITHUB_API").unwrap_or_else(|_| API.to_string())
+}
+
+/// A client for the user's token (`gh`, then env). `EHAI_NO_GH=1` skips `gh`.
+pub fn client_from_env() -> Result<(Client, crate::auth::Token)> {
+    let env: Vec<(String, String)> = std::env::vars().collect();
+    let token = crate::auth::resolve(&env, std::env::var_os("EHAI_NO_GH").is_none())?;
+    Ok((Client::new(&api_base(), &token.value)?, token))
+}
+
+/// The project configured in `[tracker]`, or a hint on how to configure one.
+pub fn from_config(config: &ehai_core::Config, client: Client) -> Result<GithubProjects> {
+    use ehai_core::config::TrackerKind;
+    if config.tracker.kind != TrackerKind::GithubProjects {
+        return Err(Error::Unsupported(
+            "only GitHub Projects is available so far".into(),
+        ));
+    }
+    let g = &config.tracker.github;
+    match (&g.owner, g.project) {
+        (Some(owner), Some(number)) => {
+            Ok(GithubProjects::new(client, owner, number, g.repo.clone()))
+        }
+        _ => Err(Error::Config(format!(
+            "no tracker connected yet: run `{} tracker set`",
+            config.brand.name
+        ))),
+    }
+}
+
 /// GraphQL documents. Operation names match the `op` argument, which the mock
 /// server in the contract tests dispatches on.
 mod q {
@@ -738,7 +771,7 @@ mod q {
         ... on ProjectV2SingleSelectField { options { id name color description } } } }";
 
     const ITEM: &str = "fragment ItemF on ProjectV2Item {
-        id isArchived
+        id isArchived updatedAt
         content { __typename
           ... on Issue { id number url title body closed }
           ... on DraftIssue { id title body } }

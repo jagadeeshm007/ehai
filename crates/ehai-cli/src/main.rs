@@ -184,9 +184,10 @@ fn run() -> Result<ExitCode> {
         Command::Mcp => {
             let config = config?;
             let ctx = ehai_mcp::Context {
-                brand: config.brand.name.clone(),
-                role: config.role.map(role_str),
+                config,
                 home: home.clone(),
+                cwd: std::env::current_dir().ok(),
+                github: ehai_mcp::Github::FromEnv,
             };
             tokio::runtime::Builder::new_current_thread()
                 .enable_all()

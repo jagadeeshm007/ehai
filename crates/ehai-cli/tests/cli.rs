@@ -24,7 +24,14 @@ impl Env {
         c.env("EHAI_NO_GH", "1")
             .env_remove("GITHUB_TOKEN")
             .env_remove("GH_TOKEN")
-            .env("EHAI_GITHUB_API", "http://127.0.0.1:9");
+            .env("EHAI_GITHUB_API", "http://127.0.0.1:9")
+            // never touch the developer's real Claude desktop config
+            .env(
+                "EHAI_CLAUDE_DESKTOP_CONFIG",
+                self.home
+                    .path()
+                    .join("no-claude-desktop/claude_desktop_config.json"),
+            );
         c.env("EHAI_HOME", self.home.path())
             .env("NO_COLOR", "1")
             .current_dir(self.cwd.path());

@@ -744,6 +744,7 @@ mod tests {
             role: Some(Role::Dev),
             compliance: config::Compliance {
                 mode: ComplianceMode::Strict,
+                ..Default::default()
             },
             ..Default::default()
         };

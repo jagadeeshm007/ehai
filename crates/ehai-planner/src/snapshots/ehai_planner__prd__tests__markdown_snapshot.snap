@@ -1,0 +1,54 @@
+---
+source: crates/ehai-planner/src/prd.rs
+assertion_line: 226
+expression: sample().to_markdown()
+---
+# Online appointment booking
+
+## Problem
+
+Patients can only book by phone, so lines are busy and slots go unused.
+
+## Users
+
+- Patients
+- Front-desk staff
+
+## Goals
+
+- Patients book without calling
+
+## Scope
+
+- Book, reschedule and cancel in the app
+
+## Out of scope
+
+- Payments
+
+## User flows
+
+### Book a visit
+
+```mermaid
+flowchart TD
+  A[Open app] --> B[Pick slot] --> C[Confirm]
+```
+
+## Screens
+
+### Slot picker
+
+A week view with free slots.
+
+## Success metrics
+
+| Metric | Target |
+|---|---|
+| Online bookings | ≥ 60% within 3 months |
+
+## Risks
+
+| Risk | Mitigation |
+|---|---|
+| No-shows rise | Reminders 24 h before |

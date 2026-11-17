@@ -16,10 +16,15 @@ disable-model-invocation: false
 
    | Command | What it does |
    |---|---|
+   | `/{{prefix}}plan` | Turn an idea into a PRD |
+   | `/{{prefix}}breakdown` | Break a PRD into epics, stories and tasks |
+   | `/{{prefix}}sync` | Put the plan on the tracker board (no duplicates) |
+   | `/{{prefix}}status` | Progress, blockers and risks |
+   | `/{{prefix}}triage` | Turn a bug or request into a tracker item |
+   | `/{{prefix}}prefs` | Your role and preferences |
    | `/{{prefix}}help` | This overview |
-   | `/{{prefix}}prefs` | Show your role and preferences |
 
-   Planning, tracking and POC commands are coming in the next releases.
+   UI proof-of-concepts are coming in a later release.
 5. Ask what they want to do next through the question tool.
 
 {{role_block}}

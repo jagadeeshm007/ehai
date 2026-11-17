@@ -156,7 +156,7 @@ impl State {
             content["url"] = json!(format!("https://github.com/octo/app/issues/{n}"));
             content["closed"] = json!(false);
         }
-        json!({ "id": i.id, "isArchived": false, "content": content, "fieldValues": { "nodes": values } })
+        json!({ "id": i.id, "isArchived": false, "updatedAt": "2026-11-17T00:00:00Z", "content": content, "fieldValues": { "nodes": values } })
     }
 
     fn handle(&mut self, op: &str, v: &Value) -> Value {

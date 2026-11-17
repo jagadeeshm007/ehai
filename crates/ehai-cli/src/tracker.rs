@@ -5,8 +5,8 @@ use std::future::Future;
 use std::path::Path;
 
 use anyhow::{bail, Context, Result};
-use ehai_core::config::{self, Config, TrackerKind};
-use ehai_tracker::github::{Client, GithubProjects, ProjectSummary, API};
+use ehai_core::config::{self, Config};
+use ehai_tracker::github::{Client, GithubProjects, ProjectSummary};
 use ehai_tracker::{auth, SchemaReport, Tracker};
 
 use crate::ui::{Choice, Prompter, StepError};
@@ -20,33 +20,14 @@ pub fn block_on<F: Future>(f: F) -> F::Output {
         .block_on(f)
 }
 
-pub fn api_base() -> String {
-    std::env::var("EHAI_GITHUB_API").unwrap_or_else(|_| API.to_string())
-}
-
 /// A client for the user's token. `EHAI_NO_GH=1` skips the `gh` CLI (tests).
 pub fn client() -> Result<(Client, auth::Token)> {
-    let env: Vec<(String, String)> = std::env::vars().collect();
-    let use_gh = std::env::var_os("EHAI_NO_GH").is_none();
-    let token = auth::resolve(&env, use_gh)?;
-    Ok((Client::new(&api_base(), &token.value)?, token))
+    Ok(ehai_tracker::github::client_from_env()?)
 }
 
 /// The configured project, or a hint on how to configure one.
 pub fn configured(config: &Config, client: Client) -> Result<GithubProjects> {
-    if config.tracker.kind != TrackerKind::GithubProjects {
-        bail!("only GitHub Projects is supported so far");
-    }
-    let g = &config.tracker.github;
-    match (&g.owner, g.project) {
-        (Some(owner), Some(number)) => {
-            Ok(GithubProjects::new(client, owner, number, g.repo.clone()))
-        }
-        _ => bail!(
-            "no tracker connected yet: run `{} tracker set`",
-            config.brand.name
-        ),
-    }
+    Ok(ehai_tracker::github::from_config(config, client)?)
 }
 
 /// What the user picked for the project.

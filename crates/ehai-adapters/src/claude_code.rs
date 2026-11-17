@@ -17,10 +17,32 @@ use serde_json::{json, Value};
 
 use crate::{render, sync_tree, Ctx, Error, File, Harness, Result, Status};
 
-const SKILLS: &[(&str, &str)] = &[
+/// Skill templates: `(name, template)`. Also served as MCP prompts by `ehai-mcp`,
+/// which is how the PM flows reach Claude desktop.
+pub const SKILLS: &[(&str, &str)] = &[
     (
         "help",
         include_str!("../../../templates/claude-code/skills/help/SKILL.md"),
+    ),
+    (
+        "plan",
+        include_str!("../../../templates/claude-code/skills/plan/SKILL.md"),
+    ),
+    (
+        "breakdown",
+        include_str!("../../../templates/claude-code/skills/breakdown/SKILL.md"),
+    ),
+    (
+        "sync",
+        include_str!("../../../templates/claude-code/skills/sync/SKILL.md"),
+    ),
+    (
+        "status",
+        include_str!("../../../templates/claude-code/skills/status/SKILL.md"),
+    ),
+    (
+        "triage",
+        include_str!("../../../templates/claude-code/skills/triage/SKILL.md"),
     ),
     (
         "prefs",
