@@ -317,8 +317,10 @@ impl State {
                 if let Some(t) = v["title"].as_str() {
                     item.title = t.into();
                 }
-                if let Some(b) = v["body"].as_str() {
-                    item.body = b.into();
+                // GitHub semantics: an omitted variable leaves the field alone,
+                // an explicit `null` clears it.
+                if let Some(b) = v.get("body") {
+                    item.body = b.as_str().unwrap_or_default().into();
                 }
                 json!({})
             }

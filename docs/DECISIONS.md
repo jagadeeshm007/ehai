@@ -208,3 +208,14 @@ Re-check before bumping.
 - **Template projects:** they already ship Status (Backlog/Ready/In progress/In review/Done), Priority, Size and Iteration. ehai matches option names case-insensitively, so it only added the missing `Todo` status and `Work type`.
 - **Fake GitHub:** now models reserved field names, and can be made to fail a named field.
 - **Broken pipes:** `ehai … | head` used to panic on the closed pipe. A panic hook plus a check in `main` now make it exit quietly with status 0.
+
+## ADR-0019 — Updates omit unchanged fields (explicit `null` clears on GitHub)
+**Date:** 2026-11-17 · **Status:** accepted
+
+- **Bug:** the first full live run (`EHAI_LIVE_GH=1`) caught it. A title-only `update_item` sent `body: null`, and GitHub treats an explicit `null` as "clear", so the rename wiped the body and the `ehai-id` footer. An *omitted* variable leaves the argument unset.
+- **Fix:** update mutations now include only the fields being changed.
+- **Fake GitHub:** now applies the same `null` vs omitted rule. The contract suite renames by title alone, and it **fails on the old code** and passes on the fix.
+- **Also confirmed live:**
+  - `updateProjectV2Field` with existing option ids keeps a card's value (In Progress survived adding Backlog and In Review).
+  - `Work type`/Priority/Size/Iteration creation works.
+  - The throwaway project is deleted.

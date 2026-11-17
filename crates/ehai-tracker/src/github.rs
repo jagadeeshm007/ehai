@@ -639,7 +639,18 @@ impl Tracker for GithubProjects {
                 .graphql(
                     op,
                     query,
-                    json!({ "id": c["id"], "title": p.title, "body": body }),
+                    // Omit unchanged fields: GitHub treats an explicit `null`
+                    // as "clear it" (found by the live test: a rename wiped the body).
+                    {
+                        let mut vars = json!({ "id": c["id"] });
+                        if let Some(t) = &p.title {
+                            vars["title"] = json!(t);
+                        }
+                        if let Some(b) = &body {
+                            vars["body"] = json!(b);
+                        }
+                        vars
+                    },
                 )
                 .await?;
         }

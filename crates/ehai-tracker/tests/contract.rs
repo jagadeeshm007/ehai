@@ -86,6 +86,22 @@ async fn contract<T: Tracker>(t: &T) {
     assert_eq!(a2.ehai_id.as_deref(), Some("story-1"));
     assert_eq!((a2.priority, a2.size), (Some(Priority::P0), Some(Size::S)));
 
+    // a title-only rename leaves the body and the ehai-id alone
+    let a3 = t
+        .update_item(
+            &a.id,
+            ItemPatch {
+                title: Some("Book a visit online".into()),
+                ..Default::default()
+            },
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        (a3.body.as_str(), a3.ehai_id.as_deref()),
+        ("New body", Some("story-1"))
+    );
+
     t.set_status(&a.id, Status::InReview).await.unwrap();
     assert_eq!(
         t.get_item(&a.id).await.unwrap().status,

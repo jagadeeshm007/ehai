@@ -65,7 +65,7 @@
   - The idempotent sync engine (`sync::plan` / `sync::sync`).
   - GitHub auth via `gh` or env, with `project`-scope detection.
 - Shared contract suite: runs against the memory tracker and against GitHub on a stateful fake server (`fake` feature). It includes a test that a schema update keeps existing card statuses.
-- Opt-in live test (`EHAI_LIVE_GH=1`). The read-only part passed against real GitHub as `jagadeeshm007`; the full run needs `gh auth refresh -s project`.
+- Opt-in live test (`EHAI_LIVE_GH=1`): the full run passes against real GitHub as `jagadeeshm007` (ADR-0019).
 - CLI:
   - `ehai tracker set [--owner --project|--create --repo|--no-repo]`, `tracker status` and `tracker schema`.
   - `init` gained a "Where should work be tracked?" step (defaults to Skip, plus `--tracker-project/--tracker-create/--no-tracker`).
@@ -79,7 +79,6 @@
 - Claude desktop adapter. Verify the `claude_desktop_config.json` format first.
 
 ## Open questions
-- Run the full live tracker test once: `gh auth refresh -s project`, then `EHAI_LIVE_GH=1 cargo test -p ehai-tracker --test live -- --nocapture`.
 - OAuth device flow needs an ehai OAuth App client id (ADR-0017). Who registers it, and under which org?
 - `MINISIGN_KEY` secret: generate with `minisign -G -W` and add it to `jagadeeshm007/ehai` before the first tag.
 - Claude desktop integration (M3): stdio via `claude_desktop_config.json`, or streamable HTTP. Verify the current docs first.
