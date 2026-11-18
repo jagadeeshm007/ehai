@@ -426,7 +426,7 @@ impl State {
                 None => json!({ "node": null }),
             },
             "Items" => {
-                let start: usize = v["after"].as_str().map_or(0, |c| c.parse().unwrap());
+                let start: usize = v["after"].as_str().map_or(0, |c| c.parse().unwrap_or(0));
                 let page: Vec<Value> = self
                     .items
                     .iter()

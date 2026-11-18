@@ -488,11 +488,6 @@ fn hash_file_meta(path: &Path, h: &mut DefaultHasher) {
     }
 }
 
-// ── ensure DesignProfile compiles with HashMap ─────────────────────────────
-// (unused import suppression — HashMap used in future source_hashes field)
-#[allow(unused_imports)]
-use std::collections::HashMap as _HashMap;
-
 #[cfg(test)]
 mod tests {
     use super::*;

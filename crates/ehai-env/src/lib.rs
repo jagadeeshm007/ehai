@@ -32,7 +32,11 @@ pub fn source_root(target: &Path) -> PathBuf {
     )
     .and_then(|common| {
         let common = PathBuf::from(common);
-        (common.file_name()? == ".git").then(|| common.parent().unwrap().to_path_buf())
+        if common.file_name()? == ".git" {
+            common.parent().map(|p| p.to_path_buf())
+        } else {
+            None
+        }
     })
     .unwrap_or_else(|| target.to_path_buf())
 }

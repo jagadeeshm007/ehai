@@ -175,14 +175,27 @@ fn ensure_pocs_gitignored(root: &Path) -> Result<()> {
 
 fn sandbox_check(worktree: &Path, home: &Path, mode: ehai_core::config::SandboxMode) -> Result<()> {
     use ehai_core::config::SandboxMode;
-    if mode == SandboxMode::Restricted && !worktree.starts_with(home.join("worktrees")) {
-        return Err(Error::Invalid(format!(
-            "sandbox: worktree {} is outside {}/worktrees; blocked in Restricted mode",
-            worktree.display(),
-            home.display()
-        )));
+    match mode {
+        SandboxMode::Off => Ok(()),
+        SandboxMode::Container => Err(Error::Invalid(
+            // OS-level container sandboxing not yet implemented (planned M9).
+            // Refuse rather than silently degrade so users know their setting has no effect.
+            "sandbox.mode = \"container\" is not yet implemented — set mode to \"restricted\" or \"off\"; \
+             run `ehai doctor` for the current sandbox status"
+                .into(),
+        )),
+        SandboxMode::Restricted => {
+            if !worktree.starts_with(home.join("worktrees")) {
+                Err(Error::Invalid(format!(
+                    "sandbox: worktree {} is outside {}/worktrees; blocked in Restricted mode",
+                    worktree.display(),
+                    home.display()
+                )))
+            } else {
+                Ok(())
+            }
+        }
     }
-    Ok(())
 }
 
 /// Write per-worktree harness sandbox settings (spec §9A, last bullet).

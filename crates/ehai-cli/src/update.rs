@@ -28,7 +28,7 @@ pub fn maybe_notify(home: &Path, channel: Channel) {
         return;
     };
     if let ehai_update::CheckResult::Available(release) = result {
-        println!(
+        eprintln!(
             "\nA new version is available: {} -> {} ({channel:?} channel). Run `ehai update` to install it.",
             ehai_core::VERSION,
             release.tag_name
@@ -69,11 +69,28 @@ pub fn run(home: &Path, config: &Config, channel: Option<Channel>, rollback: boo
 
     // Run the *new* binary's own doctor as a fresh process — the swap only
     // changed the file on disk, this process is still running the old code.
+    // Bounded to 30s: a hung doctor (network deadlock, panic-recovery loop)
+    // must not block the update forever.
     println!("Verifying...");
-    let status = std::process::Command::new(&exe)
+    let mut child = std::process::Command::new(&exe)
         .args(["doctor", "--post-update"])
-        .status()
+        .spawn()
         .context("running the updated binary's doctor")?;
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let _ = tx.send(child.wait());
+    });
+    let status = match rx.recv_timeout(std::time::Duration::from_secs(30)) {
+        Ok(Ok(s)) => s,
+        Ok(Err(e)) => return Err(e).context("running the updated binary's doctor"),
+        Err(_) => {
+            ehai_update::rollback(&exe).context("doctor timed out, rollback also failed")?;
+            anyhow::bail!(
+                "update verification timed out after 30s — rolled back to {}",
+                ehai_core::VERSION
+            );
+        }
+    };
     if status.success() {
         println!("Updated to {}.", release.tag_name);
         Ok(true)
