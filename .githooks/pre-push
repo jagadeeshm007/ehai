@@ -10,6 +10,6 @@ if [ "${SKIP_TESTS:-0}" = "1" ]; then
   echo "ehai pre-push: tests skipped (SKIP_TESTS=1)"
 else
   echo "ehai pre-push: running tests..."
-  cargo nextest run --workspace --quiet
+  cargo nextest run --workspace
 fi
 echo "ehai pre-push: ok"
