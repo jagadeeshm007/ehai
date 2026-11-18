@@ -35,6 +35,7 @@ Thank you for contributing. ehai is MIT-licensed and welcomes bug fixes, documen
 git clone https://github.com/jagadeeshm007/ehai
 cd ehai
 cargo build --workspace
+just setup-hooks   # wire up pre-commit / pre-push / commit-msg checks (once per clone)
 ```
 
 **Run tests**
@@ -43,14 +44,20 @@ cargo build --workspace
 cargo nextest run --workspace
 ```
 
-**Lint**
+**Lint (or use `just check` to run all three at once)**
 
 ```bash
 cargo clippy --all-targets -- -D warnings
 cargo fmt --check
+cargo nextest run --workspace
 ```
 
-All three must be clean before submitting a PR.
+All three must be clean before submitting a PR. The git hooks run them automatically:
+- `pre-commit` — fmt + clippy on every commit (fast, <5s)
+- `pre-push` — fmt + clippy + full test suite before every push
+- `commit-msg` — enforces conventional commit format
+
+Skip tests on a push when you need to: `SKIP_TESTS=1 git push`
 
 ---
 
@@ -88,11 +95,23 @@ ehai/
 
 ## Development workflow
 
-1. Fork the repo and clone your fork.
+1. Fork the repo and clone your fork. Run `just setup-hooks` once.
 2. Create a branch (see [Branch naming](#branch-naming)).
 3. Make your change, run tests, fix lints.
 4. If you changed template text, run `INSTA_UPDATE=always cargo nextest run --workspace` to regenerate snapshots, then review them with `cargo insta review`.
-5. Open a pull request against `main`.
+5. **Update docs before committing** (see table below).
+6. Open a pull request against `main`.
+
+**Docs update checklist** — apply whichever rows match your change:
+
+| Changed | Update |
+|---|---|
+| New or changed CLI command / MCP tool | `README.md` reference table + `docs/reference/` |
+| New or changed config key | `docs/reference/config.md` + `README.md` config section |
+| New or changed user-facing behavior | `docs/guide/` (quickstart, use-cases, or setup) |
+| Non-obvious architectural decision | `docs/DECISIONS.md` (new ADR entry) |
+| Milestone completed | `docs/PROGRESS.md` |
+| Version bump | `CHANGELOG.md` via `just release <version>` — never hand-edit |
 
 ---
 

@@ -1,0 +1,15 @@
+#!/bin/sh
+# Full checks before every push. Skip tests with: SKIP_TESTS=1 git push
+# Enable once per clone: git config core.hooksPath .githooks
+set -e
+echo "ehai pre-push: fmt check..."
+cargo fmt --all --check
+echo "ehai pre-push: clippy..."
+cargo clippy --all-targets --quiet -- -D warnings
+if [ "${SKIP_TESTS:-0}" = "1" ]; then
+  echo "ehai pre-push: tests skipped (SKIP_TESTS=1)"
+else
+  echo "ehai pre-push: running tests..."
+  cargo nextest run --workspace --quiet
+fi
+echo "ehai pre-push: ok"

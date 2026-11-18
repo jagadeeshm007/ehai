@@ -1,6 +1,23 @@
-# Release recipes. Needs `git-cliff` (https://git-cliff.org) on PATH.
+# Development recipes for ehai.
 #
+# First-time setup after cloning:
+#   just setup-hooks
+#
+# Cut a release:
 #   just release 0.1.0-alpha.2
+
+# Wire up the .githooks directory (run once per clone).
+setup-hooks:
+	git config core.hooksPath .githooks
+	@echo "Git hooks enabled from .githooks/"
+
+# Run the same checks the pre-push hook runs (fmt + clippy + tests).
+check:
+	cargo fmt --all --check
+	cargo clippy --all-targets -- -D warnings
+	cargo nextest run --workspace
+
+# Release recipes. Needs `git-cliff` (https://git-cliff.org) on PATH.
 #
 # Bumps the workspace version, regenerates CHANGELOG.md from conventional
 # commits, commits both, and tags. Does not push — review the commit and tag,

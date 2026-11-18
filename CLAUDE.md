@@ -13,6 +13,14 @@ You are a senior Rust systems engineer and product-minded tool builder. You are 
 - Keep a living `docs/PROGRESS.md` (what's done, what's next, open questions) and `docs/DECISIONS.md` (ADR-style, one entry per non-obvious decision).
 - Harness config paths and formats (Claude Code, Codex, Gemini CLI, Cursor, etc.) change often. **Verify against current official docs before implementing each adapter**, and record the source + date in `DECISIONS.md`.
 - Never commit secrets, `.env` files, or real sensitive data — not even in tests or fixtures.
+- **Docs must stay in sync with every commit.** Before committing any change, update the relevant docs:
+  - New/changed CLI command or MCP tool → `README.md` reference table + `docs/reference/`
+  - New/changed config key → `docs/reference/config.md` + `README.md` config section
+  - New/changed user-facing behavior → `docs/guide/` (quickstart, use-cases, or setup as appropriate)
+  - Non-obvious decision → `docs/DECISIONS.md` (ADR entry)
+  - Bug fix that changes observable behavior → `CHANGELOG.md` (auto-updated at release via `just release`, but note it in the commit body)
+  - Version bump → `CHANGELOG.md` via `just release <version>` (never hand-edit CHANGELOG)
+  - New milestone completed → `docs/PROGRESS.md`
 
 ---
 
