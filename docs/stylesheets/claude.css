@@ -128,6 +128,45 @@
   margin-left: -2px;
 }
 
+/* ─── Tabbed content (install block) ─────────────────────────────── */
+
+/* More breathing room around the whole tabbed block */
+.md-typeset .tabbed-set {
+  margin-top: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Tabs bar: a bit more height and clear active underline */
+.md-typeset .tabbed-labels > label {
+  font-size: 0.82rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  padding: 0.5rem 0.9rem;
+  color: var(--md-default-fg-color--light);
+  transition: color 0.15s ease;
+}
+
+.md-typeset .tabbed-labels > label:hover {
+  color: var(--md-accent-fg-color);
+}
+
+.md-typeset .tabbed-labels > [data-md-state="active"] {
+  color: var(--md-accent-fg-color) !important;
+  border-bottom-color: var(--md-accent-fg-color) !important;
+}
+
+/* Tab panel: internal padding so code block doesn't hug the edge */
+.md-typeset .tabbed-content {
+  border: 1px solid rgba(167, 139, 250, 0.15);
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+}
+
+/* Space between code block and the following paragraph */
+.md-typeset .tabbed-set + p {
+  margin-top: 1.25rem;
+}
+
 /* ─── Code blocks ─────────────────────────────────────────────────── */
 
 /* Inline code */
@@ -270,6 +309,27 @@
   font-size: 1.0rem;
   display: block;
   margin-bottom: 0.4rem;
+}
+
+/* ─── Changelog page ──────────────────────────────────────────────── */
+
+/* Each release block (## version) gets a card-like container */
+.md-typeset h2 + h3,
+.md-typeset h2 + p,
+.md-typeset h2 + ul {
+  margin-top: 0.75rem;
+}
+
+/* Category labels in changelog (### Features, ### Fixes, etc.) */
+.md-typeset h3 {
+  margin-top: 1.5rem;
+}
+
+/* List items in changelog / general: more line height so lines don't crunch */
+.md-typeset ul li,
+.md-typeset ol li {
+  margin-bottom: 0.25rem;
+  line-height: 1.65;
 }
 
 /* ─── Buttons ─────────────────────────────────────────────────────── */

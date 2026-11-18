@@ -17,7 +17,7 @@ theme:
     code: JetBrains Mono
   icon:
     repo: fontawesome/brands/github
-    logo: material/robot-outline
+    logo: material/lightning-bolt-circle
   favicon: https://raw.githubusercontent.com/jagadeeshm007/ehai/main/docs/assets/favicon.png
   features:
     - navigation.sections
@@ -66,5 +66,6 @@ nav:
       - MCP Tools: reference/mcp-tools.md
       - Config: reference/config.md
   - Project:
+      - Changelog: CHANGELOG.md
       - Contributing: CONTRIBUTING.md
       - Decisions: DECISIONS.md
