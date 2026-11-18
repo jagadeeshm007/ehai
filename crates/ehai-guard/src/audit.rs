@@ -83,7 +83,9 @@ mod tests {
     fn appends_value_free_lines() {
         let d = tempfile::tempdir().unwrap();
         let text = "SSN 123-45-6789";
-        let findings = Guard::new(ehai_core::config::ComplianceProfile::Tech, &[]).unwrap().scan(text);
+        let findings = Guard::new(ehai_core::config::ComplianceProfile::Tech, &[])
+            .unwrap()
+            .scan(text);
         for action in ["redacted", "kept"] {
             record(
                 d.path(),

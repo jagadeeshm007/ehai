@@ -208,9 +208,14 @@ async fn sensitive_data_is_caught_in_warn_and_strict() {
         r["question"].as_str().unwrap().contains("ssn ×1, email ×1"),
         "{r}"
     );
-    assert!(!r.to_string().contains("123-45-6789"), "values never echoed");
+    assert!(
+        !r.to_string().contains("123-45-6789"),
+        "values never echoed"
+    );
     let e = s
-        .save_prd(p(json!({ "prd": leaky, "policy": SensitiveDataChoice::Cancel })))
+        .save_prd(p(
+            json!({ "prd": leaky, "policy": SensitiveDataChoice::Cancel }),
+        ))
         .await
         .err()
         .expect("tool error");

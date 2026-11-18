@@ -103,7 +103,7 @@ jobs:
           MINISIGN_KEY: ${{ secrets.MINISIGN_KEY }}
         run: |
           cd dist
-          find . -maxdepth 1 \( -name 'ehai-*.tar.gz' -o -name 'ehai-*.zip' \) | sort | xargs sha256sum > SHA256SUMS
+          for f in ehai-*.tar.gz ehai-*.zip; do [ -f "$f" ] && sha256sum "$f"; done > SHA256SUMS
           if [ -z "$MINISIGN_KEY" ]; then
             echo "::error::MINISIGN_KEY secret is not set"
             exit 1

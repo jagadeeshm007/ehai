@@ -81,13 +81,61 @@ const HEALTH_TERMS: &str = "patient|diagnos\\w*|prescri\\w*|diabetes|cancer|tumo
 
 /// Capitalised words that commonly start UI copy or stories, not personal names.
 const NOT_NAMES: &[&str] = &[
-    "As", "Given", "When", "Then", "And", "But", "The", "A", "An", "If",
-    "User", "Users", "Patient", "Patients", "Doctor", "Book", "View", "Add",
-    "Edit", "Show", "New", "My", "Our", "Dr", "Mr", "Mrs", "Ms", "Care",
-    "Team", "Admin", "Home", "Settings", "Screen", "Page", "Button", "Story",
-    "Epic", "Task", "Bug", "Appointment", "Appointments", "List", "Profile",
-    "Record", "Records", "Visit", "Visits", "Login", "Sign", "Dashboard",
-    "Search", "Open", "Save", "Cancel", "Submit",
+    "As",
+    "Given",
+    "When",
+    "Then",
+    "And",
+    "But",
+    "The",
+    "A",
+    "An",
+    "If",
+    "User",
+    "Users",
+    "Patient",
+    "Patients",
+    "Doctor",
+    "Book",
+    "View",
+    "Add",
+    "Edit",
+    "Show",
+    "New",
+    "My",
+    "Our",
+    "Dr",
+    "Mr",
+    "Mrs",
+    "Ms",
+    "Care",
+    "Team",
+    "Admin",
+    "Home",
+    "Settings",
+    "Screen",
+    "Page",
+    "Button",
+    "Story",
+    "Epic",
+    "Task",
+    "Bug",
+    "Appointment",
+    "Appointments",
+    "List",
+    "Profile",
+    "Record",
+    "Records",
+    "Visit",
+    "Visits",
+    "Login",
+    "Sign",
+    "Dashboard",
+    "Search",
+    "Open",
+    "Save",
+    "Cancel",
+    "Submit",
 ];
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -104,11 +152,21 @@ fn ci(pattern: &str) -> Regex {
 }
 
 fn high(kind: &str, re: Regex, valid: fn(&str) -> bool) -> Rule {
-    Rule { kind: kind.into(), re, confidence: Confidence::High, valid }
+    Rule {
+        kind: kind.into(),
+        re,
+        confidence: Confidence::High,
+        valid,
+    }
 }
 
 fn low(kind: &str, re: Regex, valid: fn(&str) -> bool) -> Rule {
-    Rule { kind: kind.into(), re, confidence: Confidence::Low, valid }
+    Rule {
+        kind: kind.into(),
+        re,
+        confidence: Confidence::Low,
+        valid,
+    }
 }
 
 /// US SSN: not area 000/666/9xx, group 00 or serial 0000.
@@ -131,7 +189,11 @@ fn valid_luhn(m: &str) -> bool {
         .map(|(i, &d)| {
             if i % 2 == 1 {
                 let v = d * 2;
-                if v > 9 { v - 9 } else { v }
+                if v > 9 {
+                    v - 9
+                } else {
+                    v
+                }
             } else {
                 d
             }
@@ -145,13 +207,34 @@ fn valid_luhn(m: &str) -> bool {
 fn tech_rules() -> Vec<Rule> {
     let date = r"(?:\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4}|\d{4}-\d{2}-\d{2}|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.? \d{1,2},? \d{4})";
     vec![
-        high("ssn", Regex::new(r"\b\d{3}-\d{2}-\d{4}\b").expect("ssn"), valid_ssn),
-        high("dob", ci(&format!(r"\b(?:dob|d\.o\.b\.|date of birth|born(?: on)?)\s*[:\-]?\s*{date}")), any),
-        high("email", ci(r"\b[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}\b"), any),
-        high("phone", Regex::new(r"(?:\+?1[\s.-]?)?(?:\(\d{3}\)\s?|\b\d{3}[\s.-])\d{3}[\s.-]\d{4}\b").expect("phone"), any),
+        high(
+            "ssn",
+            Regex::new(r"\b\d{3}-\d{2}-\d{4}\b").expect("ssn"),
+            valid_ssn,
+        ),
+        high(
+            "dob",
+            ci(&format!(
+                r"\b(?:dob|d\.o\.b\.|date of birth|born(?: on)?)\s*[:\-]?\s*{date}"
+            )),
+            any,
+        ),
+        high(
+            "email",
+            ci(r"\b[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}\b"),
+            any,
+        ),
+        high(
+            "phone",
+            Regex::new(r"(?:\+?1[\s.-]?)?(?:\(\d{3}\)\s?|\b\d{3}[\s.-])\d{3}[\s.-]\d{4}\b")
+                .expect("phone"),
+            any,
+        ),
         high(
             "address",
-            ci(r"\b\d{1,5}\s+(?:[a-z0-9]+\s+){1,4}(?:street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|court|ct|way|place|pl)\b\.?"),
+            ci(
+                r"\b\d{1,5}\s+(?:[a-z0-9]+\s+){1,4}(?:street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|court|ct|way|place|pl)\b\.?",
+            ),
             any,
         ),
     ]
@@ -221,7 +304,9 @@ fn gdpr_rules() -> Vec<Rule> {
         // Data-subject language near a name-like pair (Low confidence).
         low(
             "gdpr-data-subject",
-            ci(r"\b(?:data subject|right to erasure|right to be forgotten|gdpr|consent withdrawn?)[^.\n]{0,80}?\b[A-Z][a-z]+ [A-Z][a-z]+\b|\b[A-Z][a-z]+ [A-Z][a-z]+\b[^.\n]{0,80}?\b(?:data subject|right to erasure|right to be forgotten|gdpr|consent withdrawn?)"),
+            ci(
+                r"\b(?:data subject|right to erasure|right to be forgotten|gdpr|consent withdrawn?)[^.\n]{0,80}?\b[A-Z][a-z]+ [A-Z][a-z]+\b|\b[A-Z][a-z]+ [A-Z][a-z]+\b[^.\n]{0,80}?\b(?:data subject|right to erasure|right to be forgotten|gdpr|consent withdrawn?)",
+            ),
             any,
         ),
     ]
@@ -482,7 +567,11 @@ mod tests {
             o => panic!("{o:?}"),
         }
         match guard.check(ComplianceMode::Strict, text) {
-            Outcome::Redacted { text, findings, remaining } => {
+            Outcome::Redacted {
+                text,
+                findings,
+                remaining,
+            } => {
                 assert!(!text.contains("jane@example.org"));
                 assert_eq!(findings.len(), 1);
                 assert_eq!(

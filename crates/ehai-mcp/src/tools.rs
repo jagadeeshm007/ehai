@@ -790,7 +790,7 @@ impl EhaiServer {
         if !problems.is_empty() {
             return out(json!({ "status": "invalid", "problems": problems }));
         }
-        let checked = match self.check(&a.prd, a.policy,"PRD")? {
+        let checked = match self.check(&a.prd, a.policy, "PRD")? {
             Guarded::Ask(q) => return out(q),
             Guarded::Ready(c) => c,
         };
@@ -898,7 +898,7 @@ impl EhaiServer {
         if !problems.is_empty() {
             return out(json!({ "status": "invalid", "problems": problems }));
         }
-        let checked = match self.check(&a.breakdown, a.policy,"breakdown")? {
+        let checked = match self.check(&a.breakdown, a.policy, "breakdown")? {
             Guarded::Ask(q) => return out(q),
             Guarded::Ready(c) => c,
         };
@@ -926,7 +926,7 @@ impl EhaiServer {
             .list_items(&Filter::default())
             .await
             .map_err(|e| e.to_string())?;
-        let desired = match self.check(&b.to_desired_with(&numbers(&remote)), a.policy,"plan")? {
+        let desired = match self.check(&b.to_desired_with(&numbers(&remote)), a.policy, "plan")? {
             Guarded::Ask(q) => return out(q),
             Guarded::Ready(c) => c,
         };
@@ -1274,7 +1274,7 @@ impl EhaiServer {
                 Err(e) => return out(e),
             }
         };
-        let checked = match self.check(&a.body, a.policy,"comment")? {
+        let checked = match self.check(&a.body, a.policy, "comment")? {
             Guarded::Ask(q) => return out(q),
             Guarded::Ready(c) => c,
         };

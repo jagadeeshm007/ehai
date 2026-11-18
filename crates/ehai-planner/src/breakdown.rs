@@ -521,8 +521,8 @@ pub(crate) fn sample() -> Breakdown {
                 Story {
                     id: "s1".into(),
                     title: "See free slots".into(),
-                    description:
-                        "As a user, I want to see free slots, so that I can pick a time.".into(),
+                    description: "As a user, I want to see free slots, so that I can pick a time."
+                        .into(),
                     acceptance: vec![ac(
                         "I am signed in",
                         "I open Book",
