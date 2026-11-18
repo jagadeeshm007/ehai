@@ -79,6 +79,7 @@ jobs:
             cp "target/${{ matrix.target }}/release/ehai" "dist/$name/"
             tar -C dist -czf "dist/$name.tar.gz" "$name"
           fi
+          rm -rf "dist/$name"
       - uses: actions/upload-artifact@v7
         with:
           name: dist-${{ matrix.target }}
@@ -102,7 +103,7 @@ jobs:
           MINISIGN_KEY: ${{ secrets.MINISIGN_KEY }}
         run: |
           cd dist
-          sha256sum ehai-* > SHA256SUMS
+          find . -maxdepth 1 \( -name 'ehai-*.tar.gz' -o -name 'ehai-*.zip' \) | sort | xargs sha256sum > SHA256SUMS
           if [ -z "$MINISIGN_KEY" ]; then
             echo "::error::MINISIGN_KEY secret is not set"
             exit 1
