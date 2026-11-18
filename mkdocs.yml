@@ -23,6 +23,8 @@ theme:
     - navigation.sections
     - navigation.top
     - navigation.instant
+    - navigation.tracking
+    - toc.follow
     - search.suggest
     - search.highlight
     - content.code.copy
@@ -63,5 +65,6 @@ nav:
       - Skills: reference/skills.md
       - MCP Tools: reference/mcp-tools.md
       - Config: reference/config.md
-  - Contributing: CONTRIBUTING.md
-  - Decisions: DECISIONS.md
+  - Project:
+      - Contributing: CONTRIBUTING.md
+      - Decisions: DECISIONS.md

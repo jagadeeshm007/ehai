@@ -1,6 +1,6 @@
 # Setup & Connections
 
-This guide walks through every connection ehai needs: GitHub, AI harnesses, and optional services.
+This guide walks through every connection ehai needs: GitHub auth, harness wiring, and optional services.
 
 ---
 
@@ -8,7 +8,7 @@ This guide walks through every connection ehai needs: GitHub, AI harnesses, and 
 
 ehai needs a GitHub token with `project` scope to manage GitHub Projects v2 — creating fields, syncing items, linking PRs, and reading team members.
 
-### Option A — gh CLI (recommended)
+### Option A: gh CLI
 
 ```bash
 # Install gh if you don't have it
@@ -22,7 +22,7 @@ gh auth refresh -s project        # add project scope to an existing session
 
 ehai reads the token via `gh auth token` automatically. No config needed.
 
-### Option B — Environment variable
+### Option B: env var
 
 ```bash
 export GITHUB_TOKEN=ghp_xxxxxxxxxxxx   # or GH_TOKEN — either works
@@ -30,7 +30,7 @@ export GITHUB_TOKEN=ghp_xxxxxxxxxxxx   # or GH_TOKEN — either works
 
 Add to your shell's RC file to persist it. ehai picks up either variable.
 
-### Option C — No GitHub account
+### Option C: no GitHub account
 
 At `ehai init`, choose **local tracker** when asked. All PM flows, PRD storage, breakdown, and status work fully offline. Add GitHub later:
 
@@ -54,11 +54,13 @@ gh auth refresh -s project
 
 ---
 
-## Claude Code
+## Harnesses
 
-Claude Code connects to ehai via MCP over stdio. After `ehai init`, this is wired automatically as a user-scope MCP server.
+Connect ehai to any AI coding harness. `ehai init` wires everything automatically — use the commands below to connect or reconnect a specific harness.
 
-### Manual wiring
+### Claude Code
+
+Claude Code connects via MCP over stdio. After `ehai init` this is wired automatically as a user-scope MCP server.
 
 ```bash
 ehai connect claude-code
@@ -67,17 +69,9 @@ ehai connect claude-code
 claude mcp add --scope user ehai -- ehai mcp
 ```
 
-### Verify
+**Verify** — open Claude Code and run `/ehai:ping`. Expected: `{"ok": true, "version": "0.1.0-alpha.1"}`
 
-Open Claude Code and run:
-
-```
-/ehai:ping
-```
-
-Expected response: `{"ok": true, "version": "0.1.0-alpha.1"}`
-
-### Troubleshooting
+**Troubleshoot:**
 
 ```bash
 ehai doctor                       # checks adapter status
@@ -88,7 +82,7 @@ ehai connect claude-code          # reconnect
 
 ---
 
-## Claude Desktop
+### Claude Desktop
 
 Claude Desktop uses skills (`.zip`) + MCP connector.
 
@@ -96,20 +90,16 @@ Claude Desktop uses skills (`.zip`) + MCP connector.
 ehai connect claude-desktop
 ```
 
-This:
-1. Writes the MCP server entry to `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or the Windows equivalent.
-2. Generates a skills ZIP at `~/.ehai/adapters/claude-desktop/ehai-skills.zip`.
+This writes the MCP server entry to your `claude_desktop_config.json` and generates a skills ZIP at `~/.ehai/adapters/claude-desktop/ehai-skills.zip`.
 
 Then in Claude Desktop: **Settings → Skills → Upload ZIP**.
 
-This adds `/ehai:plan`, `/ehai:breakdown`, `/ehai:sync`, `/ehai:status`, and `/ehai:triage` as first-class Skills in the Claude Desktop UI with full multi-choice question support.
-
 !!! note "PM on Claude Desktop"
-    PMs using Claude Desktop get the full planning flow — PRD generation, breakdown, sync — without touching a terminal. The skills ZIP includes PM-optimised prompts with visual-first output (Mermaid diagrams, tables).
+    PMs get the full planning flow — PRD generation, breakdown, sync — without touching a terminal. The skills ZIP includes PM-optimised prompts with visual-first output (Mermaid diagrams, tables).
 
 ---
 
-## Codex CLI
+### Codex CLI
 
 ```bash
 ehai connect codex
@@ -119,7 +109,7 @@ Writes to `~/.codex/config.toml` under `[mcp_servers]` and places prompt files i
 
 ---
 
-## Gemini CLI
+### Gemini CLI
 
 ```bash
 ehai connect gemini
@@ -129,7 +119,7 @@ Writes to `~/.gemini/settings.json` under `mcpServers` and places TOML command f
 
 ---
 
-## Cursor
+### Cursor
 
 ```bash
 ehai connect cursor
@@ -139,7 +129,7 @@ Writes to `~/.cursor/mcp.json` and places rule files in `~/.cursor/rules/`.
 
 ---
 
-## VS Code / GitHub Copilot
+### VS Code / GitHub Copilot
 
 ```bash
 ehai connect vscode
@@ -149,7 +139,7 @@ Writes to VS Code's user `mcp.json` (under `servers` key) and places prompt file
 
 ---
 
-## OpenCode
+### OpenCode
 
 ```bash
 ehai connect opencode
@@ -159,7 +149,7 @@ Writes to `~/.config/opencode/config.json` and places prompt files in the openco
 
 ---
 
-## Windsurf
+### Windsurf
 
 ```bash
 ehai connect windsurf
@@ -169,23 +159,23 @@ Writes to `~/.codeium/windsurf/mcp_server_config.json` and places workflow files
 
 ---
 
-## Any other harness (AGENTS.md)
+### Any other harness
 
 ```bash
 ehai connect agents-md
 ```
 
-Writes a reference card to `~/AGENTS.md` that describes ehai's MCP server config and all available slash commands. Any harness that reads `AGENTS.md` (Codex, Kiro, opencode, etc.) picks this up automatically.
+Writes a reference card to `~/AGENTS.md` describing ehai's MCP server config and all available slash commands. Any harness that reads `AGENTS.md` picks this up automatically.
 
 ---
 
-## OpenAI-compatible APIs
+### OpenAI-compatible APIs
 
-ehai's engine makes no LLM calls itself — all reasoning happens inside your harness. If your harness connects to an OpenAI-compatible endpoint (Azure OpenAI, Ollama, LM Studio, Groq, etc.), ehai works with it transparently:
+ehai's engine makes no LLM calls itself — all reasoning happens inside your harness. If your harness connects to an OpenAI-compatible endpoint (Azure OpenAI, Ollama, LM Studio, Groq, etc.):
 
-1. Configure your harness's model/API endpoint as usual (e.g. set `OPENAI_API_BASE` for Codex, or use Cursor's model settings).
+1. Configure your harness's model/API endpoint as usual.
 2. Run `ehai connect <harness>` to wire up MCP.
-3. Use `/ehai:plan`, `/ehai:start`, etc. — the harness calls ehai's MCP tools the same way regardless of which model it uses.
+3. Use `/ehai:plan`, `/ehai:start`, etc. — the harness calls ehai's MCP tools the same way regardless of model.
 
 ---
 
