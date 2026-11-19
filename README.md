@@ -1,7 +1,7 @@
 # ehai — AI-SDLC Operations Engine
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.1.0--alpha.2-orange.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.1.0--alpha.2.1-orange.svg)](CHANGELOG.md)
 [![CI](https://github.com/jagadeeshm007/ehai/actions/workflows/ci.yml/badge.svg)](https://github.com/jagadeeshm007/ehai/actions/workflows/ci.yml)
 [![Docs](https://img.shields.io/badge/docs-jagadeeshm007.github.io%2Fehai-purple.svg)](https://jagadeeshm007.github.io/ehai/)
 

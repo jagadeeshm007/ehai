@@ -1,4 +1,15 @@
 # Changelog
+## 0.1.0-alpha.2.1 — 2026-11-19
+
+### Features
+- **poc:** Run commands in a POC worktree without cd; Insights footer
+- **cli:** Key hints on prompts; ehai usable right after install
+
+### Docs
+- Guide for using ehai with spec-driven tools (AI-DLC, Spec Kit, Kiro)
+- **readme:** Trim README from 817 to 120 lines
+- Match docs to shipped commands (POC CLI, planned dev flow)
+- Link bug report template by URL so the docs site builds strictly
 ## 0.1.0-alpha.2 — 2026-11-19
 
 ### Features
@@ -19,6 +30,7 @@
 
 ### Chores
 - **dev:** Pre-commit/pre-push hooks; docs-update rule in CLAUDE.md
+- **tracker:** Make team cache fallback test actually hit a failing server
 ## 0.1.0-alpha.1 — 2026-11-18
 
 ### Features

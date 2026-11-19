@@ -562,7 +562,7 @@ checksum = "d0881ea181b1df73ff77ffaaf9c7544ecc11e82fba9b5f27b262a3c73a332555"
 
 [[package]]
 name = "ehai-adapters"
-version = "0.1.0-alpha.2"
+version = "0.1.0-alpha.2.1"
 dependencies = [
  "ehai-core",
  "insta",
@@ -574,7 +574,7 @@ dependencies = [
 
 [[package]]
 name = "ehai-cli"
-version = "0.1.0-alpha.2"
+version = "0.1.0-alpha.2.1"
 dependencies = [
  "anyhow",
  "assert_cmd",
@@ -605,7 +605,7 @@ dependencies = [
 
 [[package]]
 name = "ehai-core"
-version = "0.1.0-alpha.2"
+version = "0.1.0-alpha.2.1"
 dependencies = [
  "proptest",
  "schemars",
@@ -617,7 +617,7 @@ dependencies = [
 
 [[package]]
 name = "ehai-env"
-version = "0.1.0-alpha.2"
+version = "0.1.0-alpha.2.1"
 dependencies = [
  "ehai-core",
  "ehai-stack",
@@ -632,7 +632,7 @@ dependencies = [
 
 [[package]]
 name = "ehai-guard"
-version = "0.1.0-alpha.2"
+version = "0.1.0-alpha.2.1"
 dependencies = [
  "ehai-core",
  "proptest",
@@ -645,7 +645,7 @@ dependencies = [
 
 [[package]]
 name = "ehai-mcp"
-version = "0.1.0-alpha.2"
+version = "0.1.0-alpha.2.1"
 dependencies = [
  "ehai-adapters",
  "ehai-core",
@@ -667,7 +667,7 @@ dependencies = [
 
 [[package]]
 name = "ehai-planner"
-version = "0.1.0-alpha.2"
+version = "0.1.0-alpha.2.1"
 dependencies = [
  "ehai-core",
  "ehai-tracker",
@@ -682,7 +682,7 @@ dependencies = [
 
 [[package]]
 name = "ehai-poc"
-version = "0.1.0-alpha.2"
+version = "0.1.0-alpha.2.1"
 dependencies = [
  "ehai-core",
  "ehai-env",
@@ -697,7 +697,7 @@ dependencies = [
 
 [[package]]
 name = "ehai-prefs"
-version = "0.1.0-alpha.2"
+version = "0.1.0-alpha.2.1"
 dependencies = [
  "ehai-core",
  "insta",
@@ -709,7 +709,7 @@ dependencies = [
 
 [[package]]
 name = "ehai-stack"
-version = "0.1.0-alpha.2"
+version = "0.1.0-alpha.2.1"
 dependencies = [
  "ehai-core",
  "regex",
@@ -721,7 +721,7 @@ dependencies = [
 
 [[package]]
 name = "ehai-tracker"
-version = "0.1.0-alpha.2"
+version = "0.1.0-alpha.2.1"
 dependencies = [
  "ehai-core",
  "ehai-tracker",
@@ -739,7 +739,7 @@ dependencies = [
 
 [[package]]
 name = "ehai-update"
-version = "0.1.0-alpha.2"
+version = "0.1.0-alpha.2.1"
 dependencies = [
  "base64 0.22.1",
  "ehai-core",
