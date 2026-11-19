@@ -313,14 +313,14 @@ fn run() -> Result<ExitCode> {
     let notify_settings = config
         .as_ref()
         .ok()
-        .map(|c| (c.update.check, c.update.channel));
+        .map(|c| (c.update.check, c.update.channel, c.update.token.clone()));
 
     let result = run_command(cli, home.clone(), config);
 
     if !skip_notify {
-        if let Some((check, channel)) = notify_settings {
+        if let Some((check, channel, token)) = notify_settings {
             if check {
-                update::maybe_notify(&home, channel);
+                update::maybe_notify(&home, channel, token.as_deref());
             }
         }
     }

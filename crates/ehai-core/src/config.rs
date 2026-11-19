@@ -165,6 +165,11 @@ pub struct Update {
     pub auto: bool,
     /// Background update check, at most once a day.
     pub check: bool,
+    /// GitHub PAT for private-repo update checks and binary downloads.
+    /// Lookup order: EHAI_TOKEN env → GITHUB_TOKEN/GH_TOKEN env → gh auth token → this field.
+    /// Set once with `ehai config set update.token <token>` after install.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub token: Option<String>,
 }
 
 impl Default for Update {
@@ -173,6 +178,7 @@ impl Default for Update {
             channel: Channel::Alpha,
             auto: false,
             check: true,
+            token: None,
         }
     }
 }

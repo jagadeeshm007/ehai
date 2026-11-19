@@ -44,11 +44,11 @@ fn assets_for(server: &MockServer) -> serde_json::Value {
     let mut assets: Vec<serde_json::Value> = TARGETS
         .iter()
         .map(|t| {
-            serde_json::json!({ "name": asset_name(t), "browser_download_url": format!("{}/download/archive", server.uri()) })
+            serde_json::json!({ "name": asset_name(t), "url": format!("{}/download/archive", server.uri()) })
         })
         .collect();
-    assets.push(serde_json::json!({ "name": "SHA256SUMS", "browser_download_url": format!("{}/download/sums", server.uri()) }));
-    assets.push(serde_json::json!({ "name": "SHA256SUMS.minisig", "browser_download_url": format!("{}/download/sig", server.uri()) }));
+    assets.push(serde_json::json!({ "name": "SHA256SUMS", "url": format!("{}/download/sums", server.uri()) }));
+    assets.push(serde_json::json!({ "name": "SHA256SUMS.minisig", "url": format!("{}/download/sig", server.uri()) }));
     serde_json::Value::Array(assets)
 }
 

@@ -19,7 +19,9 @@ pub struct Client {
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct Asset {
     pub name: String,
-    #[serde(rename = "browser_download_url")]
+    /// GitHub API URL for this asset — use with `Accept: application/octet-stream`.
+    /// Works for both public and private repos; the API responds with a redirect to
+    /// a pre-signed CDN URL that does not require an auth header on the final hop.
     pub url: String,
 }
 
@@ -59,15 +61,21 @@ impl Client {
         })
     }
 
-    /// `gh auth token`, then `GITHUB_TOKEN`/`GH_TOKEN` — best-effort; a public
-    /// repo works fine with no token at all.
+    /// Token lookup: `EHAI_TOKEN` env → `GITHUB_TOKEN`/`GH_TOKEN` env → `gh auth token`.
+    /// Callers can pass an extra `config_token` (from `config.update.token`) as a final
+    /// fallback for private repos where none of the env vars are set.
     pub fn from_env(base: &str) -> Result<Self> {
-        Self::with_timeout(base, env_token(), TIMEOUT)
+        Self::with_timeout(base, env_token(None), TIMEOUT)
+    }
+
+    /// Like [`Client::from_env`] but also falls back to the stored config token.
+    pub fn from_env_or_config(base: &str, config_token: Option<&str>) -> Result<Self> {
+        Self::with_timeout(base, env_token(config_token), TIMEOUT)
     }
 
     /// Like [`Client::from_env`], with a short timeout for the background check.
     pub fn from_env_quick(base: &str, timeout: std::time::Duration) -> Result<Self> {
-        Self::with_timeout(base, env_token(), timeout)
+        Self::with_timeout(base, env_token(None), timeout)
     }
 
     pub async fn releases(&self) -> Result<Vec<Release>> {
@@ -89,7 +97,15 @@ impl Client {
     }
 
     pub async fn download(&self, url: &str) -> Result<Vec<u8>> {
-        let mut req = self.http.get(url);
+        // `Accept: application/octet-stream` is required for the GitHub asset API
+        // endpoint. GitHub responds with a redirect to a pre-signed CDN URL; reqwest
+        // strips the auth header on the cross-domain hop (correct RFC behaviour), and
+        // the pre-signed URL works without auth. This path works for both public and
+        // private repos.
+        let mut req = self
+            .http
+            .get(url)
+            .header("Accept", "application/octet-stream");
         if let Some(t) = &self.token {
             req = req.bearer_auth(t);
         }
@@ -110,12 +126,23 @@ impl Client {
     }
 }
 
-fn env_token() -> Option<String> {
-    gh_token().or_else(|| {
-        std::env::var("GITHUB_TOKEN")
-            .or_else(|_| std::env::var("GH_TOKEN"))
-            .ok()
-    })
+/// Token resolution order: EHAI_TOKEN → GITHUB_TOKEN/GH_TOKEN → gh auth token →
+/// config_token (from config.update.token, the stored PAT for private repos).
+fn env_token(config_token: Option<&str>) -> Option<String> {
+    if let Ok(t) = std::env::var("EHAI_TOKEN") {
+        if !t.is_empty() {
+            return Some(t);
+        }
+    }
+    if let Ok(t) = std::env::var("GITHUB_TOKEN").or_else(|_| std::env::var("GH_TOKEN")) {
+        if !t.is_empty() {
+            return Some(t);
+        }
+    }
+    if let Some(t) = gh_token() {
+        return Some(t);
+    }
+    config_token.filter(|s| !s.is_empty()).map(str::to_owned)
 }
 
 fn gh_token() -> Option<String> {

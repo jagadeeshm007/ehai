@@ -13,15 +13,28 @@ use crate::tracker::block_on;
 /// Background daily check (spec §11): notify-only, silent on any failure
 /// (offline, rate-limited, timed out) and bounded to a couple of seconds so
 /// it never meaningfully delays an ordinary command.
-pub fn maybe_notify(home: &Path, channel: Channel) {
+pub fn maybe_notify(home: &Path, channel: Channel, config_token: Option<&str>) {
     if !ehai_update::due_for_check(home) {
         return;
     }
     let _ = ehai_update::record_checked(home);
-    let Ok(client) = ehai_update::Client::from_env_quick(
-        &ehai_core::release::releases_api(),
-        std::time::Duration::from_secs(3),
-    ) else {
+    let api = ehai_core::release::releases_api();
+    let token = config_token
+        .filter(|s| !s.is_empty())
+        .map(str::to_owned)
+        .or_else(|| {
+            std::env::var("EHAI_TOKEN")
+                .ok()
+                .filter(|s| !s.is_empty())
+                .or_else(|| {
+                    std::env::var("GITHUB_TOKEN")
+                        .or_else(|_| std::env::var("GH_TOKEN"))
+                        .ok()
+                })
+        });
+    let Ok(client) =
+        ehai_update::Client::with_timeout(&api, token, std::time::Duration::from_secs(3))
+    else {
         return;
     };
     let Ok(result) = block_on(ehai_update::check(&client, channel, ehai_core::VERSION)) else {
@@ -45,7 +58,10 @@ pub fn run(home: &Path, config: &Config, channel: Option<Channel>, rollback: boo
     }
 
     let channel = channel.unwrap_or(config.update.channel);
-    let client = ehai_update::Client::from_env(&ehai_core::release::releases_api())?;
+    let client = ehai_update::Client::from_env_or_config(
+        &ehai_core::release::releases_api(),
+        config.update.token.as_deref(),
+    )?;
     let result = block_on(ehai_update::check(&client, channel, ehai_core::VERSION))?;
     let release = match result {
         ehai_update::CheckResult::UpToDate => {
