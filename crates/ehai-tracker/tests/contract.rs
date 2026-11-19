@@ -453,13 +453,21 @@ async fn team_cache_fills_refreshes_and_falls_back_on_failure() {
     assert_eq!(first.members.len(), 1);
 
     // a fresh cache is reused without another network call
-    drop(server);
+    let calls = server.received_requests().await.unwrap().len();
     let again = ehai_tracker::team::get(&c, home.path(), "octo", 1, Some("octo/app"), false)
         .await
         .unwrap();
-    assert_eq!(again, first, "cached, no network call made");
+    assert_eq!(again, first);
+    assert_eq!(
+        server.received_requests().await.unwrap().len(),
+        calls,
+        "cached, no network call made"
+    );
 
-    // force_refresh against an unreachable server falls back to the stale cache
+    // force_refresh against a failing server falls back to the stale cache.
+    // (Not `drop(server)`: wiremock pools dropped servers and keeps serving
+    // the old mocks, so the refresh would quietly succeed.)
+    server.reset().await;
     let still = ehai_tracker::team::get(&c, home.path(), "octo", 1, Some("octo/app"), true)
         .await
         .unwrap();
