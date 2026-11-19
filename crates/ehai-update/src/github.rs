@@ -229,6 +229,18 @@ mod tests {
     }
 
     #[test]
+    fn patch_prerelease_is_offered_to_its_base_and_older() {
+        // alpha.2.1 is a patch of alpha.2: newer than alpha.2, older than alpha.3.
+        let releases = vec![release("v0.1.0-alpha.2.1"), release("v0.1.0-alpha.2")];
+        let r = latest_for_channel(&releases, Channel::Alpha, "0.1.0-alpha.2").unwrap();
+        assert_eq!(r.tag_name, "v0.1.0-alpha.2.1");
+        assert!(latest_for_channel(&releases, Channel::Alpha, "0.1.0-alpha.2.1").is_none());
+        let with_3 = vec![release("v0.1.0-alpha.3"), release("v0.1.0-alpha.2.1")];
+        let r = latest_for_channel(&with_3, Channel::Alpha, "0.1.0-alpha.2.1").unwrap();
+        assert_eq!(r.tag_name, "v0.1.0-alpha.3");
+    }
+
+    #[test]
     fn beta_channel_skips_alpha_but_takes_beta_and_stable() {
         let releases = vec![
             release("v0.3.0-alpha.1"),
