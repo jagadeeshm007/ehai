@@ -10,6 +10,8 @@ curl -fsSL https://raw.githubusercontent.com/jagadeeshm007/ehai/main/install/ins
 
 This downloads the right binary for your OS and architecture, verifies the checksum and minisign signature, installs to `~/.ehai/bin`, and adds it to your PATH.
 
+You don't need minisign installed. If it's missing, the installer downloads a temporary copy of the official build (pinned by SHA-256), uses it to check the signature, and deletes it. If that download fails, it warns and still checks the SHA-256 checksum. Set `EHAI_REQUIRE_SIGNATURE=1` to stop the install instead.
+
 ## 2. Init
 
 ```bash

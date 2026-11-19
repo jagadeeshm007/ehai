@@ -12,7 +12,9 @@
 # After install the token is saved to %USERPROFILE%\.ehai\token so `ehai update`
 # works without re-entering it.
 #
-# Env overrides: EHAI_TOKEN, EHAI_NAME, EHAI_CHANNEL (alpha|beta|stable, default alpha)
+# Env overrides: EHAI_TOKEN, EHAI_NAME, EHAI_CHANNEL (alpha|beta|stable, default alpha),
+#   EHAI_REQUIRE_SIGNATURE=1 (fail instead of falling back to checksum-only when
+#   no minisign verifier can be found or fetched)
 $ErrorActionPreference = "Stop"
 
 $Repo = "jagadeeshm007/ehai"
@@ -21,10 +23,6 @@ $Channel = if ($env:EHAI_CHANNEL) { $env:EHAI_CHANNEL } else { "alpha" }
 $Api = "https://api.github.com/repos/$Repo"
 
 function Die($msg) { Write-Error $msg; exit 1 }
-
-if (-not (Get-Command minisign -ErrorAction SilentlyContinue)) {
-    Die "minisign is required to verify the release signature (scoop install minisign, or download from jedisct1/minisign)"
-}
 
 # ---- auth --------------------------------------------------------------------
 # Resolution order: EHAI_TOKEN → GITHUB_TOKEN/GH_TOKEN → gh auth token
@@ -89,13 +87,39 @@ New-Item -ItemType Directory -Path $Tmp | Out-Null
 try {
     FetchUrl "$BaseUrl/$Asset" (Join-Path $Tmp $Asset)
     FetchUrl "$BaseUrl/SHA256SUMS" (Join-Path $Tmp "SHA256SUMS")
-    FetchUrl "$BaseUrl/SHA256SUMS.minisig" (Join-Path $Tmp "SHA256SUMS.minisig")
 
-    Write-Host "Verifying signature and checksum..."
     Push-Location $Tmp
     try {
-        & minisign -Vm SHA256SUMS -x SHA256SUMS.minisig -P RWTKHW5dGCGJOywz9PXOM27FdVwe+Eqj9qrgNrFh0faYS9LKS0kL6uhC
-        if ($LASTEXITCODE -ne 0) { Die "signature verification failed — refusing to install" }
+        # No minisign on the machine? Fetch the official build into $Tmp (deleted
+        # afterwards, nothing installed system-wide). Hash pinned and checked against
+        # the minisign author's key RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3.
+        $Minisign = (Get-Command minisign -ErrorAction SilentlyContinue).Source
+        if (-not $Minisign) {
+            Write-Host "minisign not installed; fetching a temporary copy to verify the signature..."
+            try {
+                $MsZip = Join-Path $Tmp "minisign-0.12-win64.zip"
+                Invoke-WebRequest -Uri "https://github.com/jedisct1/minisign/releases/download/0.12/minisign-0.12-win64.zip" -OutFile $MsZip -UseBasicParsing
+                if ((Get-FileHash $MsZip -Algorithm SHA256).Hash.ToLower() -ne "37b600344e20c19314b2e82813db2bfdcc408b77b876f7727889dbd46d539479") {
+                    Write-Warning "downloaded minisign failed its pinned checksum, not using it"
+                } else {
+                    Expand-Archive -Path $MsZip -DestinationPath (Join-Path $Tmp "ms") -Force
+                    $Minisign = Join-Path $Tmp "ms\minisign-win64\x86_64\minisign.exe"
+                }
+            } catch { Write-Warning "could not fetch minisign: $_" }
+        }
+
+        if ($Minisign) {
+            Write-Host "Verifying signature..."
+            FetchUrl "$BaseUrl/SHA256SUMS.minisig" (Join-Path $Tmp "SHA256SUMS.minisig")
+            & $Minisign -Vm SHA256SUMS -x SHA256SUMS.minisig -P RWTKHW5dGCGJOywz9PXOM27FdVwe+Eqj9qrgNrFh0faYS9LKS0kL6uhC | Out-Null
+            if ($LASTEXITCODE -ne 0) { Die "signature verification failed — refusing to install" }
+        } elseif ($env:EHAI_REQUIRE_SIGNATURE -eq "1") {
+            Die "could not get minisign and EHAI_REQUIRE_SIGNATURE=1 (scoop install minisign)"
+        } else {
+            Write-Warning "could not get minisign, skipping signature check (SHA-256 checksum is still verified)."
+        }
+
+        Write-Host "Verifying checksum..."
 
         $Line = Get-Content SHA256SUMS | Where-Object { $_ -match [regex]::Escape($Asset) }
         if (-not $Line) { Die "$Asset not listed in SHA256SUMS" }

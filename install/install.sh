@@ -16,6 +16,8 @@
 #   EHAI_NAME     install under a different command name (default: ehai)
 #   EHAI_CHANNEL  alpha | beta | stable (default: alpha)
 #   GITHUB_TOKEN  fallback if EHAI_TOKEN and `gh auth token` are absent
+#   EHAI_REQUIRE_SIGNATURE=1  fail instead of falling back to checksum-only
+#                 when no minisign verifier can be found or fetched
 set -eu
 
 REPO="jagadeeshm007/ehai"
@@ -27,8 +29,6 @@ say() { printf '%s\n' "$*" >&2; }
 die() { say "error: $*"; exit 1; }
 need() { command -v "$1" >/dev/null 2>&1 || die "'$1' is required but not found"; }
 need curl
-command -v minisign >/dev/null 2>&1 \
-  || die "minisign is required to verify the release signature (brew install minisign, or apt install minisign)"
 
 # ---- auth -------------------------------------------------------------------
 # Resolution order: EHAI_TOKEN → GITHUB_TOKEN/GH_TOKEN → gh auth token
@@ -96,20 +96,53 @@ cd "$TMP"
 
 curl_auth -o "$ASSET" "$BASE_URL/$ASSET"
 curl_auth -o SHA256SUMS "$BASE_URL/SHA256SUMS"
-curl_auth -o SHA256SUMS.minisig "$BASE_URL/SHA256SUMS.minisig"
 
 # ---- verify -------------------------------------------------------------------
-say "Verifying signature and checksum..."
-minisign -Vm SHA256SUMS -x SHA256SUMS.minisig -P RWTKHW5dGCGJOywz9PXOM27FdVwe+Eqj9qrgNrFh0faYS9LKS0kL6uhC \
-  || die "signature verification failed — refusing to install"
+sha256() {
+  if command -v sha256sum >/dev/null 2>&1; then sha256sum "$1" | awk '{print $1}'
+  else shasum -a 256 "$1" | awk '{print $1}'; fi
+}
+
+# No minisign on the machine? Fetch the official static build into $TMP (deleted
+# on exit, nothing installed system-wide). Hashes are pinned and were checked
+# against the minisign author's key RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3.
+MS_VER="0.12"
+fetch_minisign() {
+  case "$OS" in
+    Linux)  f="minisign-$MS_VER-linux.tar.gz"; sum="9a599b48ba6eb7b1e80f12f36b94ceca7c00b7a5173c95c3efc88d9822957e73"; bin="minisign-linux/$TARGET_ARCH/minisign" ;;
+    Darwin) f="minisign-$MS_VER-macos.zip";    sum="89000b19535765f9cffc65a65d64a820f433ef6db8020667f7570e06bf6aac63"; bin="minisign" ;;
+  esac
+  curl -fsSL -o "$f" "https://github.com/jedisct1/minisign/releases/download/$MS_VER/$f" || return 1
+  if [ "$(sha256 "$f")" != "$sum" ]; then say "warning: downloaded minisign failed its pinned checksum, not using it"; return 1; fi
+  case "$f" in
+    *.zip) unzip -qo "$f" "$bin" >/dev/null 2>&1 || return 1 ;;
+    *)     tar -xzf "$f" "$bin" 2>/dev/null || return 1 ;;
+  esac
+  chmod +x "$bin" && MINISIGN="$TMP/$bin"
+}
+
+MINISIGN="$(command -v minisign 2>/dev/null || true)"
+if [ -z "$MINISIGN" ]; then
+  say "minisign not installed; fetching a temporary copy to verify the signature..."
+  fetch_minisign || MINISIGN=""
+fi
+
+if [ -n "$MINISIGN" ]; then
+  say "Verifying signature..."
+  curl_auth -o SHA256SUMS.minisig "$BASE_URL/SHA256SUMS.minisig"
+  "$MINISIGN" -Vm SHA256SUMS -x SHA256SUMS.minisig -P RWTKHW5dGCGJOywz9PXOM27FdVwe+Eqj9qrgNrFh0faYS9LKS0kL6uhC >/dev/null \
+    || die "signature verification failed — refusing to install"
+elif [ "${EHAI_REQUIRE_SIGNATURE:-0}" = 1 ]; then
+  die "could not get minisign and EHAI_REQUIRE_SIGNATURE=1 (brew install minisign, or apt install minisign)"
+else
+  say "warning: could not get minisign, skipping signature check (SHA-256 checksum is still verified)."
+fi
+
+say "Verifying checksum..."
 
 EXPECTED="$(grep " $ASSET\$" SHA256SUMS | awk '{print $1}')"
 [ -n "$EXPECTED" ] || die "$ASSET not listed in SHA256SUMS"
-if command -v sha256sum >/dev/null 2>&1; then
-  ACTUAL="$(sha256sum "$ASSET" | awk '{print $1}')"
-else
-  ACTUAL="$(shasum -a 256 "$ASSET" | awk '{print $1}')"
-fi
+ACTUAL="$(sha256 "$ASSET")"
 [ "$EXPECTED" = "$ACTUAL" ] || die "checksum mismatch for $ASSET"
 
 # ---- install ------------------------------------------------------------------
