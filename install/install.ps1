@@ -12,17 +12,27 @@
 # After install the token is saved to %USERPROFILE%\.ehai\token so `ehai update`
 # works without re-entering it.
 #
-# Env overrides: EHAI_TOKEN, EHAI_NAME, EHAI_CHANNEL (alpha|beta|stable, default alpha),
+# Env overrides: EHAI_TOKEN, EHAI_NAME,
+#   EHAI_CHANNEL (alpha|beta|stable; default: newest stable, else beta, else alpha),
+#   EHAI_VERSION (install this exact release, e.g. v0.1.0-alpha.2),
 #   EHAI_REQUIRE_SIGNATURE=1 (fail instead of falling back to checksum-only when
 #   no minisign verifier can be found or fetched)
 $ErrorActionPreference = "Stop"
 
 $Repo = "jagadeeshm007/ehai"
 $Name = if ($env:EHAI_NAME) { $env:EHAI_NAME } else { "ehai" }
-$Channel = if ($env:EHAI_CHANNEL) { $env:EHAI_CHANNEL } else { "alpha" }
+$Channel = $env:EHAI_CHANNEL
+$PinnedVersion = $env:EHAI_VERSION
+if ($PinnedVersion -and -not $PinnedVersion.StartsWith("v")) { $PinnedVersion = "v$PinnedVersion" }
 $Api = "https://api.github.com/repos/$Repo"
 
 function Die($msg) { Write-Error $msg; exit 1 }
+
+# Network failure: say so and point at the page to download from by hand.
+function Unreachable($what) {
+    $link = if ($PinnedVersion) { "https://github.com/$Repo/releases/tag/$PinnedVersion" } else { "https://github.com/$Repo/tree/main" }
+    Die "unable to reach GitHub ($what). Check your connection, or download manually: $link"
+}
 
 # ---- auth --------------------------------------------------------------------
 # Resolution order: EHAI_TOKEN → GITHUB_TOKEN/GH_TOKEN → gh auth token
@@ -61,21 +71,37 @@ $Arch = if ([System.Environment]::Is64BitOperatingSystem) { "x86_64" } else { Di
 $Target = "$Arch-pc-windows-msvc"
 
 # ---- pick a release for the channel ---------------------------------------------
-Write-Host "Looking up the latest $Channel release..."
-$Releases = Invoke-RestMethod -Uri "$Api/releases" -Headers $Headers
-
-$Tag = $null
-foreach ($r in $Releases) {
-    $t = $r.tag_name
-    switch ($Channel) {
-        "alpha"  { $Tag = $t }
-        "beta"   { if ($t -notmatch "-alpha") { $Tag = $t } }
-        "stable" { if ($t -notmatch "-") { $Tag = $t } }
-        default  { Die "unknown channel: $Channel" }
+# Newest tag that belongs to a channel (each channel also accepts the more
+# stable ones: alpha takes anything, beta skips -alpha, stable skips -*).
+function Pick($tags, $ch) {
+    foreach ($t in $tags) {
+        switch ($ch) {
+            "alpha"  { return $t }
+            "beta"   { if ($t -notmatch "-alpha") { return $t } }
+            "stable" { if ($t -notmatch "-") { return $t } }
+            default  { Die "unknown channel: $ch (use alpha, beta or stable)" }
+        }
     }
-    if ($Tag) { break }
+    return $null
 }
-if (-not $Tag) { Die "no $Channel release found for $Repo" }
+
+if ($PinnedVersion) {
+    $Tag = $PinnedVersion
+} else {
+    Write-Host "Looking up releases..."
+    try { $Releases = Invoke-RestMethod -Uri "$Api/releases" -Headers $Headers } catch { Unreachable "release list" }
+    $Tags = @($Releases | ForEach-Object { $_.tag_name })
+    if ($Channel) {
+        $Tag = Pick $Tags $Channel
+        if (-not $Tag) { Die "no $Channel release found for $Repo" }
+    } else {
+        # Not configured: prefer the most stable release that exists.
+        $Tag = Pick $Tags "stable"
+        if (-not $Tag) { $Tag = Pick $Tags "beta" }
+        if (-not $Tag) { $Tag = Pick $Tags "alpha" }
+        if (-not $Tag) { Die "no releases found for $Repo" }
+    }
+}
 Write-Host "Installing $Tag for $Target"
 
 $Version = $Tag.TrimStart("v")
@@ -85,8 +111,10 @@ $BaseUrl = "https://github.com/$Repo/releases/download/$Tag"
 $Tmp = Join-Path $env:TEMP "ehai-install-$(Get-Random)"
 New-Item -ItemType Directory -Path $Tmp | Out-Null
 try {
-    FetchUrl "$BaseUrl/$Asset" (Join-Path $Tmp $Asset)
-    FetchUrl "$BaseUrl/SHA256SUMS" (Join-Path $Tmp "SHA256SUMS")
+    try {
+        FetchUrl "$BaseUrl/$Asset" (Join-Path $Tmp $Asset)
+        FetchUrl "$BaseUrl/SHA256SUMS" (Join-Path $Tmp "SHA256SUMS")
+    } catch { Unreachable "download $Asset" }
 
     Push-Location $Tmp
     try {
@@ -110,7 +138,7 @@ try {
 
         if ($Minisign) {
             Write-Host "Verifying signature..."
-            FetchUrl "$BaseUrl/SHA256SUMS.minisig" (Join-Path $Tmp "SHA256SUMS.minisig")
+            try { FetchUrl "$BaseUrl/SHA256SUMS.minisig" (Join-Path $Tmp "SHA256SUMS.minisig") } catch { Unreachable "download SHA256SUMS.minisig" }
             & $Minisign -Vm SHA256SUMS -x SHA256SUMS.minisig -P RWTKHW5dGCGJOywz9PXOM27FdVwe+Eqj9qrgNrFh0faYS9LKS0kL6uhC | Out-Null
             if ($LASTEXITCODE -ne 0) { Die "signature verification failed — refusing to install" }
         } elseif ($env:EHAI_REQUIRE_SIGNATURE -eq "1") {

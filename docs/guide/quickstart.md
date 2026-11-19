@@ -25,6 +25,17 @@ This downloads the right binary for your OS and architecture, verifies the check
 
 You don't need minisign installed. If it's missing, the installer downloads a temporary copy of the official build (pinned by SHA-256), uses it to check the signature, and deletes it. If that download fails, it warns and still checks the SHA-256 checksum. Set `EHAI_REQUIRE_SIGNATURE=1` to stop the install instead.
 
+**Which version gets installed:** the newest stable release. If there isn't one yet, the newest beta, then the newest alpha. To choose yourself:
+
+```bash
+# a channel: alpha | beta | stable
+curl -fsSL https://raw.githubusercontent.com/jagadeeshm007/ehai/main/install/install.sh | EHAI_CHANNEL=beta sh
+# an exact version
+curl -fsSL https://raw.githubusercontent.com/jagadeeshm007/ehai/main/install/install.sh | EHAI_VERSION=v0.1.0-alpha.2 sh
+```
+
+On Windows, set `$env:EHAI_CHANNEL` or `$env:EHAI_VERSION` before running the install line. If GitHub can't be reached, the installer says so and prints a link to download by hand: that version's release page if you set `EHAI_VERSION`, otherwise the repo's `main` branch.
+
 ## 2. Init
 
 ```bash

@@ -14,7 +14,8 @@
 # Env overrides:
 #   EHAI_TOKEN    GitHub PAT (private repo) — highest priority auth source
 #   EHAI_NAME     install under a different command name (default: ehai)
-#   EHAI_CHANNEL  alpha | beta | stable (default: alpha)
+#   EHAI_CHANNEL  alpha | beta | stable (default: newest stable, else beta, else alpha)
+#   EHAI_VERSION  install this exact release, e.g. v0.1.0-alpha.2 (skips the channel lookup)
 #   GITHUB_TOKEN  fallback if EHAI_TOKEN and `gh auth token` are absent
 #   EHAI_REQUIRE_SIGNATURE=1  fail instead of falling back to checksum-only
 #                 when no minisign verifier can be found or fetched
@@ -22,13 +23,21 @@ set -eu
 
 REPO="jagadeeshm007/ehai"
 NAME="${EHAI_NAME:-ehai}"
-CHANNEL="${EHAI_CHANNEL:-alpha}"
+CHANNEL="${EHAI_CHANNEL:-}"
+VERSION="${EHAI_VERSION:-}"
 API="https://api.github.com/repos/$REPO"
 
 say() { printf '%s\n' "$*" >&2; }
 die() { say "error: $*"; exit 1; }
 need() { command -v "$1" >/dev/null 2>&1 || die "'$1' is required but not found"; }
 need curl
+
+# Network failure: say so and point at the page to download from by hand.
+unreachable() {
+  if [ -n "$VERSION" ]; then link="https://github.com/$REPO/releases/tag/$VERSION"
+  else link="https://github.com/$REPO/tree/main"; fi
+  die "unable to reach GitHub ($1). Check your connection, or download manually: $link"
+}
 
 # ---- auth -------------------------------------------------------------------
 # Resolution order: EHAI_TOKEN → GITHUB_TOKEN/GH_TOKEN → gh auth token
@@ -71,20 +80,45 @@ esac
 TARGET="${TARGET_ARCH}-${TARGET_OS}"
 
 # ---- pick a release for the channel -----------------------------------------
-say "Looking up the latest $CHANNEL release..."
-RELEASES_JSON="$(curl_auth "$API/releases")"
+case "$CHANNEL" in
+  ""|alpha|beta|stable) ;;
+  *) die "unknown EHAI_CHANNEL: $CHANNEL (use alpha, beta or stable)" ;;
+esac
+case "$VERSION" in
+  "") ;;
+  v*) ;;
+  *)  VERSION="v$VERSION" ;;
+esac
 
-TAG=""
-for t in $(printf '%s' "$RELEASES_JSON" | grep -o '"tag_name": *"[^"]*"' | sed 's/.*"\([^"]*\)"$/\1/'); do
-  case "$CHANNEL" in
-    alpha)  TAG="$t" ;;
-    beta)   case "$t" in *-alpha*) continue ;; *) TAG="$t" ;; esac ;;
-    stable) case "$t" in *-*) continue ;; *) TAG="$t" ;; esac ;;
-    *)      die "unknown channel: $CHANNEL" ;;
-  esac
-  [ -n "$TAG" ] && break
-done
-[ -n "$TAG" ] || die "no $CHANNEL release found for $REPO"
+# Newest tag in $TAGS that belongs to channel $1 (each channel also accepts
+# the more stable ones: alpha takes anything, beta skips -alpha, stable skips -*).
+pick() {
+  for t in $TAGS; do
+    case "$1" in
+      alpha)  echo "$t"; return ;;
+      beta)   case "$t" in *-alpha*) ;; *) echo "$t"; return ;; esac ;;
+      stable) case "$t" in *-*) ;; *) echo "$t"; return ;; esac ;;
+    esac
+  done
+}
+
+if [ -n "$VERSION" ]; then
+  TAG="$VERSION"
+else
+  say "Looking up releases..."
+  RELEASES_JSON="$(curl_auth "$API/releases")" || unreachable "release list"
+  TAGS="$(printf '%s' "$RELEASES_JSON" | grep -o '"tag_name": *"[^"]*"' | sed 's/.*"\([^"]*\)"$/\1/')"
+  if [ -n "$CHANNEL" ]; then
+    TAG="$(pick "$CHANNEL")"
+    [ -n "$TAG" ] || die "no $CHANNEL release found for $REPO"
+  else
+    # Not configured: prefer the most stable release that exists.
+    TAG="$(pick stable)"
+    [ -n "$TAG" ] || TAG="$(pick beta)"
+    [ -n "$TAG" ] || TAG="$(pick alpha)"
+    [ -n "$TAG" ] || die "no releases found for $REPO"
+  fi
+fi
 say "Installing $TAG for $TARGET"
 
 ASSET="ehai-${TAG#v}-${TARGET}.tar.gz"
@@ -94,8 +128,8 @@ TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 cd "$TMP"
 
-curl_auth -o "$ASSET" "$BASE_URL/$ASSET"
-curl_auth -o SHA256SUMS "$BASE_URL/SHA256SUMS"
+curl_auth -o "$ASSET" "$BASE_URL/$ASSET" || unreachable "download $ASSET"
+curl_auth -o SHA256SUMS "$BASE_URL/SHA256SUMS" || unreachable "download SHA256SUMS"
 
 # ---- verify -------------------------------------------------------------------
 sha256() {
@@ -130,7 +164,7 @@ fi
 
 if [ -n "$MINISIGN" ]; then
   say "Verifying signature..."
-  curl_auth -o SHA256SUMS.minisig "$BASE_URL/SHA256SUMS.minisig"
+  curl_auth -o SHA256SUMS.minisig "$BASE_URL/SHA256SUMS.minisig" || unreachable "download SHA256SUMS.minisig"
   "$MINISIGN" -Vm SHA256SUMS -x SHA256SUMS.minisig -P RWTKHW5dGCGJOywz9PXOM27FdVwe+Eqj9qrgNrFh0faYS9LKS0kL6uhC >/dev/null \
     || die "signature verification failed — refusing to install"
 elif [ "${EHAI_REQUIRE_SIGNATURE:-0}" = 1 ]; then
