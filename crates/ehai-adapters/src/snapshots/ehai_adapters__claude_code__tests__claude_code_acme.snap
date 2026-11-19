@@ -356,7 +356,7 @@ Never put real sensitive data (personally identifiable information) in plans, ta
 === plugins/acme/.claude-plugin/plugin.json ===
 {
   "name": "acme",
-  "version": "0.1.0-alpha.1+152cefda",
+  "version": "0.1.0-alpha.2+152cefda",
   "description": "acme: plan, track and prototype from Claude Code (skills + MCP server)",
   "author": {
     "name": "acme"

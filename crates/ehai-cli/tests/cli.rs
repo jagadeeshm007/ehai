@@ -56,7 +56,8 @@ fn version_line() {
     let out = Env::new().cmd().arg("--version").output().unwrap();
     assert!(out.status.success());
     let s = stdout(&out);
-    assert!(s.starts_with("ehai 0.1.0-alpha.1 ("), "{s}");
+    let want = format!("ehai {} (", env!("CARGO_PKG_VERSION"));
+    assert!(s.starts_with(&want), "{s}");
     assert!(s.contains(env!("TARGET_TRIPLE_FOR_TESTS")), "{s}");
 }
 

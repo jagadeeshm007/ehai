@@ -69,7 +69,7 @@ ehai connect claude-code
 claude mcp add --scope user ehai -- ehai mcp
 ```
 
-**Verify** — open Claude Code and run `/ehai:ping`. Expected: `{"ok": true, "version": "0.1.0-alpha.1"}`
+**Verify** — open Claude Code and run `/ehai:ping`. Expected: `{"ok": true, "version": "0.1.0-alpha.2"}`
 
 **Troubleshoot:**
 

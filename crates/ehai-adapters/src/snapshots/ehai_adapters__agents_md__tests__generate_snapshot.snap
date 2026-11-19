@@ -6,7 +6,7 @@ expression: "format!(\"=== {} ===\\n{}\", files[0].path, files[0].contents)"
 <!-- >>> ehai >>> -->
 # ehai AI-SDLC Assistant
 
-ehai v0.1.0-alpha.1 connects your AI harness to your GitHub Projects tracker
+ehai v0.1.0-alpha.2 connects your AI harness to your GitHub Projects tracker
 for product planning, task management, and UI proof-of-concepts.
 
 ## MCP server

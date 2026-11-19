@@ -356,7 +356,7 @@ Never put real sensitive data (personally identifiable information) in plans, ta
 === plugins/ehai/.claude-plugin/plugin.json ===
 {
   "name": "ehai",
-  "version": "0.1.0-alpha.1+59631b1d",
+  "version": "0.1.0-alpha.2+59631b1d",
   "description": "ehai: plan, track and prototype from Claude Code (skills + MCP server)",
   "author": {
     "name": "ehai"

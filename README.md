@@ -1,7 +1,7 @@
 # ehai — AI-SDLC Operations Engine
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.1.0--alpha.1-orange.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.1.0--alpha.2-orange.svg)](CHANGELOG.md)
 [![CI](https://github.com/jagadeeshm007/ehai/actions/workflows/ci.yml/badge.svg)](https://github.com/jagadeeshm007/ehai/actions/workflows/ci.yml)
 [![Docs](https://img.shields.io/badge/docs-jagadeeshm007.github.io%2Fehai-purple.svg)](https://jagadeeshm007.github.io/ehai/)
 
@@ -237,7 +237,7 @@ Dev: /ehai:poc compose "Take the layout from poc-1, toggles from poc-2"
 
 ```bash
 ehai doctor
-# ✔ binary v0.1.0-alpha.1
+# ✔ binary v0.1.0-alpha.2
 # ✔ config valid (global + repo)
 # ✔ GitHub auth (jagadeeshm007, project scope)
 # ✔ tracker reachable (My Project · 23 items)
@@ -328,7 +328,7 @@ claude mcp add --scope user ehai -- ehai mcp
 
 ```
 /ehai:help          # lists all commands
-/ehai:ping          # → {"ok": true, "version": "0.1.0-alpha.1"}
+/ehai:ping          # → {"ok": true, "version": "0.1.0-alpha.2"}
 ```
 
 ---
@@ -434,7 +434,7 @@ Health check for the MCP server.
 
 **Response**
 ```json
-{ "status": "ok", "version": "0.1.0-alpha.1" }
+{ "status": "ok", "version": "0.1.0-alpha.2" }
 ```
 
 ---
