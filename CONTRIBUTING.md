@@ -216,7 +216,7 @@ Look for [`good first issue`](https://github.com/jagadeeshm007/ehai/labels/good%
 
 ## Reporting bugs
 
-Use the [Bug Report template](.github/ISSUE_TEMPLATE/bug_report.md). Include:
+Use the [Bug Report template](https://github.com/jagadeeshm007/ehai/issues/new?template=bug_report.md). Include:
 
 - `ehai --version` output
 - OS and architecture
