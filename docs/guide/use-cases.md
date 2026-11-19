@@ -99,6 +99,9 @@ ehai detects the PM role (set at `ehai init`) and formats output for non-technic
 
 ### Use case 5 — Start a task without context-switching
 
+!!! note "Planned"
+    `/ehai:start` is not built yet (spec §5.3). Today, take the task with `/ehai:assign I'll take #42` and create the branch yourself. This shows the intended flow.
+
 ```
 /ehai:start #42
 
@@ -116,6 +119,9 @@ The developer now has the branch, the full acceptance criteria, and the design n
 ---
 
 ### Use case 6 — Open a PR with a generated description
+
+!!! note "Planned"
+    `/ehai:pr` is not built yet (spec §5.3). This shows the intended flow.
 
 ```
 /ehai:pr
@@ -142,24 +148,27 @@ The PR links the issue, maps the diff to the acceptance criteria, and surfaces a
 **Scenario:** Trying out two visual approaches for the notification settings screen before committing to one.
 
 ```
-/ehai:poc new "notification settings screen"
+ehai poc new notifications "notification settings screen"
 
+→ Created poc-1 on branch ehai/poc/notifications/poc-1
 → Worktree: ~/.ehai/worktrees/my-app/notifications/poc-1
 → Design tokens extracted: Tailwind config, NativeWind theme
 → .env copied, node_modules linked, port 3042 allocated
-→ Dev server started at http://localhost:3042
-→ Screenshot captured at ~/.ehai/worktrees/.../poc-1/screen-01.png
 
-/ehai:poc iterate poc-1 "Make the section headers sticky and add an 'All Off' button"
+ehai poc run notifications 1
 
-→ poc-2 created (lineage: poc-1)
-→ Dev server started at http://localhost:3043
+→ Dev server started at http://localhost:3042 (no cd needed)
 
-/ehai:poc compare poc-1 poc-2
+ehai poc iterate notifications 1 "Make the section headers sticky and add an 'All Off' button"
 
-→ Side-by-side gallery: http://localhost:8080/compare
-→ Diff summary: +sticky headers, +all-off button, +12 lines of JSX
+→ poc-2 created (lineage: poc-1), port 3043
+
+ehai poc compare notifications 1 2
+
+→ Side-by-side comparison report opened in the browser
 ```
+
+POCs are CLI commands (and `poc_*` MCP tools your AI harness can call); there are no `/ehai:poc` slash commands.
 
 Neither poc-1 nor poc-2 touched `main`. The source repo's working tree is byte-identical to before.
 
@@ -209,14 +218,12 @@ Each POC worktree gets the right `.env`, package manager, and port set for its a
 The PM creates the PRD and breakdown in Claude Desktop. The sync writes items to GitHub Projects. Developers use Claude Code to pick up those items:
 
 ```
-Dev: /ehai:next
-     → #47 "Notification API endpoint" (P1, unblocked, assigned to me)
-     → Acceptance criteria: POST /users/me/notification-prefs accepts JSON…
-
-Dev: /ehai:start #47
-     → branch feat/47-notification-api created
-     → acceptance criteria in context
+Dev: /ehai:assign I'll take #47
+     → #47 "Notification API endpoint" assigned to you
+     → Acceptance criteria are on the card: POST /users/me/notification-prefs accepts JSON…
 ```
+
+`/ehai:next` (suggest the next task) and `/ehai:start` (branch + status) are planned and will automate this step.
 
 The PM's planning work flows directly into the developer's context. No copy-paste, no Slack messages asking "what does this ticket mean?".
 
@@ -227,7 +234,8 @@ The PM's planning work flows directly into the developer's context. No copy-past
 A developer accidentally pastes a real user email into a task comment:
 
 ```
-Dev: /ehai:comment_task  #51  "Reported by jane.smith@company.com"
+Dev: Add a comment to #51: "Reported by jane.smith@company.com"
+     (the harness calls ehai's comment_task tool)
 
 ehai: Sensitive data detected: email ×1
       How should ehai handle this?

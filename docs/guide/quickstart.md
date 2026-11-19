@@ -8,7 +8,7 @@ Zero to your first `/ehai:plan` in about 5 minutes.
 |---|---|---|
 | macOS 12+, Windows 10 1809+, or Linux 5.13+ (x86_64 or arm64; Windows x86_64) | everything | One static binary, no runtime to install |
 | `curl`, `tar` and `sha256sum` or `shasum` | installer | Already on macOS and almost every Linux. Windows uses built-in PowerShell |
-| `git` 2.20+ | POCs, worktrees, `/ehai:start` | `ehai doctor` checks it |
+| `git` 2.20+ | POCs, worktrees | `ehai doctor` checks it |
 | `gh` **or** a `GITHUB_TOKEN` | GitHub Projects tracker | ehai reuses `gh auth token`; without `gh`, set `GITHUB_TOKEN` (or `GH_TOKEN`). Not needed for the local tracker |
 | Chrome / Chromium | optional | POC screenshots only; skipped if missing |
 | Your project's own tools (`pnpm`/`npm`/`yarn`/`bun`, `go`, `uv`/`poetry`/`pip`) | optional | Only to install dependencies and run previews inside POC worktrees |
@@ -91,13 +91,13 @@ ehai interviews you with multiple-choice questions, then produces a full PRD —
 
 `breakdown` turns the PRD into epics → stories → tasks with Given/When/Then acceptance criteria. It shows a board preview and waits for your approval before syncing. `sync` pushes to your tracker idempotently — running it twice never duplicates items.
 
-## 6. Start a task
+## 6. Pick up a task
 
 ```
-/ehai:start #12
+/ehai:assign I'll take #12
 ```
 
-Creates `feat/12-notifications-toggle`, loads the task's acceptance criteria into the session, and sets the card to In Progress.
+Assigns #12 to you on the board. Automating the branch, PR text and card moves (`/ehai:start`, `/ehai:pr`, `/ehai:done`) is planned.
 
 ---
 
@@ -105,6 +105,6 @@ Creates `feat/12-notifications-toggle`, loads the task's acceptance criteria int
 
 - `ehai doctor` — check health and get fix hints
 - `ehai update` — update to the latest release on your channel
-- `/ehai:poc new "notifications toggle screen"` — build an isolated UI prototype
+- `ehai poc new notifications "toggle screen"` — build an isolated UI prototype
 - [Data policy guide →](compliance.md)
 - [Full config reference →](../reference/config.md)

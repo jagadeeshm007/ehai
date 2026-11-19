@@ -69,7 +69,7 @@ ehai connect claude-code
 claude mcp add --scope user ehai -- ehai mcp
 ```
 
-**Verify** — open Claude Code and run `/ehai:ping`. Expected: `{"ok": true, "version": "0.1.0-alpha.2"}`
+**Verify** — open Claude Code and run `/ehai:help`. It calls the `ping` tool, says whether ehai is connected, and lists the commands.
 
 **Troubleshoot:**
 
@@ -175,7 +175,7 @@ ehai's engine makes no LLM calls itself — all reasoning happens inside your ha
 
 1. Configure your harness's model/API endpoint as usual.
 2. Run `ehai connect <harness>` to wire up MCP.
-3. Use `/ehai:plan`, `/ehai:start`, etc. — the harness calls ehai's MCP tools the same way regardless of model.
+3. Use `/ehai:plan`, `/ehai:sync`, etc. — the harness calls ehai's MCP tools the same way regardless of model.
 
 ---
 

@@ -103,7 +103,7 @@ Status: **approved** · 2026-11-17
 ## Out of scope (later)
 - Notifying people outside GitHub (Slack, email).
 - Workload-based assignment suggestions (M6, preference learning).
-- The developer flow (`/ehai:next`, `start`, `pr`, `done`) builds on this: `next` will prefer tasks assigned to you.
+- The developer flow (`/ehai:next`, `start`, `pr`, `done`; planned, not built yet) builds on this: `next` will prefer tasks assigned to you.
 
 ## Deliverable
 - One commit: `feat: project-admin roles, team list, task assignment`.

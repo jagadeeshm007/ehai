@@ -163,7 +163,10 @@ If you provide an initial description, ehai skips the first question and starts 
 
 ---
 
-## Developer Skills
+## Developer Skills (planned)
+
+!!! note "Not built yet"
+    These four skills are planned (spec §5.3) and are **not** installed today. Developers currently pick up work with [`/ehai:assign`](#ehaiassign) and the board. The descriptions below are the intended behaviour.
 
 ### `/ehai:next`
 
@@ -243,81 +246,83 @@ If you provide an initial description, ehai skips the first question and starts 
 
 ---
 
-## POC Skills
+## POC commands
 
-### `/ehai:poc new`
+POCs are driven from the `ehai poc` CLI, and the same operations are exposed as `poc_*` MCP tools your harness can call. There are **no `/ehai:poc` slash commands**. `<feature>` is a short slug (e.g. `notifications`); `<n>` is the POC number.
+
+### `ehai poc new`
 
 **When to use:** When you want to prototype a UI feature without touching main.
 
 **What it does:**
 
-1. Reads your repo's design profile (`.ehai/profile.toml`)
-2. Extracts design tokens (Tailwind, NativeWind, MUI themes, etc.)
-3. Creates an isolated git worktree at `~/.ehai/worktrees/<repo>/<feature>/poc-1`
-4. Provisions the worktree: copies `.env*`, installs dependencies, allocates a unique port
-5. Builds the POC using only your existing components and tokens
-6. Starts the dev server and captures a screenshot
-7. Registers the POC in the manifest
+1. Extracts design tokens from your repo (Tailwind, NativeWind, MUI themes, etc.)
+2. Creates an isolated git worktree at `~/.ehai/worktrees/<repo>/<feature>/poc-<n>` on branch `ehai/poc/<feature>/poc-<n>`
+3. Provisions the worktree: copies `.env*`, installs dependencies, allocates a unique port
+4. Registers the POC in the manifest and prints the worktree, port, URL and design context
 
-**Usage:**
-
-```
-/ehai:poc new "notification settings screen"
-/ehai:poc new "<idea>"                        # for any feature
+```bash
+ehai poc new notifications "notification settings screen"
 ```
 
-**MCP tools called:** `poc_new`, `env_sync`
+**MCP tool:** `poc_new`
 
 ---
 
-### `/ehai:poc iterate`
+### `ehai poc iterate`
 
 **When to use:** To refine an existing POC with feedback.
 
-**Usage:**
-
-```
-/ehai:poc iterate poc-1 "Make the section headers sticky and add an All Off button"
+```bash
+ehai poc iterate notifications 1 "Make the section headers sticky and add an All Off button"
 ```
 
-Creates `poc-2` with lineage pointing to `poc-1`. Both POCs remain accessible.
+Creates the next POC (e.g. `poc-2`) with lineage pointing to `poc-1`. Both POCs remain accessible.
 
-**MCP tools called:** `poc_iterate`
+**MCP tool:** `poc_iterate`
 
 ---
 
-### `/ehai:poc compose`
+### `ehai poc compose`
 
 **When to use:** To synthesize a new POC that takes the best parts of multiple earlier ones.
 
-**What it does:** The AI reads the referenced POCs' diffs and resynthesizes the specified parts together — this is not a blind cherry-pick.
+**What it does:** Starts from the base branch; the AI reads the referenced POCs' diffs and resynthesizes the described parts — not a blind cherry-pick. Lineage records each parent.
 
-**Usage:**
-
-```
-/ehai:poc compose "Take the sticky headers from poc-1 and the toggle design from poc-2"
+```bash
+ehai poc compose notifications "Take the sticky headers from poc-1 and the toggle design from poc-2" --from 1 --from 2
 ```
 
-**MCP tools called:** `poc_compose`
+**MCP tool:** `poc_compose`
 
 ---
 
-### `/ehai:poc list`
+### `ehai poc list`
 
-```
-/ehai:poc list
-/ehai:poc list notifications      # filter by feature
+```bash
+ehai poc list
+ehai poc list notifications      # filter by feature
 ```
 
 ---
 
-### `/ehai:poc compare`
+### `ehai poc compare`
 
-```
-/ehai:poc compare poc-1 poc-2
+```bash
+ehai poc compare notifications 1 2
 ```
 
-Opens a side-by-side screenshot gallery and shows a diff summary.
+Writes a side-by-side HTML comparison report and opens it in the browser.
+
+---
+
+### `ehai poc open`
+
+```bash
+ehai poc open notifications 2
+```
+
+Prints the worktree path, dev-server command and URL for the POC.
 
 ---
 
@@ -335,25 +340,25 @@ Commands run in `~/.ehai/worktrees/<repo>/<feature>/poc-<n>` with that worktree'
 
 ---
 
-### `/ehai:poc promote`
+### `ehai poc promote`
 
 **When to use:** When you've chosen a POC and want to open a PR to merge it.
 
-**Safety:** Always requires explicit confirmation. The POC branch is never merged silently.
+**Safety:** Always asks for confirmation (`--yes` does not skip it). The POC branch is never merged silently.
 
-```
-/ehai:poc promote poc-2
+```bash
+ehai poc promote notifications 2
 ```
 
 ---
 
-### `/ehai:poc discard`
+### `ehai poc discard`
 
-```
-/ehai:poc discard poc-1
+```bash
+ehai poc discard notifications 1
 ```
 
-Archives as git tag `ehai-archive/<feature>/poc-1`, removes the worktree. Git history is preserved.
+Archives the POC as branch `ehai-archive/<feature>/poc-1` and removes the worktree. Nothing is hard-deleted.
 
 ---
 

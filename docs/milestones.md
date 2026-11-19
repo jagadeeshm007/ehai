@@ -51,7 +51,7 @@ M7 only depends on the dev-flow skills existing, so it can run alongside M4–M6
 
 ---
 
-## M3.6 — Developer flow (spec §5.3)
+## M3.6 — Developer flow (spec §5.3) — planned, not built
 **Size:** M · **Needs:** M3.5 (assignees)
 
 These commands exist in the spec but haven't been built yet.
@@ -119,7 +119,7 @@ Every new worktree must be runnable with no manual steps.
 - **Preview:**
   - Start the dev server on the allocated port.
   - Screenshots through Chrome/CDP (`chromiumoxide`). For RN: Expo web, then a simulator, then Storybook, otherwise skip with a message.
-- **Commands:**
+- **Commands** (shipped as the `ehai poc …` CLI and `poc_*` MCP tools; there are no `/ehai:poc` slash commands):
   - `/ehai:poc new` and `/ehai:poc iterate` (the next number, with lineage).
   - `list`, `compare` (an HTML gallery plus a diff summary) and `open`.
   - `discard` archives to the tag `ehai-archive/<feature>/<pocN>`; nothing is hard-deleted.
@@ -135,6 +135,7 @@ Every new worktree must be runnable with no manual steps.
 ## M6 — Compose, promote, learning, role-aware output, sandbox
 **Size:** L · **Crates:** `ehai-poc`, `ehai-prefs`, sandbox in `ehai-core`/`ehai-env` · **Needs:** M5
 
+- _Shipped as `ehai poc compose` / `ehai poc promote` (CLI) and `poc_compose` / `poc_promote` (MCP); no `/ehai:poc` slash commands._
 - **`/ehai:poc compose "take X from poc1, Y from poc2"`:** starts from the base branch; the AI re-synthesises the parts; lineage is recorded per parent.
 - **`/ehai:poc promote`:** only on an explicit command, after confirming in the question UI, it opens a PR to the default branch. Afterwards it asks whether to archive the rest.
 - **Profiles:**

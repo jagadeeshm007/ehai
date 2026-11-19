@@ -42,9 +42,9 @@ Then run `ehai init` — the wizard auto-detects your harnesses, connects GitHub
 
 -   **Developer flow**
 
-    `/ehai:next`, `/ehai:start`, `/ehai:pr`, `/ehai:done` — task-to-PR
-    lifecycle from any AI coding tool, with branch creation and card moves
-    handled automatically.
+    Tasks with acceptance criteria on the board, assigned with `/ehai:assign`
+    from any AI coding tool. Planned: `/ehai:next`, `/ehai:start`, `/ehai:pr`,
+    `/ehai:done` to automate branches, PR text and card moves.
 
 -   **POC engine**
 
