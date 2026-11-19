@@ -100,7 +100,8 @@ curl_auth -o SHA256SUMS "$BASE_URL/SHA256SUMS"
 # ---- verify -------------------------------------------------------------------
 sha256() {
   if command -v sha256sum >/dev/null 2>&1; then sha256sum "$1" | awk '{print $1}'
-  else shasum -a 256 "$1" | awk '{print $1}'; fi
+  elif command -v shasum >/dev/null 2>&1; then shasum -a 256 "$1" | awk '{print $1}'
+  else die "need 'sha256sum' or 'shasum' to verify the download"; fi
 }
 
 # No minisign on the machine? Fetch the official static build into $TMP (deleted
@@ -169,6 +170,12 @@ if [ -n "$TOKEN" ]; then
 fi
 
 say "Running '$NAME init'..."
-"$INSTALLED" init
+# Under `curl | sh` stdin is the script pipe, so the wizard would silently take
+# every default. Reattach it to the terminal when there is one.
+if [ -t 1 ] && (exec </dev/tty) 2>/dev/null; then
+  "$INSTALLED" init </dev/tty
+else
+  "$INSTALLED" init
+fi
 
 say "Done. Open a new terminal (or source your shell rc) to use '$NAME'."

@@ -102,6 +102,19 @@ The engine is a single static Rust binary (12 crates, `rmcp` MCP server, GitHub 
 
 ## Quickstart
 
+**Requirements**
+
+| Needed | For | Notes |
+|---|---|---|
+| macOS 12+, Windows 10 1809+, or Linux 5.13+ (x86_64 or arm64; Windows x86_64) | everything | One static binary, no runtime to install |
+| `curl`, `tar` and `sha256sum` or `shasum` | installer | Already on macOS and almost every Linux. Windows uses built-in PowerShell |
+| `git` 2.20+ | POCs, worktrees, `/ehai:start` | `ehai doctor` checks it |
+| `gh` **or** a `GITHUB_TOKEN` | GitHub Projects tracker | ehai reuses `gh auth token`; without `gh`, set `GITHUB_TOKEN` (or `GH_TOKEN`). Not needed for the local tracker |
+| Chrome / Chromium | optional | POC screenshots only; skipped if missing |
+| Your project's own tools (`pnpm`/`npm`/`yarn`/`bun`, `go`, `uv`/`poetry`/`pip`) | optional | Only to install dependencies and run previews inside POC worktrees |
+
+Not needed: Node, Python, Docker or `minisign` (the installer gets a temporary copy to check the signature).
+
 **Step 1 — Install**
 
 ```bash

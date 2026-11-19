@@ -694,14 +694,8 @@ fn find_chrome() -> Option<String> {
         }
         // Try PATH lookup for simple names
         if !c.contains('/') && !c.contains('\\') {
-            let found = std::process::Command::new("which")
-                .arg(c)
-                .output()
-                .ok()
-                .filter(|o| o.status.success())
-                .and_then(|o| String::from_utf8(o.stdout).ok())
-                .map(|s| s.trim().to_string())
-                .filter(|s| !s.is_empty());
+            // ponytail: PATH scan in-process; a `which` binary is absent on Windows and minimal Linux.
+            let found = ehai_env::which(c);
             if found.is_some() {
                 return Some(c.to_string());
             }

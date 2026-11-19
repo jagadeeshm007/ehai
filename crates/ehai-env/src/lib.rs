@@ -226,7 +226,7 @@ fn ehai_stack_deps_install(worktree_root: &Path, app: &ehai_stack::App) -> Insta
 /// mutating the real `PATH` env var, which `cargo test`'s default
 /// multi-threaded, single-process execution would race with every other
 /// test in the same binary.
-fn which(cmd: &str) -> Option<std::path::PathBuf> {
+pub fn which(cmd: &str) -> Option<std::path::PathBuf> {
     let exe = if cfg!(windows) {
         format!("{cmd}.exe")
     } else {

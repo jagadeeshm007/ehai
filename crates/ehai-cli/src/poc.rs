@@ -114,11 +114,18 @@ pub fn compare_pocs(
     let _ = config;
     let root = repo_root()?;
     let path = ehai_poc::poc_compare(&root, home, feature, ns)?;
-    // Best-effort browser open; failure is non-fatal
-    let _ = std::process::Command::new("open")
-        .arg(&path)
-        .status()
-        .or_else(|_| std::process::Command::new("xdg-open").arg(&path).status());
+    // Best-effort browser open; failure is non-fatal. Pick the opener per OS:
+    // on many Linux distros `open` is `openvt`, which "succeeds" without opening anything.
+    let mut cmd = if cfg!(target_os = "macos") {
+        std::process::Command::new("open")
+    } else if cfg!(windows) {
+        let mut c = std::process::Command::new("cmd");
+        c.args(["/C", "start", ""]);
+        c
+    } else {
+        std::process::Command::new("xdg-open")
+    };
+    let _ = cmd.arg(&path).status();
     Ok(format!("Report: {}", path.display()))
 }
 
