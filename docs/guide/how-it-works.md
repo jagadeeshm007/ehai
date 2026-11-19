@@ -42,12 +42,11 @@ flowchart LR
   idea["💡 Idea"]:::user --> prd["📄 PRD<br/>/ehai:plan"]:::engine
   prd --> bd["🗂️ Breakdown<br/>epics → stories → tasks<br/>/ehai:breakdown"]:::engine
   bd --> board["📋 GitHub Project<br/>/ehai:sync"]:::ext
-  board --> start["🌿 Branch + In Progress<br/>/ehai:start"]:::harness
-  start --> pr["🔀 PR mapped to criteria<br/>/ehai:pr"]:::harness
-  pr --> done["✅ Done<br/>/ehai:done"]:::ext
-  bd -. "try the UI first" .-> poc["🧪 POC worktree<br/>/ehai:poc new"]:::engine
-  poc -. "promote on request" .-> pr
+  board --> assign["👥 Owners<br/>/ehai:assign"]:::harness
   board --> status["📊 Status report<br/>/ehai:status"]:::user
+  board --> triage["🐞 Bugs and requests<br/>/ehai:triage"]:::harness
+  bd -. "try the UI first" .-> poc["🧪 POC worktree<br/>ehai poc new"]:::engine
+  poc -. "promote on request" .-> pr["🔀 PR to main<br/>ehai poc promote"]:::ext
   classDef user fill:#f97316,stroke:#c2410c,color:#fff
   classDef harness fill:#2563eb,stroke:#1e40af,color:#fff
   classDef engine fill:#7c3aed,stroke:#5b21b6,color:#fff
@@ -55,7 +54,7 @@ flowchart LR
 ```
 
 - **PMs** go from idea → PRD → approved tasks on the board in one conversation, in the Claude desktop app or Claude Code, without terminal commands.
-- **Developers** pick, start, ship and close tasks from whichever AI tool they like. The branch, PR text and card moves are done for them.
+- **Developers** see their tasks, with acceptance criteria, on the board and get assigned with `/ehai:assign`, from whichever AI tool they like. Automating branches, PR text and card moves (`/ehai:start`, `/ehai:pr`, `/ehai:done`) is planned.
 - **Everyone** can ask for a UI prototype that uses the app's own design system and runs in an isolated copy of the repo, so `main` is never touched.
 - **The guard** checks every tracker write, PRD and mock-data fixture for sensitive data first.
 - **Preferences** make each session a little better than the last.

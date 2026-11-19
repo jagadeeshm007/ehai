@@ -79,6 +79,7 @@ Then run `ehai init` — the wizard auto-detects your harnesses, connects GitHub
 ## Next steps
 
 - [How ehai works](guide/how-it-works.md) — the problem, philosophy, architecture and flow diagrams
+- [With spec-driven tools](guide/spec-driven.md) — build with AWS AI-DLC, GitHub Spec Kit or Kiro; track, maintain and improve with ehai
 
 [Quickstart →](guide/quickstart.md){ .md-button .md-button--primary }
 [Config reference →](reference/config.md){ .md-button }

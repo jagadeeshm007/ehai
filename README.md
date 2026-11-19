@@ -100,6 +100,24 @@ The engine is a single static Rust binary (12 crates, `rmcp` MCP server, GitHub 
 
 ---
 
+## Works with spec-driven tools
+
+Create the project or each big feature with a spec-driven tool such as **[AWS AI-DLC](https://github.com/awslabs/aidlc-workflows)**, **[GitHub Spec Kit](https://github.com/github/spec-kit)** or **[Kiro specs](https://kiro.dev/docs/specs/)**. Then use ehai on top to put the work on your team's board, track and maintain it, and prototype improvements as POCs before they become the next spec.
+
+```mermaid
+flowchart LR
+  spec["📐 Spec tool<br/>requirements → design → tasks → code"]:::harness --> h["/ehai:plan · /ehai:breakdown"]:::engine --> b["📋 /ehai:sync<br/>GitHub Project"]:::ext
+  b --> m["/ehai:status · /ehai:triage · /ehai:assign"]:::engine --> p["🧪 ehai poc new · run · compare"]:::engine
+  p -- "winner becomes the next spec" --> spec
+  classDef harness fill:#2563eb,stroke:#1e40af,color:#fff
+  classDef engine fill:#7c3aed,stroke:#5b21b6,color:#fff
+  classDef ext fill:#16a34a,stroke:#166534,color:#fff
+```
+
+Step-by-step recipes for each tool: [Build with spec-driven tools, run it with ehai](https://jagadeeshm007.github.io/ehai/guide/spec-driven/) ([source](docs/guide/spec-driven.md)).
+
+---
+
 ## Quickstart
 
 **Requirements**
