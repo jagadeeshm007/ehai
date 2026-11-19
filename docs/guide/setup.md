@@ -258,6 +258,7 @@ This asks for confirmation, then:
 - Disconnects every harness (`ehai disconnect --all`)
 - Deletes `~/.ehai/` contents: `config.toml`, `prefs/`, `adapters/`, `bin/`, `logs/`, `audit/`, `cache/`, `worktrees/`, `ports.json`
 - Removes the `export PATH` line (or fish equivalent) from your shell RC files
+- Removes the `ehai` link the installer put in a folder on your PATH (`~/.local/bin`, `/usr/local/bin`, …), only if it points into `~/.ehai`
 - If you saved a token at `~/.ehai/token`, that file is deleted too
 
 Repo profiles (`.ehai/` inside your repos) are **not** deleted — remove those manually per repo if needed.

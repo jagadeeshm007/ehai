@@ -554,10 +554,13 @@ fn run_command(cli: Cli, home: PathBuf, config: ehai_core::Result<Config>) -> Re
             for id in &config.adapters.enabled {
                 println!("✔ {}", find_adapter(id)?.install(&ctx)?);
             }
-            println!(
-                "Open a new terminal (or `source` your shell rc) to use `{}`.",
-                config.brand.name
-            );
+            let name = &config.brand.name;
+            match selfcmd::activate_hint(&home, name) {
+                None => println!("✔ `{name}` is ready in this terminal — try `{name} doctor`."),
+                Some(line) => println!(
+                    "To use `{name}` in this terminal now, run:\n  {line}\n(new terminals pick it up automatically)"
+                ),
+            }
             Ok(ExitCode::SUCCESS)
         }
         Command::Uninstall => {

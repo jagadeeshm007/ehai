@@ -171,7 +171,12 @@ try {
         $UserPath = [Environment]::GetEnvironmentVariable("Path", "User")
         if (-not ($UserPath -split ";" | Where-Object { $_ -eq $BinDir })) {
             [Environment]::SetEnvironmentVariable("Path", "$UserPath;$BinDir", "User")
-            Write-Host "Added $BinDir to your user PATH (open a new terminal to pick it up)."
+            Write-Host "Added $BinDir to your user PATH."
+        }
+        # `irm | iex` runs in the user's own session, so make it work here too —
+        # no new terminal needed.
+        if (-not ($env:Path -split ";" | Where-Object { $_ -eq $BinDir })) {
+            $env:Path = "$env:Path;$BinDir"
         }
 
         # Persist the token so `ehai update` works without re-entering it
@@ -194,7 +199,7 @@ try {
         Write-Host "Running '$Name init'..."
         & $Installed init
 
-        Write-Host "Done. Open a new terminal to use '$Name'."
+        Write-Host "Done. '$Name' is ready in this terminal — try: $Name doctor"
     } finally {
         Pop-Location
     }

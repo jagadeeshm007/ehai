@@ -23,6 +23,13 @@ curl -fsSL https://raw.githubusercontent.com/jagadeeshm007/ehai/main/install/ins
 
 This downloads the right binary for your OS and architecture, verifies the checksum and minisign signature, installs to `~/.ehai/bin`, and adds it to your PATH.
 
+`ehai` works **in the same terminal** straight away, so you don't need to reload your shell or open a new terminal:
+
+- **macOS / Linux:** besides adding `~/.ehai/bin` to your shell rc (for new terminals), the installer links `ehai` into a folder that's already on your PATH and writable without sudo: `~/.local/bin`, `~/bin`, `/opt/homebrew/bin` or `/usr/local/bin`. It never replaces a file that isn't its own. If none of those is available, it prints the one line to paste instead (`export PATH="$HOME/.ehai/bin:$PATH"`).
+- **Windows:** the installer also adds `ehai` to the current PowerShell session's PATH.
+
+The setup wizard shows which keys to press next to every question: **↑/↓** to move, **Space** to select or unselect in multi-choice lists, **Enter** to confirm, **Esc** to go back.
+
 You don't need minisign installed. If it's missing, the installer downloads a temporary copy of the official build (pinned by SHA-256), uses it to check the signature, and deletes it. If that download fails, it warns and still checks the SHA-256 checksum. Set `EHAI_REQUIRE_SIGNATURE=1` to stop the install instead.
 
 **Which version gets installed:** the newest stable release. If there isn't one yet, the newest beta, then the newest alpha. To choose yourself:

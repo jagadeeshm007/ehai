@@ -100,6 +100,12 @@ fn default_multi(choices: &[Choice]) -> Vec<String> {
 
 pub struct ClackPrompter;
 
+/// Key help after each prompt title, so nobody is left guessing how to pick
+/// (users didn't know Space toggles a multiselect).
+fn keys(prompt: &str, help: &str) -> String {
+    format!("{prompt}  {}", console::style(format!("({help})")).dim())
+}
+
 impl Prompter for ClackPrompter {
     fn intro(&mut self, title: &str) -> io::Result<()> {
         cliclack::intro(console::style(format!(" {title} ")).on_cyan().black())
@@ -118,7 +124,8 @@ impl Prompter for ClackPrompter {
     }
 
     fn select(&mut self, prompt: &str, choices: &[Choice]) -> io::Result<String> {
-        let mut s = cliclack::select(prompt).initial_value(default_select(choices));
+        let mut s = cliclack::select(keys(prompt, "↑/↓ move · Enter choose · Esc back"))
+            .initial_value(default_select(choices));
         for c in choices {
             s = s.item(c.value.clone(), &c.label, &c.hint);
         }
@@ -126,9 +133,12 @@ impl Prompter for ClackPrompter {
     }
 
     fn multiselect(&mut self, prompt: &str, choices: &[Choice]) -> io::Result<Vec<String>> {
-        let mut s = cliclack::multiselect(prompt)
-            .initial_values(default_multi(choices))
-            .required(false);
+        let mut s = cliclack::multiselect(keys(
+            prompt,
+            "↑/↓ move · Space select/unselect · Enter confirm · Esc back",
+        ))
+        .initial_values(default_multi(choices))
+        .required(false);
         for c in choices {
             s = s.item(c.value.clone(), &c.label, &c.hint);
         }
@@ -136,11 +146,13 @@ impl Prompter for ClackPrompter {
     }
 
     fn confirm(&mut self, prompt: &str, default: bool) -> io::Result<bool> {
-        cliclack::confirm(prompt).initial_value(default).interact()
+        cliclack::confirm(keys(prompt, "←/→ or y/n · Enter confirm"))
+            .initial_value(default)
+            .interact()
     }
 
     fn input(&mut self, prompt: &str, default: &str) -> io::Result<String> {
-        cliclack::input(prompt)
+        cliclack::input(keys(prompt, "type to change · Enter accept"))
             .default_input(default)
             .required(false)
             .interact()

@@ -44,6 +44,65 @@ fn rc_for_shell(user_home: &Path, bin: &Path) -> (PathBuf, String) {
     }
 }
 
+/// Dirs that are often already on PATH and writable without sudo. A link in one
+/// of them makes the command work in the *current* terminal, which an rc-file
+/// edit can't do (only new shells read it). `EHAI_LINK_DIRS` overrides the list
+/// (the CLI tests point it at a sandbox); unit tests never touch system dirs.
+fn link_dirs(user_home: &Path) -> Vec<PathBuf> {
+    if let Some(v) = std::env::var_os("EHAI_LINK_DIRS") {
+        return std::env::split_paths(&v).collect();
+    }
+    let mut dirs = vec![user_home.join(".local/bin"), user_home.join("bin")];
+    if !cfg!(test) {
+        dirs.push("/opt/homebrew/bin".into());
+        dirs.push("/usr/local/bin".into());
+    }
+    dirs
+}
+
+fn on_path(dir: &Path, path_var: &std::ffi::OsStr) -> bool {
+    std::env::split_paths(path_var).any(|p| p == dir)
+}
+
+/// Link `<dir>/<name>` → `target` in the first of `dirs` that is on `path_var`
+/// and writable. Never replaces anything that isn't already our link.
+#[cfg(unix)]
+fn link_into_path(
+    dirs: &[PathBuf],
+    target: &Path,
+    name: &str,
+    path_var: &std::ffi::OsStr,
+) -> Option<PathBuf> {
+    for dir in dirs.iter().filter(|d| on_path(d, path_var)) {
+        let link = dir.join(name);
+        match std::fs::read_link(&link) {
+            Ok(t) if t == target => return Some(link),
+            Ok(_) => continue,                   // someone else's link
+            Err(_) if link.exists() => continue, // a real file, not ours
+            Err(_) => {}
+        }
+        if std::os::unix::fs::symlink(target, &link).is_ok() {
+            return Some(link);
+        }
+    }
+    None
+}
+
+/// `None` when `name` already runs in this terminal; otherwise the one line to
+/// paste so it does (new terminals pick it up from the rc file anyway).
+pub fn activate_hint(home: &Path, name: &str) -> Option<String> {
+    if ehai_env::which(name).is_some() {
+        return None;
+    }
+    let bin = paths::bin_dir(home);
+    Some(if cfg!(windows) {
+        format!("$env:Path += \";{}\"", bin.display())
+    } else {
+        let user_home = std::env::home_dir().unwrap_or_default();
+        rc_for_shell(&user_home, &bin).1
+    })
+}
+
 /// Copy the running binary into `~/.ehai/bin`, add it to PATH, add the brand alias.
 /// Returns human-readable lines describing what happened.
 pub fn install(home: &Path, config: &Config) -> anyhow::Result<Vec<String>> {
@@ -110,6 +169,19 @@ pub fn install_for(
         } else {
             done.push(format!("PATH already set in {}", rc.display()));
         }
+        #[cfg(unix)]
+        {
+            let path_var = std::env::var_os("PATH").unwrap_or_default();
+            if !on_path(&bin_dir, &path_var) {
+                if let Some(link) = link_into_path(&link_dirs(user_home), &target, brand, &path_var)
+                {
+                    done.push(format!(
+                        "linked {} so `{brand}` works in this terminal now",
+                        link.display()
+                    ));
+                }
+            }
+        }
     }
     Ok(done)
 }
@@ -151,6 +223,16 @@ pub fn remove_files(home: &Path, user_home: Option<&Path>) -> anyhow::Result<Vec
     );
     let mut done = Vec::new();
     if let Some(uh) = user_home {
+        // links made by `install_for` (anything pointing into our home)
+        for dir in link_dirs(uh) {
+            for entry in std::fs::read_dir(&dir).into_iter().flatten().flatten() {
+                let p = entry.path();
+                if std::fs::read_link(&p).is_ok_and(|t| t.starts_with(home)) {
+                    std::fs::remove_file(&p)?;
+                    done.push(format!("removed link {}", p.display()));
+                }
+            }
+        }
         for rc in rc_candidates(uh) {
             if blocks::remove(&rc)? {
                 done.push(format!("removed PATH entry from {}", rc.display()));
@@ -230,6 +312,44 @@ mod tests {
         assert!(
             remove_files(&user, Some(&user)).is_err(),
             "never deletes the user's home"
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn links_into_first_writable_dir_on_path_and_never_clobbers() {
+        let d = tempfile::tempdir().unwrap();
+        let target = d.path().join(".ehai/bin/ehai");
+        let (off, taken, free) = (
+            d.path().join("off"),
+            d.path().join("taken"),
+            d.path().join("free"),
+        );
+        for dir in [&off, &taken, &free] {
+            std::fs::create_dir_all(dir).unwrap();
+        }
+        std::fs::write(taken.join("ehai"), "someone else's ehai").unwrap();
+        let dirs = vec![off.clone(), taken.clone(), free.clone()];
+        // `off` isn't on PATH, `taken` has a real file: only `free` qualifies
+        let path_var = std::env::join_paths([&taken, &free]).unwrap();
+
+        let link = link_into_path(&dirs, &target, "ehai", &path_var).unwrap();
+        assert_eq!(link, free.join("ehai"));
+        assert_eq!(std::fs::read_link(&link).unwrap(), target);
+        assert_eq!(
+            std::fs::read_to_string(taken.join("ehai")).unwrap(),
+            "someone else's ehai"
+        );
+        assert!(!off.join("ehai").exists());
+        // idempotent
+        assert_eq!(
+            link_into_path(&dirs, &target, "ehai", &path_var),
+            Some(link)
+        );
+        // nothing on PATH → no link
+        assert_eq!(
+            link_into_path(&dirs, &target, "ehai", std::ffi::OsStr::new("")),
+            None
         );
     }
 

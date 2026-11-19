@@ -41,6 +41,8 @@ impl Env {
             // tempdir is exactly the kind of thing a missing default like
             // this causes.
             .env("HOME", self.home.path())
+            // never link into the real ~/.local/bin, /usr/local/bin, … from tests
+            .env("EHAI_LINK_DIRS", self.home.path().join("no-link-dirs"))
             .env("NO_COLOR", "1")
             .current_dir(self.cwd.path());
         c

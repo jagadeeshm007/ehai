@@ -212,4 +212,12 @@ else
   "$INSTALLED" init
 fi
 
-say "Done. Open a new terminal (or source your shell rc) to use '$NAME'."
+# A child process can't change the calling shell's PATH; `self install` links
+# the binary into a dir already on PATH when it can, so check what works now.
+if command -v "$NAME" >/dev/null 2>&1; then
+  say "Done. '$NAME' is ready in this terminal — try: $NAME doctor"
+else
+  say "Done. To use '$NAME' in this terminal now, run:"
+  say "  export PATH=\"\$HOME/.ehai/bin:\$PATH\""
+  say "(new terminals pick it up automatically)"
+fi

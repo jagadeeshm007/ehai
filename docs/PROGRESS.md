@@ -197,6 +197,8 @@
 - **Template updates**: `plan/SKILL.md` and `shared/commands/plan.md` include the `plan_explore` refinement step (4b); 7 harness adapter snapshots updated accordingly.
 - **`ehai poc run` / `ehai poc shell`** (2026-11-19): run a command (default: the dev server) or open a shell inside a POC worktree from anywhere in the repo, with its `.env.ehai.local` ports loaded and the exit code passed through. `ehai_env::read_env_overlay` reads the overlay back.
 - **★ Insights footer** (2026-11-19): every skill (via `{{role_block}}`), AGENTS.md (`{{insights_block}}`) and the MCP server instructions tell the agent to end replies with a 2–5 line footer (summary, status, next command, ⚠ warnings). `ui::insights` renders the same footer for `poc new|open|list`.
+- **Key hints in the interactive CLI** (2026-11-19): every select / multiselect / confirm / input prompt shows its keys (↑/↓ move · Space select/unselect · Enter confirm · Esc back).
+- **No new terminal after install** (2026-11-19): `self install` links the binary into the first writable dir already on PATH (`~/.local/bin`, `~/bin`, `/opt/homebrew/bin`, `/usr/local/bin`; `EHAI_LINK_DIRS` overrides), never clobbering others' files; otherwise it prints the one line to paste. `install.ps1` updates the session `$env:Path`. `uninstall` removes links that point into `~/.ehai`.
 
 ## Next — M9: Hardening and release
 
