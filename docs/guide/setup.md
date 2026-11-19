@@ -209,6 +209,67 @@ ehai repo init
 
 ---
 
+## Removing ehai
+
+### Disconnect one harness
+
+Remove ehai from a single AI harness without touching anything else:
+
+```bash
+ehai disconnect claude-code     # unregisters MCP, removes generated files
+ehai disconnect cursor
+ehai disconnect --all           # removes every connected harness at once
+```
+
+ehai only removes the files it generated (inside its own `# >>> ehai >>>` block or dedicated config key). Your own edits to those files are preserved.
+
+---
+
+### Remove ehai from a repo
+
+ehai writes one directory per repo: `.ehai/` at the repo root. It contains the detected stack profile, local plan cache, and optional POC manifest. It is never required for the binary to run.
+
+```bash
+# From inside the repo:
+rm -rf .ehai/
+```
+
+If you committed `.ehai/profile.toml` to share conventions with the team, also remove it from git:
+
+```bash
+git rm -r .ehai/
+git commit -m "chore: remove ehai repo profile"
+```
+
+Nothing else in the repo is touched by ehai (no changes to `package.json`, `go.mod`, etc.).
+
+---
+
+### Full uninstall
+
+Remove ehai completely from your machine — binary, config, prefs, adapters, logs, cached data, and PATH entries:
+
+```bash
+ehai uninstall
+```
+
+This asks for confirmation, then:
+
+- Disconnects every harness (`ehai disconnect --all`)
+- Deletes `~/.ehai/` contents: `config.toml`, `prefs/`, `adapters/`, `bin/`, `logs/`, `audit/`, `cache/`, `worktrees/`, `ports.json`
+- Removes the `export PATH` line (or fish equivalent) from your shell RC files
+- If you saved a token at `~/.ehai/token`, that file is deleted too
+
+Repo profiles (`.ehai/` inside your repos) are **not** deleted — remove those manually per repo if needed.
+
+To skip the confirmation prompt (CI or scripting):
+
+```bash
+ehai uninstall --yes
+```
+
+---
+
 ## Device migration
 
 Move your ehai setup to a new machine:
