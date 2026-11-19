@@ -321,6 +321,20 @@ Opens a side-by-side screenshot gallery and shows a diff summary.
 
 ---
 
+### `ehai poc run` / `ehai poc shell`
+
+**When to use:** to start a POC or run any command in it without `cd`-ing into its worktree. Works from anywhere inside the repo.
+
+```bash
+ehai poc run checkout 2                 # start the detected dev server
+ehai poc run checkout 2 -- pnpm test    # any command, inside the worktree
+ehai poc shell checkout 2               # your shell, inside the worktree; `exit` to come back
+```
+
+Commands run in `~/.ehai/worktrees/<repo>/<feature>/poc-<n>` with that worktree's `.env.ehai.local` loaded, so each POC uses its own ports (`PORT`, `COMPOSE_PROJECT_NAME`, …). The exit code is passed through, so `ehai poc run … -- pnpm test` works in scripts. `ehai poc shell` also sets `EHAI_POC=<feature>/poc-<n>`, which you can show in your prompt.
+
+---
+
 ### `/ehai:poc promote`
 
 **When to use:** When you've chosen a POC and want to open a PR to merge it.

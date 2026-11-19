@@ -67,6 +67,27 @@ Configured role: **pm**. The user can override it for this session by saying so;
 - **dev** — concise and technical: file paths, commands, diffs.
 - **both** — start plain, add a short technical section at the end.
 
+## End every reply with Insights
+
+Finish every ehai reply with this footer, after any question you ask:
+
+```
+★ Insights ─────────────────────────────────────
+  • <line>
+  • <line>
+─────────────────────────────────────────────────
+```
+
+Put 2–5 short lines in it, only the ones that help right now:
+
+- **Summary** — what just changed, in one line (e.g. "12 tasks synced, 0 duplicates").
+- **Status** — where things stand (% done, what is blocked, what is waiting on the user).
+- **Next step** — the single most useful next action, with the exact command (e.g. `/ehai:sync`, `ehai poc run checkout 2`).
+- **Warning** — anything risky or easy to miss (sensitive data found, stale items, a failing check). Start the line with ⚠.
+- **Note / tip** — one thing that saves the user time next time.
+
+Match the role: plain words for **pm**, commands and paths for **dev**. Use a small table inside the footer only when it is clearer than lines. Never repeat the whole reply, and never put sensitive data in it.
+
 ## Asking the user
 
 When you need input from the user, ask with your harness's multiple-choice question tool (e.g. `AskUserQuestion` in Claude Code). Offer 2–4 concrete options, recommended first and marked "(Recommended)". If no such tool exists, present a numbered list and wait for the answer.
@@ -115,6 +136,27 @@ Configured role: **pm**. The user can override it for this session by saying so;
 - **dev** — concise and technical: file paths, commands, diffs.
 - **both** — start plain, add a short technical section at the end.
 
+## End every reply with Insights
+
+Finish every ehai reply with this footer, after any question you ask:
+
+```
+★ Insights ─────────────────────────────────────
+  • <line>
+  • <line>
+─────────────────────────────────────────────────
+```
+
+Put 2–5 short lines in it, only the ones that help right now:
+
+- **Summary** — what just changed, in one line (e.g. "12 tasks synced, 0 duplicates").
+- **Status** — where things stand (% done, what is blocked, what is waiting on the user).
+- **Next step** — the single most useful next action, with the exact command (e.g. `/ehai:sync`, `ehai poc run checkout 2`).
+- **Warning** — anything risky or easy to miss (sensitive data found, stale items, a failing check). Start the line with ⚠.
+- **Note / tip** — one thing that saves the user time next time.
+
+Match the role: plain words for **pm**, commands and paths for **dev**. Use a small table inside the footer only when it is clearer than lines. Never repeat the whole reply, and never put sensitive data in it.
+
 ## Asking the user
 
 When you need input from the user, ask with your harness's multiple-choice question tool (e.g. `AskUserQuestion` in Claude Code). Offer 2–4 concrete options, recommended first and marked "(Recommended)". If no such tool exists, present a numbered list and wait for the answer.
@@ -156,6 +198,27 @@ Configured role: **pm**. The user can override it for this session by saying so;
 - **dev** — concise and technical: file paths, commands, diffs.
 - **both** — start plain, add a short technical section at the end.
 
+## End every reply with Insights
+
+Finish every ehai reply with this footer, after any question you ask:
+
+```
+★ Insights ─────────────────────────────────────
+  • <line>
+  • <line>
+─────────────────────────────────────────────────
+```
+
+Put 2–5 short lines in it, only the ones that help right now:
+
+- **Summary** — what just changed, in one line (e.g. "12 tasks synced, 0 duplicates").
+- **Status** — where things stand (% done, what is blocked, what is waiting on the user).
+- **Next step** — the single most useful next action, with the exact command (e.g. `/ehai:sync`, `ehai poc run checkout 2`).
+- **Warning** — anything risky or easy to miss (sensitive data found, stale items, a failing check). Start the line with ⚠.
+- **Note / tip** — one thing that saves the user time next time.
+
+Match the role: plain words for **pm**, commands and paths for **dev**. Use a small table inside the footer only when it is clearer than lines. Never repeat the whole reply, and never put sensitive data in it.
+
 ## Asking the user
 
 When you need input from the user, ask with your harness's multiple-choice question tool (e.g. `AskUserQuestion` in Claude Code). Offer 2–4 concrete options, recommended first and marked "(Recommended)". If no such tool exists, present a numbered list and wait for the answer.
@@ -195,6 +258,27 @@ Configured role: **pm**. The user can override it for this session by saying so;
 - **dev** — concise and technical: file paths, commands, diffs.
 - **both** — start plain, add a short technical section at the end.
 
+## End every reply with Insights
+
+Finish every ehai reply with this footer, after any question you ask:
+
+```
+★ Insights ─────────────────────────────────────
+  • <line>
+  • <line>
+─────────────────────────────────────────────────
+```
+
+Put 2–5 short lines in it, only the ones that help right now:
+
+- **Summary** — what just changed, in one line (e.g. "12 tasks synced, 0 duplicates").
+- **Status** — where things stand (% done, what is blocked, what is waiting on the user).
+- **Next step** — the single most useful next action, with the exact command (e.g. `/ehai:sync`, `ehai poc run checkout 2`).
+- **Warning** — anything risky or easy to miss (sensitive data found, stale items, a failing check). Start the line with ⚠.
+- **Note / tip** — one thing that saves the user time next time.
+
+Match the role: plain words for **pm**, commands and paths for **dev**. Use a small table inside the footer only when it is clearer than lines. Never repeat the whole reply, and never put sensitive data in it.
+
 ## Asking the user
 
 When you need input from the user, ask with your harness's multiple-choice question tool (e.g. `AskUserQuestion` in Claude Code). Offer 2–4 concrete options, recommended first and marked "(Recommended)". If no such tool exists, present a numbered list and wait for the answer.
@@ -229,6 +313,27 @@ Configured role: **pm**. The user can override it for this session by saying so;
 - **pm** — plain language, no jargon, short. Lead with visuals: Mermaid diagrams and tables. Always end with clear next options asked through the question tool.
 - **dev** — concise and technical: file paths, commands, diffs.
 - **both** — start plain, add a short technical section at the end.
+
+## End every reply with Insights
+
+Finish every ehai reply with this footer, after any question you ask:
+
+```
+★ Insights ─────────────────────────────────────
+  • <line>
+  • <line>
+─────────────────────────────────────────────────
+```
+
+Put 2–5 short lines in it, only the ones that help right now:
+
+- **Summary** — what just changed, in one line (e.g. "12 tasks synced, 0 duplicates").
+- **Status** — where things stand (% done, what is blocked, what is waiting on the user).
+- **Next step** — the single most useful next action, with the exact command (e.g. `/ehai:sync`, `ehai poc run checkout 2`).
+- **Warning** — anything risky or easy to miss (sensitive data found, stale items, a failing check). Start the line with ⚠.
+- **Note / tip** — one thing that saves the user time next time.
+
+Match the role: plain words for **pm**, commands and paths for **dev**. Use a small table inside the footer only when it is clearer than lines. Never repeat the whole reply, and never put sensitive data in it.
 
 ## Asking the user
 
@@ -268,6 +373,27 @@ Configured role: **pm**. The user can override it for this session by saying so;
 - **pm** — plain language, no jargon, short. Lead with visuals: Mermaid diagrams and tables. Always end with clear next options asked through the question tool.
 - **dev** — concise and technical: file paths, commands, diffs.
 - **both** — start plain, add a short technical section at the end.
+
+## End every reply with Insights
+
+Finish every ehai reply with this footer, after any question you ask:
+
+```
+★ Insights ─────────────────────────────────────
+  • <line>
+  • <line>
+─────────────────────────────────────────────────
+```
+
+Put 2–5 short lines in it, only the ones that help right now:
+
+- **Summary** — what just changed, in one line (e.g. "12 tasks synced, 0 duplicates").
+- **Status** — where things stand (% done, what is blocked, what is waiting on the user).
+- **Next step** — the single most useful next action, with the exact command (e.g. `/ehai:sync`, `ehai poc run checkout 2`).
+- **Warning** — anything risky or easy to miss (sensitive data found, stale items, a failing check). Start the line with ⚠.
+- **Note / tip** — one thing that saves the user time next time.
+
+Match the role: plain words for **pm**, commands and paths for **dev**. Use a small table inside the footer only when it is clearer than lines. Never repeat the whole reply, and never put sensitive data in it.
 
 ## Asking the user
 
@@ -310,6 +436,27 @@ Configured role: **pm**. The user can override it for this session by saying so;
 - **dev** — concise and technical: file paths, commands, diffs.
 - **both** — start plain, add a short technical section at the end.
 
+## End every reply with Insights
+
+Finish every ehai reply with this footer, after any question you ask:
+
+```
+★ Insights ─────────────────────────────────────
+  • <line>
+  • <line>
+─────────────────────────────────────────────────
+```
+
+Put 2–5 short lines in it, only the ones that help right now:
+
+- **Summary** — what just changed, in one line (e.g. "12 tasks synced, 0 duplicates").
+- **Status** — where things stand (% done, what is blocked, what is waiting on the user).
+- **Next step** — the single most useful next action, with the exact command (e.g. `/ehai:sync`, `ehai poc run checkout 2`).
+- **Warning** — anything risky or easy to miss (sensitive data found, stale items, a failing check). Start the line with ⚠.
+- **Note / tip** — one thing that saves the user time next time.
+
+Match the role: plain words for **pm**, commands and paths for **dev**. Use a small table inside the footer only when it is clearer than lines. Never repeat the whole reply, and never put sensitive data in it.
+
 ## Asking the user
 
 When you need input from the user, ask with your harness's multiple-choice question tool (e.g. `AskUserQuestion` in Claude Code). Offer 2–4 concrete options, recommended first and marked "(Recommended)". If no such tool exists, present a numbered list and wait for the answer.
@@ -342,6 +489,27 @@ Configured role: **pm**. The user can override it for this session by saying so;
 - **dev** — concise and technical: file paths, commands, diffs.
 - **both** — start plain, add a short technical section at the end.
 
+## End every reply with Insights
+
+Finish every ehai reply with this footer, after any question you ask:
+
+```
+★ Insights ─────────────────────────────────────
+  • <line>
+  • <line>
+─────────────────────────────────────────────────
+```
+
+Put 2–5 short lines in it, only the ones that help right now:
+
+- **Summary** — what just changed, in one line (e.g. "12 tasks synced, 0 duplicates").
+- **Status** — where things stand (% done, what is blocked, what is waiting on the user).
+- **Next step** — the single most useful next action, with the exact command (e.g. `/ehai:sync`, `ehai poc run checkout 2`).
+- **Warning** — anything risky or easy to miss (sensitive data found, stale items, a failing check). Start the line with ⚠.
+- **Note / tip** — one thing that saves the user time next time.
+
+Match the role: plain words for **pm**, commands and paths for **dev**. Use a small table inside the footer only when it is clearer than lines. Never repeat the whole reply, and never put sensitive data in it.
+
 ## Asking the user
 
 When you need input from the user, ask with your harness's multiple-choice question tool (e.g. `AskUserQuestion` in Claude Code). Offer 2–4 concrete options, recommended first and marked "(Recommended)". If no such tool exists, present a numbered list and wait for the answer.
@@ -356,7 +524,7 @@ Never put real sensitive data (personally identifiable information) in plans, ta
 === plugins/ehai/.claude-plugin/plugin.json ===
 {
   "name": "ehai",
-  "version": "0.1.0-alpha.2+59631b1d",
+  "version": "0.1.0-alpha.2+03dd9dc9",
   "description": "ehai: plan, track and prototype from Claude Code (skills + MCP server)",
   "author": {
     "name": "ehai"

@@ -195,6 +195,8 @@
 - **`ehai migration export|import`**: device-move ZIP (config + prefs + local tracker); harness adapters excluded (re-run `adapters regenerate` after import).
 - **`observe_interaction` hook**: lightweight behavioural signals written fire-and-forget after `save_prd` and `poc_new`; self-compacts above 50 entries.
 - **Template updates**: `plan/SKILL.md` and `shared/commands/plan.md` include the `plan_explore` refinement step (4b); 7 harness adapter snapshots updated accordingly.
+- **`ehai poc run` / `ehai poc shell`** (2026-11-19): run a command (default: the dev server) or open a shell inside a POC worktree from anywhere in the repo, with its `.env.ehai.local` ports loaded and the exit code passed through. `ehai_env::read_env_overlay` reads the overlay back.
+- **★ Insights footer** (2026-11-19): every skill (via `{{role_block}}`), AGENTS.md (`{{insights_block}}`) and the MCP server instructions tell the agent to end replies with a 2–5 line footer (summary, status, next command, ⚠ warnings). `ui::insights` renders the same footer for `poc new|open|list`.
 
 ## Next — M9: Hardening and release
 

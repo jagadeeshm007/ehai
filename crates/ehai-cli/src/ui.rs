@@ -65,6 +65,13 @@ pub trait Prompter {
     fn step(&mut self, label: &str, work: &mut dyn FnMut() -> StepResult) -> io::Result<bool>;
 }
 
+/// The "Insights" footer that ends command output: next steps, warnings,
+/// notes. Same shape as the footer the `/ehai:` skills end with.
+pub fn insights(lines: &[String]) -> String {
+    let body: String = lines.iter().map(|l| format!("  {l}\n")).collect();
+    format!("\n★ Insights {}\n{body}{}", "─".repeat(37), "─".repeat(48))
+}
+
 /// Interactive when stdin and stdout are terminals and `--yes` wasn't given.
 pub fn prompter(assume_yes: bool) -> Box<dyn Prompter> {
     if !assume_yes && io::stdin().is_terminal() && io::stdout().is_terminal() {

@@ -1,8 +1,10 @@
-//! `ehai poc new|iterate|compose|promote|list|discard|compare|open`: POC worktree management (spec §5.4).
+//! `ehai poc new|iterate|compose|promote|list|discard|compare|open|run|shell`: POC worktree management (spec §5.4).
 //! Thin wrappers over `ehai-poc`; repo root is resolved from the current directory.
 
 use anyhow::{Context, Result};
 use ehai_core::Config;
+
+use crate::ui::insights;
 
 fn repo_root() -> Result<std::path::PathBuf> {
     let cwd = std::env::current_dir()?;
@@ -29,13 +31,26 @@ pub fn new_poc(
          Worktree: {wt}\n\
          Port:     {port}\n\
          URL:      http://localhost:{port}\n\n\
-         Design context:\n{ctx}",
+         Design context:\n{ctx}{tips}",
         n = created.entry.n,
         branch = created.entry.branch,
         wt = created.entry.worktree.display(),
         port = created.entry.port,
         ctx = created.design_context,
+        tips = run_tips(feature, created.entry.n),
     ))
+}
+
+/// Next-step footer shared by every command that leaves a POC ready to run.
+fn run_tips(feature: &str, n: u32) -> String {
+    let f = ehai_poc::feature_slug(feature);
+    insights(&[
+        format!("Start it:      ehai poc run {f} {n}"),
+        format!("Any command:   ehai poc run {f} {n} -- <cmd>   (e.g. pnpm test)"),
+        format!("Shell there:   ehai poc shell {f} {n}   (type `exit` to come back)"),
+        "No `cd` needed: commands run in the worktree with its own ports loaded.".into(),
+        "Note: main is untouched; nothing is merged until you `ehai poc promote`.".into(),
+    ])
 }
 
 pub fn iterate_poc(
@@ -74,6 +89,7 @@ pub fn list_pocs(config: &Config, feature: Option<&str>) -> Result<String> {
         return Ok("No POCs found.".into());
     }
     let mut out = String::new();
+    let last = entries.last().map(|e| (e.feature.clone(), e.n));
     for e in &entries {
         let parent = e
             .parent
@@ -88,6 +104,12 @@ pub fn list_pocs(config: &Config, feature: Option<&str>) -> Result<String> {
             date = e.created_at,
             prompt = e.prompt,
         );
+    }
+    if let Some((f, n)) = last {
+        out += &insights(&[
+            format!("{} POC(s). Run one: ehai poc run {f} {n}", entries.len()),
+            format!("Compare: ehai poc compare {f} <n> <n>   ·   Shell: ehai poc shell {f} {n}"),
+        ]);
     }
     Ok(out)
 }
@@ -196,11 +218,80 @@ pub fn open_poc(config: &Config, feature: &str, n: u32) -> Result<String> {
     let root = repo_root()?;
     let info = ehai_poc::poc_open_info(&root, feature, n)?;
     Ok(format!(
-        "Worktree: {wt}\nBranch:   {branch}\nPort:     {port}\nURL:      {url}\n\nRun inside the worktree:\n  {cmd}",
+        "Worktree: {wt}\nBranch:   {branch}\nPort:     {port}\nURL:      {url}\nDev cmd:  {cmd}{tips}",
         wt = info.worktree.display(),
         branch = info.branch,
         port = info.port,
         url = info.url,
         cmd = info.command,
+        tips = run_tips(feature, n),
     ))
+}
+
+/// `ehai poc run`: run `cmd` (or the detected dev server) inside the POC
+/// worktree with its `.env.ehai.local` ports applied — no `cd` needed.
+/// Returns the command's exit code.
+pub fn run_in_poc(feature: &str, n: u32, cmd: &[String]) -> Result<i32> {
+    let root = repo_root()?;
+    let info = ehai_poc::poc_open_info(&root, feature, n)?;
+    let mut c = match cmd.split_first() {
+        Some((prog, args)) => {
+            let mut c = std::process::Command::new(prog);
+            c.args(args);
+            c
+        }
+        // The dev command is a shell string ("pnpm run dev").
+        None if cfg!(windows) => {
+            let mut c = std::process::Command::new("cmd");
+            c.args(["/C", &info.command]);
+            c
+        }
+        None => {
+            let mut c = std::process::Command::new("sh");
+            c.args(["-c", &info.command]);
+            c
+        }
+    };
+    let shown = if cmd.is_empty() {
+        info.command.clone()
+    } else {
+        cmd.join(" ")
+    };
+    eprintln!("→ {shown}   (in {})", info.worktree.display());
+    if cmd.is_empty() {
+        eprintln!("  {}", info.url);
+    }
+    let status = c
+        .current_dir(&info.worktree)
+        .envs(ehai_env::read_env_overlay(&info.worktree))
+        .status()
+        .with_context(|| format!("could not start `{shown}` — is it installed?"))?;
+    Ok(status.code().unwrap_or(1))
+}
+
+/// `ehai poc shell`: open the user's shell inside the POC worktree with its
+/// ports loaded. `exit` returns to where they were.
+pub fn shell_in_poc(feature: &str, n: u32) -> Result<i32> {
+    let root = repo_root()?;
+    let info = ehai_poc::poc_open_info(&root, feature, n)?;
+    let shell = if cfg!(windows) {
+        std::env::var("COMSPEC").unwrap_or_else(|_| "cmd".into())
+    } else {
+        std::env::var("SHELL").unwrap_or_else(|_| "sh".into())
+    };
+    eprintln!(
+        "→ {shell} in {} — dev server: `{}`, `exit` to leave",
+        info.worktree.display(),
+        info.command
+    );
+    let status = std::process::Command::new(&shell)
+        .current_dir(&info.worktree)
+        .envs(ehai_env::read_env_overlay(&info.worktree))
+        .env(
+            "EHAI_POC",
+            format!("{}/poc-{n}", ehai_poc::feature_slug(feature)),
+        )
+        .status()
+        .with_context(|| format!("could not start shell `{shell}`"))?;
+    Ok(status.code().unwrap_or(0))
 }

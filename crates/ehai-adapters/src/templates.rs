@@ -6,9 +6,11 @@ use crate::Ctx;
 
 const ASK_USER: &str = include_str!("../../../templates/shared/ask-user.md");
 const ROLE: &str = include_str!("../../../templates/shared/role.md");
+const INSIGHTS: &str = include_str!("../../../templates/shared/insights.md");
 
 /// Render `tpl` for `ctx`. Shared blocks (`{{ask_block}}`, `{{role_block}}`) are
-/// expanded first so they can use the same placeholders.
+/// expanded first so they can use the same placeholders. Every command
+/// template carries `{{role_block}}`, so the Insights footer rides along with it.
 pub fn render(tpl: &str, ctx: &Ctx) -> String {
     let brand = ctx.brand.name.as_str();
     let prefix = ctx.brand.command_prefix();
@@ -17,7 +19,11 @@ pub fn render(tpl: &str, ctx: &Ctx) -> String {
         .as_deref()
         .unwrap_or("not set yet — ask the user (pm / dev / both)");
     tpl.replace("{{ask_block}}", ASK_USER.trim_end())
-        .replace("{{role_block}}", ROLE.trim_end())
+        .replace("{{insights_block}}", INSIGHTS.trim_end())
+        .replace(
+            "{{role_block}}",
+            &format!("{}\n\n{}", ROLE.trim_end(), INSIGHTS.trim_end()),
+        )
         .replace("{{brand}}", brand)
         .replace("{{prefix}}", &prefix)
         .replace("{{role}}", role)
@@ -43,6 +49,10 @@ mod tests {
         );
         assert!(out.starts_with("acme acme:x not set yet"));
         assert!(out.contains("AskUserQuestion"));
+        assert!(
+            out.contains("★ Insights"),
+            "insights footer rides with role_block"
+        );
         assert!(!out.contains("{{"), "no placeholder left:\n{out}");
     }
 }

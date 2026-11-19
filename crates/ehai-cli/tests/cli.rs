@@ -479,3 +479,54 @@ fn closed_stdout_pipe_exits_quietly() {
     assert!(!err.contains("panicked"), "{err}");
     assert!(out.status.success(), "{err}");
 }
+
+/// `poc run` from the repo root executes inside the POC worktree with its
+/// allocated port, and passes the command's exit code through.
+#[cfg(unix)]
+#[test]
+fn poc_run_executes_in_worktree_with_ports_and_exit_code() {
+    let env = Env::new();
+    let git = |args: &[&str]| {
+        assert!(std::process::Command::new("git")
+            .args(args)
+            .current_dir(env.cwd.path())
+            .status()
+            .unwrap()
+            .success())
+    };
+    git(&["init", "-q", "-b", "main"]);
+    std::fs::write(env.cwd.path().join("README.md"), "demo\n").unwrap();
+    git(&["add", "-A"]);
+    git(&[
+        "-c",
+        "user.email=t@t",
+        "-c",
+        "user.name=t",
+        "commit",
+        "-qm",
+        "init",
+    ]);
+
+    let out = env
+        .cmd()
+        .args(["poc", "new", "checkout", "demo"])
+        .output()
+        .unwrap();
+    let s = stdout(&out);
+    assert!(out.status.success(), "{s}");
+    assert!(
+        s.contains("★ Insights") && s.contains("ehai poc run checkout 1"),
+        "{s}"
+    );
+
+    let out = env
+        .cmd()
+        .args(["poc", "run", "checkout", "1", "--", "sh", "-c"])
+        .arg("pwd; echo PORT=$PORT; exit 7")
+        .output()
+        .unwrap();
+    let s = stdout(&out);
+    assert_eq!(out.status.code(), Some(7), "{s}");
+    assert!(s.contains("checkout/poc-1"), "ran in the worktree: {s}");
+    assert!(s.contains("PORT=2"), "port overlay loaded: {s}");
+}

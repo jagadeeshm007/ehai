@@ -417,8 +417,12 @@ Skills are the user-facing layer. Each `/ehai:<command>` is a skill that calls o
 | `poc list` | `/ehai:poc list` | Lists all POCs with status (draft / liked / rejected / promoted / archived) |
 | `poc compare` | `/ehai:poc compare [pocA pocB …]` | Side-by-side screenshot gallery + diff summary |
 | `poc open` | `/ehai:poc open <pocN>` | Starts the POC's dev server |
+| `poc run` | `ehai poc run <feature> <n> [-- cmd]` | Runs a command **inside the POC worktree** from anywhere in the repo, with its ports loaded. No command = start the dev server. No `cd` needed |
+| `poc shell` | `ehai poc shell <feature> <n>` | Opens your shell inside the POC worktree with its ports loaded; `exit` to come back |
 | `poc promote` | `/ehai:poc promote <pocN>` | Opens a PR to the default branch after explicit confirmation |
 | `poc discard` | `/ehai:poc discard <pocN>` | Archives as git tag `ehai-archive/<feature>/<pocN>`, removes worktree |
+
+Every ehai reply (skills and POC commands) ends with a **★ Insights** footer: a one-line summary, status, the next step with its exact command, and any ⚠ warnings.
 
 ---
 

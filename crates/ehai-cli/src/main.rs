@@ -203,6 +203,19 @@ enum PocCmd {
     },
     /// Print the worktree path, dev-server command, and URL for a POC.
     Open { feature: String, n: u32 },
+    /// Run a command inside a POC worktree, with its ports loaded — no `cd`.
+    /// With no command, starts the detected dev server.
+    /// Example: `ehai poc run checkout 2 -- pnpm test`
+    Run {
+        feature: String,
+        n: u32,
+        /// Command to run (after `--`); defaults to the dev server.
+        #[arg(last = true)]
+        cmd: Vec<String>,
+    },
+    /// Open your shell inside a POC worktree, with its ports loaded.
+    /// Type `exit` to come back.
+    Shell { feature: String, n: u32 },
     /// Synthesise a new POC from parts of two or more existing POCs.
     Compose {
         feature: String,
@@ -282,6 +295,11 @@ fn is_broken_pipe(e: &anyhow::Error) -> bool {
     e.chain()
         .filter_map(|c| c.downcast_ref::<std::io::Error>())
         .any(|io| io.kind() == std::io::ErrorKind::BrokenPipe)
+}
+
+/// Pass a child process's exit status through as ours.
+fn exit_code(code: i32) -> ExitCode {
+    ExitCode::from(u8::try_from(code).unwrap_or(1))
 }
 
 fn run() -> Result<ExitCode> {
@@ -445,6 +463,12 @@ fn run_command(cli: Cli, home: PathBuf, config: ehai_core::Result<Config>) -> Re
                 }
                 PocCmd::Open { feature, n } => {
                     println!("{}", poc::open_poc(&config, &feature, n)?)
+                }
+                PocCmd::Run { feature, n, cmd } => {
+                    return Ok(exit_code(poc::run_in_poc(&feature, n, &cmd)?));
+                }
+                PocCmd::Shell { feature, n } => {
+                    return Ok(exit_code(poc::shell_in_poc(&feature, n)?));
                 }
                 PocCmd::Compose {
                     feature,

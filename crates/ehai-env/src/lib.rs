@@ -14,7 +14,7 @@ mod validate;
 
 pub use error::{Error, Result};
 pub use materialize::Materialized;
-pub use ports::PortRegistry;
+pub use ports::{read_env_overlay, PortRegistry};
 pub use smoke::{SmokeOutcome, SmokeResult};
 pub use validate::missing_keys;
 

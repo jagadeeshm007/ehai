@@ -50,3 +50,5 @@ or examples. `{{brand}}` tools check what they write and will ask if they
 detect something suspicious.
 
 Run `{{brand}} doctor` if tools are not responding.
+
+{{insights_block}}

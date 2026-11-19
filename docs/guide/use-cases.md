@@ -163,6 +163,24 @@ The PR links the issue, maps the diff to the acceptance criteria, and surfaces a
 
 Neither poc-1 nor poc-2 touched `main`. The source repo's working tree is byte-identical to before.
 
+To run a POC yourself, stay in the repo root; there's no need to find or `cd` into the worktree:
+
+```bash
+ehai poc run notifications 2              # dev server for poc-2, on its own port
+ehai poc run notifications 2 -- pnpm test # any command inside poc-2
+ehai poc shell notifications 2            # a shell inside poc-2 (`exit` to leave)
+```
+
+Each reply ends with a footer like this one:
+
+```
+★ Insights ─────────────────────────────────────
+  Start it:      ehai poc run notifications 2
+  Shell there:   ehai poc shell notifications 2
+  Note: main is untouched; nothing is merged until you `ehai poc promote`.
+────────────────────────────────────────────────
+```
+
 ---
 
 ### Use case 8 — Monorepo with multiple apps

@@ -104,6 +104,18 @@ pub fn write_env_overlay(
     std::fs::write(&path, body).map_err(Error::io(&path))
 }
 
+/// Read back the `KEY=VALUE` pairs from a worktree's `.env.ehai.local`, so
+/// commands run there get the same ports. Missing file → no vars.
+pub fn read_env_overlay(worktree_root: &Path) -> Vec<(String, String)> {
+    std::fs::read_to_string(worktree_root.join(".env.ehai.local"))
+        .unwrap_or_default()
+        .lines()
+        .filter_map(|l| l.split_once('='))
+        .map(|(k, v)| (k.trim().to_string(), v.trim().to_string()))
+        .filter(|(k, _)| !k.is_empty() && !k.starts_with('#'))
+        .collect()
+}
+
 fn sanitize(id: &str) -> String {
     id.chars()
         .map(|c| {
@@ -163,5 +175,19 @@ mod tests {
                 assert!(all.insert(p), "port {p} allocated twice");
             }
         }
+    }
+
+    #[test]
+    fn overlay_round_trips_and_missing_file_is_empty() {
+        let wt = tempfile::tempdir().unwrap();
+        assert!(read_env_overlay(wt.path()).is_empty());
+        write_env_overlay(wt.path(), "wt/1", &[("PORT".into(), 4100)]).unwrap();
+        assert_eq!(
+            read_env_overlay(wt.path()),
+            vec![
+                ("COMPOSE_PROJECT_NAME".into(), "wt-1".into()),
+                ("PORT".into(), "4100".into())
+            ]
+        );
     }
 }
