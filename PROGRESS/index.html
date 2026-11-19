@@ -1,0 +1,1302 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="AI-SDLC ops engine for any team — plan, track, and prototype from any AI harness">
+      
+      
+      
+        <link rel="canonical" href="https://jagadeeshm007.github.io/ehai/PROGRESS/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="https://raw.githubusercontent.com/jagadeeshm007/ehai/main/docs/assets/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
+    
+    
+      
+        <title>Progress - ehai</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.57a0d79d.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.fb2fffe2.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../stylesheets/claude.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="deep-purple" data-md-color-accent="deep-orange">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#progress" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="ehai" class="md-header__button md-logo" aria-label="ehai" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m11.5 20 4.86-9.73H13V4l-5 9.73h3.5zM12 2c2.75 0 5.1 1 7.05 2.95S22 9.25 22 12s-1 5.1-2.95 7.05S14.75 22 12 22s-5.1-1-7.05-2.95S2 14.75 2 12s1-5.1 2.95-7.05S9.25 2 12 2"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            ehai
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Progress
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/jagadeeshm007/ehai" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jagadeeshm007/ehai
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="ehai" class="md-nav__button md-logo" aria-label="ehai" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m11.5 20 4.86-9.73H13V4l-5 9.73h3.5zM12 2c2.75 0 5.1 1 7.05 2.95S22 9.25 22 12s-1 5.1-2.95 7.05S14.75 22 12 22s-5.1-1-7.05-2.95S2 14.75 2 12s1-5.1 2.95-7.05S9.25 2 12 2"/></svg>
+
+    </a>
+    ehai
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/jagadeeshm007/ehai" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jagadeeshm007/ehai
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/how-it-works/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How it works
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quickstart
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/setup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Setup & Connections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/use-cases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Use Cases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/spec-driven/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    With spec-driven tools
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/compliance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Policy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/skills/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Skills
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/mcp-tools/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MCP Tools
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/config/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Config
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Project
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Project
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CHANGELOG/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CONTRIBUTING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../DECISIONS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Decisions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#done" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Done
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Done">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#m0-skeleton-2026-11-17" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        M0 — Skeleton (2026-11-17)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#m1-mcp-claude-code-init-wizard-2026-11-17" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        M1 — MCP + Claude Code + init wizard (2026-11-17)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-m1-fixes-2026-11-17" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Post-M1 fixes (2026-11-17)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#m2-tracker-2026-11-17" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        M2 — Tracker (2026-11-17)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#m3-pm-flow-2026-11-17" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        M3 — PM flow (2026-11-17)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#m35-roles-and-team-2026-11-17" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        M3.5 — Roles and team (2026-11-17)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#m4-env-provisioning-2026-11-17" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        M4 — Env provisioning (2026-11-17)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#m5-poc-engine-2026-11-17" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        M5 — POC engine (2026-11-17)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#m6-compose-promote-preferences-role-aware-output-2026-11-17" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        M6 — Compose + promote + preferences + role-aware output (2026-11-17)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#m7-all-harness-adapters-2026-11-17" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        M7 — All harness adapters (2026-11-17)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pre-m8-fixes-2026-11-17" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pre-M8 fixes (2026-11-17)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#m8-distribution-2026-11-18" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        M8 — Distribution (2026-11-18)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#m81-first-push-2026-11-18" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        M8.1 — First push (2026-11-18)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#post-m8-additions-pre-m9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Post-M8 additions (pre-M9)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#next-m9-hardening-and-release" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Next — M9: Hardening and release
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#open-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Open questions
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+    
+      
+    
+    <a href="https://github.com/jagadeeshm007/ehai/raw/main/docs/PROGRESS.md" title="View source of this page" class="md-content__button md-icon">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 18c.56 0 1 .44 1 1s-.44 1-1 1-1-.44-1-1 .44-1 1-1m0-3c-2.73 0-5.06 1.66-6 4 .94 2.34 3.27 4 6 4s5.06-1.66 6-4c-.94-2.34-3.27-4-6-4m0 6.5a2.5 2.5 0 0 1-2.5-2.5 2.5 2.5 0 0 1 2.5-2.5 2.5 2.5 0 0 1 2.5 2.5 2.5 2.5 0 0 1-2.5 2.5M9.27 20H6V4h7v5h5v4.07c.7.08 1.36.25 2 .49V8l-6-6H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h4.5a8.2 8.2 0 0 1-1.23-2"/></svg>
+    </a>
+  
+
+
+<h1 id="progress">Progress</h1>
+<h2 id="done">Done</h2>
+<h3 id="m0-skeleton-2026-11-17">M0 — Skeleton (2026-11-17)</h3>
+<ul>
+<li>Cargo workspace at <code>0.1.0-alpha.1</code> (<code>version.workspace = true</code>), MSRV 1.89, stable toolchain pinned.</li>
+<li><code>ehai-core</code>:</li>
+<li>paths, with <code>EHAI_HOME</code> override</li>
+<li>brand name, with validation and derived MCP name / command prefix</li>
+<li>typed config schema v1 with JSON schema</li>
+<li>layered loading: defaults &lt; global &lt; repo <code>.ehai.toml</code> &lt; <code>--config</code> &lt; <code>EHAI_*</code> env &lt; CLI</li>
+<li>forward-only migration framework, with backup, atomic write and file lock</li>
+<li><code>ehai-cli</code>:</li>
+<li><code>ehai --version</code> (version, sha, build date, target)</li>
+<li><code>ehai doctor [--post-update]</code> checks binary, config, git ≥ 2.20, home writable and gh (optional)</li>
+<li><code>ehai config show|path|schema</code></li>
+<li>JSON logs in <code>~/.ehai/logs</code> (daily, 14 kept)</li>
+<li>UI kit: a <code>Prompter</code> trait with cliclack (TTY) and plain/scripted (CI and tests) implementations, plus ✔/✖ checklist steps with fix hints.</li>
+<li>CI: path-filtered <code>ci.yml</code> plus a <code>ci-skip.yml</code> mirror. Jobs: fmt, clippy, nextest on 3 OSes, cargo-deny, coverage ≥ 80%, insta check.</li>
+<li>Release: tag-only <code>release.yml</code>.</li>
+<li>Checks that the tag equals the workspace version.</li>
+<li>Builds musl/macOS/Windows.</li>
+<li>Produces archives, SHA256SUMS, minisign, git-cliff notes, and marks pre-release tags as pre-releases.</li>
+<li>Conventional-commit hook (<code>.githooks/commit-msg</code>), <code>cliff.toml</code>, <code>deny.toml</code>.</li>
+</ul>
+<h3 id="m1-mcp-claude-code-init-wizard-2026-11-17">M1 — MCP + Claude Code + init wizard (2026-11-17)</h3>
+<ul>
+<li><code>ehai-mcp</code>: rmcp 3.10 stdio server.</li>
+<li><code>ping</code> tool and <code>ehai://prefs</code> resource.</li>
+<li>A per-handler panic guard, so a bad request never crashes the server.</li>
+<li>Clean exit when the client disconnects.</li>
+<li><code>ehai-adapters</code>: a <code>Harness</code> trait plus the Claude Code adapter.</li>
+<li>Generates a local marketplace whose plugin bundles the MCP server and skills (<code>/ehai:help</code>, <code>/ehai:prefs</code>).</li>
+<li>Install is idempotent, and the plugin version is content-hashed so updates are picked up.</li>
+<li>Handles brand renames, and <code>remove</code> reverses everything.</li>
+<li>Verified live with Claude Code 2.1.179: <code>claude plugin validate</code> passes and the MCP server shows ✔ Connected.</li>
+<li>Templates: shared "ask the user" (native question UI + <code>needs_input</code>) and role blocks, rendered with the brand.</li>
+<li><code>ehai init</code> wizard:</li>
+<li>Auto-detects OS, git, gh + auth, harnesses, Claude desktop, Chrome and the repo.</li>
+<li>Shows a summary card, then asks ≤ 5 questions, each skippable by a flag.</li>
+<li>Esc goes back, and a cancel writes nothing.</li>
+<li>Applies with a live checklist and retry, then ends with next commands per role.</li>
+<li><code>ehai-stack</code>: repo scan.</li>
+<li>Apps and stacks: Expo/RN/Next/Vite/CRA/React/Go/FastAPI/Django/Flask.</li>
+<li>Package managers, design-system libraries, env file names, and conventions (tests, lint/format, commit style, PR template).</li>
+<li><code>ehai repo init</code> writes <code>.ehai/profile.toml</code>.</li>
+<li><code>ehai adapters list|install|remove|regenerate</code>. <code>doctor</code> now verifies the enabled adapters.</li>
+<li>Core additions:</li>
+<li><code>config::edit_file</code>, which preserves unknown keys and validates before writing</li>
+<li>a git wrapper</li>
+<li>a process runner with timeouts</li>
+<li>reserved brand names</li>
+</ul>
+<h3 id="post-m1-fixes-2026-11-17">Post-M1 fixes (2026-11-17)</h3>
+<ul>
+<li><code>ehai</code> was not on PATH, and the plugin pointed at <code>target/debug</code>.</li>
+<li><code>ehai self install</code> now installs to <code>~/.ehai/bin</code> with a marked PATH block.</li>
+<li>Adapters prefer the installed binary.</li>
+<li><code>ehai connect &lt;id&gt;</code> / <code>ehai disconnect &lt;id&gt;|--all</code> connect and disconnect harnesses.</li>
+<li><code>ehai uninstall</code> removes everything in one command and is tested to leave no traces.</li>
+</ul>
+<h3 id="m2-tracker-2026-11-17">M2 — Tracker (2026-11-17)</h3>
+<ul>
+<li><code>ehai-tracker</code>:</li>
+<li><code>Tracker</code> trait, status/priority/size/type enums, and an <code>ehai-id</code> footer.</li>
+<li><code>MemoryTracker</code> (the reference implementation).</li>
+<li>The GitHub Projects v2 adapter: issues in a repo or draft items, a non-destructive <code>ensure_schema</code>, pagination, and retries with backoff.</li>
+<li>The idempotent sync engine (<code>sync::plan</code> / <code>sync::sync</code>).</li>
+<li>GitHub auth via <code>gh</code> or env, with <code>project</code>-scope detection.</li>
+<li>Shared contract suite: runs against the memory tracker and against GitHub on a stateful fake server (<code>fake</code> feature). It includes a test that a schema update keeps existing card statuses.</li>
+<li>Opt-in live test (<code>EHAI_LIVE_GH=1</code>): the full run passes against real GitHub as <code>jagadeeshm007</code> (ADR-0019).</li>
+<li>CLI:</li>
+<li><code>ehai tracker set [--owner --project|--create --repo|--no-repo]</code>, <code>tracker status</code> and <code>tracker schema</code>.</li>
+<li><code>init</code> gained a "Where should work be tracked?" step (defaults to Skip, plus <code>--tracker-project/--tracker-create/--no-tracker</code>).</li>
+<li><code>doctor</code> checks the token, the scope and project reachability.</li>
+<li>The release repo moved to <code>jagadeeshm007/ehai</code>.</li>
+</ul>
+<h3 id="m3-pm-flow-2026-11-17">M3 — PM flow (2026-11-17)</h3>
+<ul>
+<li><code>ehai-guard</code>:</li>
+<li>Detects SSN, MRN, DOB, member id, email, phone, address, name + medical term, plus custom patterns.</li>
+<li>Confidence levels; off/warn/strict modes.</li>
+<li>A value-free JSONL audit log.</li>
+<li>Property-tested: no false negatives on generated PHI.</li>
+<li><code>ehai-planner</code>:</li>
+<li>PRD and breakdown models with validation (measurable metrics, Mermaid flows, dependency cycles, acceptance criteria).</li>
+<li>Markdown, Mermaid and board preview.</li>
+<li>Conversion to tracker items.</li>
+<li>Status report (Markdown + Mermaid + self-contained HTML).</li>
+<li>Triage duplicate detection.</li>
+<li>MCP server:</li>
+<li>9 tools (<code>save_prd</code>, <code>get_plan</code>, <code>list_plans</code>, <code>save_breakdown</code>, <code>sync_plan</code>, <code>status_report</code>, <code>triage</code>, <code>guard_check</code>, <code>ping</code>).</li>
+<li>7 prompts, each mirroring a skill.</li>
+<li><code>needs_input</code> questions; every write is guarded and audited.</li>
+<li>Claude Code skills <code>/ehai:plan</code>, <code>breakdown</code>, <code>sync</code>, <code>status</code> and <code>triage</code> (role-aware, native questions, no real patient data).</li>
+<li>Claude desktop adapter: an <code>mcpServers</code> entry in <code>claude_desktop_config.json</code>; the flows arrive as MCP prompts.</li>
+<li>Verified live: the plugin passes <code>claude plugin validate</code>, the MCP server shows ✔ Connected, and the real binary serves 9 tools and 7 prompts.</li>
+</ul>
+<h3 id="m35-roles-and-team-2026-11-17">M3.5 — Roles and team (2026-11-17)</h3>
+<ul>
+<li>Role resolution tied to real GitHub project admin status (<code>docs/plans/roles-and-team.md</code>, approved):</li>
+<li>Admin check: <code>ProjectV2.viewerCanClose</code>, run when <code>tracker set</code>/<code>init</code> connects a project and stored as <code>access.project_admin</code> + <code>access.checked</code>.</li>
+<li><code>Config::effective_role()</code> reads <code>access.project_admin</code> at every call site; a stored <code>role</code> or <code>EHAI_ROLE</code> override is harmless to persist — it only takes effect for an admin. Non-admins and "no project connected yet" are always <code>dev</code>, no question asked.</li>
+<li><code>ehai role</code> shows the effective role and why; <code>ehai role set &lt;role&gt;</code> is refused with a clear message for non-admins.</li>
+<li><code>ehai-tracker::team</code>: team = repo assignable users ∪ org members (merged by login), one combined GraphQL query, cached at <code>~/.ehai/cache/team/&lt;owner&gt;-&lt;number&gt;.json</code>, refreshed once a day or with <code>ehai team --refresh</code>; falls back to the stale cache if a refresh fails.</li>
+<li>Assignment, by design, is <strong>not permission-gated</strong> — every action stays available to every role; role only shapes tone and defaults. <code>ehai-tracker::Tracker::assign</code>/<code>unassign</code>:</li>
+<li>Issues: <code>addAssigneesToAssignable</code> / <code>removeAssigneesToAssignable</code>.</li>
+<li>Draft issues: <code>updateProjectV2DraftIssue</code> (replace-only — no additive mutation exists for drafts), so the impl reads current assignees first and replaces the whole list.</li>
+<li><code>sync</code>: <code>Desired.assignees</code> are set once, on create only — a re-sync never undoes a manual reassignment on the board (same rule as status).</li>
+<li>MCP tools: <code>team</code>, <code>assign_task</code> (add/replace/remove modes), <code>comment_task</code> (optional <code>@login</code> mentions, still PHI-guarded). Both resolve a fuzzy <code>item</code> (<code>#18</code>, URL, ehai id or title substring) and fuzzy assignee names, returning <code>needs_input</code> on ambiguity.</li>
+<li><code>ehai-planner</code>: <code>Story</code>/<code>Task</code> gained an optional <code>assignees</code> field (tasks inherit the story's when empty, like <code>platforms</code>); <code>status_report</code> gained a by-person table and an "overloaded" (&gt;5 open) flag.</li>
+<li>Claude Code skill <code>/ehai:assign</code>; <code>doctor</code> shows the role, why, and the team cache age.</li>
+<li>Verified live against <code>jagadeeshm007/aisdlc-demo</code> (real admin check, team fetch, role persistence) and against a disposable throwaway GitHub project (<code>EHAI_LIVE_GH=1</code>, self-deleting) covering admin check, team fetch and assign/unassign round-trip.</li>
+</ul>
+<h3 id="m4-env-provisioning-2026-11-17">M4 — Env provisioning (2026-11-17)</h3>
+<ul>
+<li><code>ehai-env</code>: discover → materialise → validate → ports → install → smoke, each step logged into a <code>Report</code>:</li>
+<li><strong>Discover:</strong> walks the source checkout (skipping <code>node_modules</code>/<code>.venv</code>/<code>target</code>/etc.), matches built-in patterns (<code>.env*</code>, <code>*.local.*</code>, <code>.npmrc</code>, <code>local.properties</code>, <code>google-services.json</code>, <code>.tool-versions</code>, …) plus <code>[env]</code> include/exclude globs, keeps only what git doesn't track in the target (ignored or simply new).</li>
+<li><strong>Materialise:</strong> copy (default) or symlink; refuses to overwrite a path the target worktree already tracks.</li>
+<li><strong>Validate:</strong> per-directory <code>.env.example</code>/<code>.env.sample</code> vs sibling <code>.env*</code>, missing keys reported by name only, prefixed by app dir in a monorepo.</li>
+<li><strong>Ports:</strong> a locked JSON registry at <code>~/.ehai/ports.json</code>, keyed by the worktree's canonical path; stable across re-syncs, released on demand. Written to <code>.env.ehai.local</code> with a stack-appropriate var name (<code>RCT_METRO_PORT</code>, <code>VITE_PORT</code>, <code>PORT</code>), prefixed by app name when there's more than one app.</li>
+<li><strong>Install:</strong> lockfile → package manager detection (pnpm/yarn/npm/bun/go/uv/poetry/pip); a missing tool or lockfile is reported as skipped, never fails the sync. <code>pod install</code>/Gradle stay opt-in (<code>rn_native_install</code>), per spec.</li>
+<li><strong>Smoke:</strong> the configured command per app path, with a timeout; <code>ehai env doctor</code> runs just this (plus <code>check</code>) with nothing written first.</li>
+<li>CLI: <code>ehai env sync|check|doctor [path]</code> (defaults to the current directory; <code>sync</code> resolves the source checkout to copy from via the worktree's common <code>.git</code> dir).</li>
+<li>MCP tools: <code>env_sync</code>, <code>env_check</code>.</li>
+<li>Verified against synthetic fixtures for every stack in spec §13 (RN Expo, bare RN, Vite React, Next.js, Go API, FastAPI, pnpm monorepo) reaching "ready", plus property-style coverage: ports never collide across 20 parallel worktrees, materialised env files never show up in <code>git status</code>, a missing package manager is reported as skipped rather than failing the whole sync.</li>
+<li>Coverage wasn't independently measured with <code>cargo-llvm-cov</code> (not installed in this environment); each module carries its own unit tests and the fixtures suite exercises the full <code>sync()</code> path per stack.</li>
+</ul>
+<h3 id="m5-poc-engine-2026-11-17">M5 — POC engine (2026-11-17)</h3>
+<ul>
+<li><code>ehai-stack</code>: detects stack per-app (RN Expo/bare, React web/Next.js/Vite/CRA, Go, Python); extracts design tokens (Tailwind config, CSS variables, MUI/Chakra/shadcn themes; NativeWind/restyle/tamagui for RN). Writes <code>.ehai/cache/design-profile.json</code>, invalidated by file hash. Inventories components, routes/nav stacks, state management, test frameworks, formatters, commit style, PR templates.</li>
+<li><code>ehai-poc</code>: full POC lifecycle — <code>poc_new</code> (branch <code>ehai/poc/&lt;feature&gt;/poc-&lt;n&gt;</code>, worktree via <code>ehai-env</code>, design context), <code>poc_iterate</code> (new branch from parent), <code>poc_list</code>, <code>poc_discard</code> (archive tag + worktree removal), <code>poc_compare</code> (side-by-side HTML gallery + diff summary), <code>poc_open</code> (start dev server on allocated port), screenshot capture via Chrome CLI (<code>--headless --screenshot</code>), degrade gracefully when Chrome is absent.</li>
+<li>Manifest at <code>.ehai/pocs/&lt;feature&gt;/manifest.json</code>: id, parent(s), parts, prompt, feedback, status, screenshots, port, created_at, env snapshot hash.</li>
+<li>MCP tools: <code>poc_new</code>, <code>poc_iterate</code>, <code>poc_list</code>, <code>poc_discard</code>, <code>poc_compare</code>, <code>poc_open</code> (6 tools total). Design context returned to the AI for code generation; ehai never generates the React/RN code directly.</li>
+<li>Sandbox: <code>SandboxMode::Restricted</code> checks that every worktree lives under <code>~/.ehai/worktrees</code>; off-path worktrees are blocked before any file write.</li>
+<li>CLI: <code>ehai poc new|iterate|list|discard|compare|open</code>.</li>
+<li>Verified: worktrees created outside the repo; env files never staged; ports unique across concurrent POCs; screenshot degrades cleanly when Chrome is absent.</li>
+</ul>
+<h3 id="m6-compose-promote-preferences-role-aware-output-2026-11-17">M6 — Compose + promote + preferences + role-aware output (2026-11-17)</h3>
+<ul>
+<li><code>poc_compose</code>: synthesises a new POC from multiple parents by reading their diffs and rebuilding the requested parts; lineage records <code>parts: [(parent_n, description)]</code> per parent POC. Not a cherry-pick.</li>
+<li><code>poc_promote</code>: opens a GitHub PR from the POC branch to the default branch; sets <code>status = Promoted</code>; always requires explicit <code>--yes</code> confirmation or <code>needs_input</code> via MCP. Blocked by sandbox in Restricted mode.</li>
+<li><code>ehai-prefs</code>: flat <code>[[entries]]</code> TOML store (<code>~/.ehai/prefs/user.toml</code> global, <code>&lt;repo&gt;/.ehai/prefs/project.toml</code> per-repo, gitignored by default). Fields: key, value, scope, source (explicit/observed), confidence, first_seen, last_seen. Repo entries override global by key. <code>to_context_text()</code> injects a compact block into every POC/planning prompt. <code>ehai://prefs</code> MCP resource returns role + project_admin + learned prefs.</li>
+<li>MCP tools added: <code>poc_compose</code>, <code>poc_promote</code>, <code>prefs_list</code>, <code>prefs_set</code>, <code>prefs_delete</code> (5 new tools).</li>
+<li>Role-aware PM output: <code>do_save_prd</code> and <code>do_status</code> include <code>role</code> and <code>presentation_hint</code> fields so Claude can tailor its response format for PM vs dev.</li>
+<li><code>ehai-tracker</code>: <code>create_pull_request</code> (REST <code>POST /repos/.../pulls</code>); 422 (branch already has open PR) mapped to a clear <code>Error::Api</code>.</li>
+<li>CLI: <code>ehai poc compose|promote</code>; <code>ehai prefs list|set|delete</code>.</li>
+<li>Known gap: per-worktree harness-scoped sandbox settings (§9A, last bullet) — fixed before M8.</li>
+</ul>
+<h3 id="m7-all-harness-adapters-2026-11-17">M7 — All harness adapters (2026-11-17)</h3>
+<ul>
+<li>7 new harness adapters: Codex CLI, Gemini CLI, Cursor, OpenCode, VS Code, Windsurf, AGENTS.md (universal).</li>
+<li>Shared <code>json_mcp.rs</code> module handles read/backup/patch/write for the 5 JSON-based adapters.</li>
+<li>Marked-block strategy for Codex (TOML <code># &gt;&gt;&gt; ehai &gt;&gt;&gt;</code>) and AGENTS.md (HTML <code>&lt;!-- &gt;&gt;&gt; ehai &gt;&gt;&gt; --&gt;</code>).</li>
+<li>VS Code uses <code>servers</code> (not <code>mcpServers</code>) and requires <code>type: "stdio"</code> — the only harness that differs.</li>
+<li>Each adapter has install/idempotency/remove tests and an insta snapshot for <code>generate()</code>.</li>
+<li><code>ehai_adapters::all()</code> now returns all 9 adapters; CLI commands require no changes.</li>
+<li>Config paths verified against official docs and recorded in ADR-0026.</li>
+<li>25 adapter tests: 25 passed, 0 failed.</li>
+</ul>
+<h3 id="pre-m8-fixes-2026-11-17">Pre-M8 fixes (2026-11-17)</h3>
+<ul>
+<li><strong>Local tracker</strong> (<code>ehai-tracker::local::LocalTracker</code>): offline fallback storing items in <code>~/.ehai/tracker.json</code> (or <code>EHAI_LOCAL_TRACKER</code>). Implements the full <code>Tracker</code> trait: create/update/list/get/status/comment/link_pr/assign/unassign. <code>ensure_schema</code> is a no-op (schemaless JSON). PR links and comments are appended to the item body. <code>ehai-id</code> footer preserved across all mutations. Atomic write via <code>write_atomic</code>; in-process <code>Mutex</code> guards concurrent MCP calls. 7 unit tests.</li>
+<li><strong><code>AnyTracker</code> enum</strong> (<code>ehai-tracker::any</code>): type-erased dispatcher implementing <code>Tracker</code> over <code>GithubProjects | LocalTracker</code> via <code>async fn</code> delegation, so <code>sync::sync</code> and other generic callers work with either backend without <code>async_trait</code> or heap boxing.</li>
+<li><strong>MCP <code>tracker()</code> method</strong>: now checks <code>config.tracker.kind</code> — <code>TrackerKind::Local</code> returns <code>AnyTracker::Local</code>, everything else goes through the GitHub client. All 5 PM tool call sites (<code>do_sync</code>, schema, <code>do_triage</code>, <code>do_assign</code>, <code>do_comment</code>) work with both backends unchanged.</li>
+<li><strong><code>ehai init</code> wizard</strong>: detects missing <code>gh</code> / no <code>GITHUB_TOKEN</code> / no <code>GH_TOKEN</code> and asks "Use local storage (all PM flows work offline)" vs "Install gh first". Choosing local writes <code>tracker.kind = "local"</code> to config and shows the step in the apply checklist.</li>
+<li><strong><code>TrackerKind::Local</code></strong> added to <code>ehai-core::config</code>.</li>
+<li><strong>Per-worktree harness sandbox settings</strong> (spec §9A, last bullet — closes the M6 "known gap"): <code>ehai-poc::write_worktree_sandbox_settings</code> writes <code>.claude/settings.local.json</code> into every new POC worktree — allows edits/local commands, denies <code>git push</code>, resets to a protected branch, and destructive <code>rm -rf</code> outside the worktree. Idempotent (skipped if the file already exists, e.g. iterating on the same worktree).</li>
+<li><strong><code>plan_explore</code> MCP tool</strong> (<code>ehai-planner::explore::find_gaps</code>): a lite gap-finder run automatically after <code>save_prd</code> — flags a PRD with no flows (or a single happy-path flow with no error handling), an unmeasured metric, an unmitigated risk, empty out-of-scope, or a single user persona; capped at 5 gaps, in priority order. Takes optional <code>answers</code> to patch the PRD in place (still PHI-guarded) and re-save it. Not part of the original milestone list — added as a cheap way to improve PRD quality without a second full LLM pass.</li>
+<li><strong><code>ehai-prefs</code> observation hook</strong>: <code>EhaiServer::observe_interaction</code> records lightweight behavioural signals (<code>last_plan_complexity</code>, <code>requirements_completeness</code>, <code>poc_created</code>) into the global prefs store after <code>save_prd</code>/<code>plan_explore</code>/<code>poc_new</code>; fire-and-forget (a prefs write failure never blocks the tool), and self-compacts observed (not explicit) entries once there are more than 50.</li>
+<li><strong><code>ehai migration export|import</code></strong>: bundles <code>config.toml</code>, <code>prefs/user.toml</code> and the local tracker's <code>tracker.json</code> into one ZIP for moving to a new machine (harness adapter files are excluded — re-run <code>adapters regenerate</code> after importing). <code>release.rs</code> adds the embedded minisign public key for M8's signature verification.</li>
+<li>Fixed a dead/no-op condition in <code>explore::find_gaps</code>'s single-flow check (<code>.contains(|c| matches!(c, 'e'))</code> is true for almost any English text, silently defeating the real "mentions error/fail/fallback" check); added tests for both sides of that branch.</li>
+</ul>
+<h3 id="m8-distribution-2026-11-18">M8 — Distribution (2026-11-18)</h3>
+<ul>
+<li><code>ehai-update</code>: check → stage (download, verify, extract) → swap in → verify → rollback-on-failure.</li>
+<li><strong>Check:</strong> GitHub Releases REST API (not GraphQL — releases don't need it). Channel acceptance follows spec §11A: alpha accepts every tag, beta skips <code>-alpha</code> tags, stable wants no pre-release suffix at all. Releases come back newest-first from GitHub, so "the latest the channel accepts" needs no semver sorting of its own, just a first-match scan — same trick <code>install.sh</code> reuses in shell.</li>
+<li><strong>Stage:</strong> downloads the platform's asset, <code>SHA256SUMS</code> and <code>SHA256SUMS.minisig</code>; verifies the signature (<code>minisign-verify</code>, pure Rust, no <code>minisign</code> binary needed) against <code>ehai_core::release::MINISIGN_PUBLIC_KEY</code>, then the checksum, then extracts the <code>ehai</code>/<code>ehai.exe</code> binary from the <code>.tar.gz</code>/<code>.zip</code>. Takes the public key as a parameter rather than reading the constant directly, so it's fully testable against a throwaway test keypair — no production secret needed to test it.</li>
+<li><strong>Swap in / rollback:</strong> backs up the running binary to <code>&lt;exe&gt;.prev</code>, writes the new one, and calls <code>self-replace</code> (handles the Windows "can't overwrite a running exe" case). Deliberately <em>not</em> unit-tested directly — <code>self_replace</code> always targets <code>std::env::current_exe()</code>, so a test calling it would replace the actual test binary. Instead verified via a disposable helper binary (<code>src/bin/update_test_harness.rs</code>) spawned as its own subprocess, so <code>current_exe()</code> points at a tempdir copy — proves the real swap/backup/rollback mechanics end to end without ever touching <code>target/debug</code> or the real <code>ehai</code> binary.</li>
+<li><strong>Post-update check runs as a fresh subprocess</strong> (<code>&lt;new-exe&gt; doctor --post-update</code>), not in-process — the swap only changes the file on disk; the process that performed it is still running the old code until it exits.</li>
+<li><strong>Daily notify-only check</strong> (<code>update.check</code>): a <code>~/.ehai/update-check.json</code> timestamp gates it to once a day; runs after a command's own output (never delays the thing the user asked for), with a short 3s timeout, and is silently skipped on any failure. Off for <code>mcp</code> (must keep stdout clean), <code>update</code> itself, <code>doctor</code> and <code>uninstall</code>.</li>
+<li>CLI: <code>ehai update [--channel alpha|beta|stable] [--rollback]</code>.</li>
+<li><code>ehai migration export|import</code> → <code>ehai-update</code> relationship: migration is unrelated (device move, not binary update) but shares the ZIP/verify plumbing conceptually; both live in <code>ehai-cli</code>.</li>
+<li><code>install/install.sh</code> (macOS/Linux) and <code>install/install.ps1</code> (Windows): <code>gh auth token</code> → <code>GITHUB_TOKEN</code> fallback, picks the release for <code>$EHAI_CHANNEL</code> by scanning releases newest-first (same rule as the Rust side), verifies with the system <code>minisign</code> binary (required — the installer refuses to run without it) and a checksum, then runs <code>self install</code> and <code>init</code>. <code>install.ps1</code> also sets the user <code>PATH</code> registry entry itself, since <code>self install</code> on Windows explicitly defers that to "the installer" (confirmed by reading <code>selfcmd.rs</code>'s own Windows-branch message).</li>
+<li><code>justfile</code>: <code>just release &lt;version&gt;</code> bumps the workspace version, regenerates <code>CHANGELOG.md</code> via <code>git-cliff</code>, commits and tags (doesn't push).</li>
+<li>CI: new <code>shellcheck</code> job lints <code>install.sh</code> (mirrored in <code>ci-skip.yml</code>).</li>
+<li>Config migration mechanism (<code>ehai_core::migrate</code>) refactored so the forward-migration loop (<code>migrate_with</code>) is parameterised over the steps array and target version, letting a test simulate a v2 schema (key rename + new default field) without touching the real <code>STEPS</code>/<code>CURRENT_SCHEMA_VERSION</code>, which stay at v1 until there's an actual v2.</li>
+<li>Found and fixed in review: the background daily-check timestamp file, and the local tracker's <code>tracker.json</code>, weren't in <code>selfcmd::OWNED</code> — <code>ehai uninstall</code> was leaving them behind as unrecognised "leftovers" and therefore refusing to remove <code>~/.ehai</code> itself. Added both.</li>
+<li><strong>Not done in this milestone's commit:</strong> the first real push + tag. Nothing in M8's commit touches the git remote — see M8.1 below for that.</li>
+</ul>
+<h3 id="m81-first-push-2026-11-18">M8.1 — First push (2026-11-18)</h3>
+<ul>
+<li><strong>D1 resolved:</strong> the repo stays <strong>public</strong> (user's explicit choice). ADR-0001 amended; CLAUDE.md §11/§14 and <code>docs/milestones.md</code> updated to stop describing a private-repo requirement that never had a code dependency — <code>install.sh</code>/<code>install.ps1</code>/<code>ehai-update</code> already treated auth as optional, not required.</li>
+<li><strong>D2 resolved:</strong> the user generated the real minisign keypair (<code>~/.ehai/minisign.pub</code>/<code>.key</code>, matching the placeholder embedded in <code>ehai_core::release::MINISIGN_PUBLIC_KEY</code> — same key, so no code change needed) and added the secret key as <code>MINISIGN_KEY</code> in <code>jagadeeshm007/ehai</code> → Settings → Secrets and variables → Actions.</li>
+<li>First push to <code>main</code>. CI caught real issues plain <code>cargo build</code>/<code>test</code>/<code>clippy</code> locally never would — see ADR-0029 for the full list. Fixed across several follow-up pushes:</li>
+<li><code>zip</code> 2.6.1 had two real RUSTSEC vulnerabilities (bumped to 9.x, trimmed to <code>features = ["deflate"]</code> to avoid new transitive licenses); <code>chrono</code> is unmaintained with no fix available (accepted via <code>deny.toml</code>'s advisory ignore list).</li>
+<li>Two test-only platform assumptions broke on the 3-OS matrix: <code>ehai-env</code>'s install-skip test assumed <code>yarn</code> was absent (true here, false on GitHub's runners — fixed with an <code>EHAI_ENV_PATH</code> override instead of mutating real <code>PATH</code>); <code>ehai-update</code>'s fixture hardcoded one target (fixed with a multi-target signed fixture).</li>
+<li><code>cargo insta test</code>'s CI invocation had <code>--locked</code> in the wrong place (doctests reject it outright).</li>
+<li>The repo had no <code>.gitattributes</code>, so Windows checkouts got CRLF for the <code>templates/**/*.md</code> skill files, which are hashed into generated adapter content at runtime (<code>claude_code.rs</code>) — different hash, different literal text, snapshot mismatch. Added <code>.gitattributes</code> forcing LF everywhere.</li>
+<li><code>ehai init</code> now runs the equivalent of <code>self install</code> as its first step, unconditionally — PATH setup and a stable binary location for harness adapters no longer need a separate command.</li>
+<li>CI result after the <code>.gitattributes</code>/auto-install fixes tracked in the next push: <strong>all jobs green</strong> (run 44162872235).</li>
+</ul>
+<h2 id="post-m8-additions-pre-m9">Post-M8 additions (pre-M9)</h2>
+<ul>
+<li><strong><code>plan_explore</code> MCP tool</strong> (ADR-0031): deterministic gap-finder auto-run after every <code>save_prd</code>; skill template drives a max-3-round refinement loop with top-2 questions per round.</li>
+<li><strong>Claude Desktop skills ZIP</strong> (ADR-0030): <code>install()</code> generates <code>{brand}-skills.zip</code> with the 5 PM skill <code>.md</code> files; <code>remove()</code> deletes it.</li>
+<li><strong><code>ehai migration export|import</code></strong>: device-move ZIP (config + prefs + local tracker); harness adapters excluded (re-run <code>adapters regenerate</code> after import).</li>
+<li><strong><code>observe_interaction</code> hook</strong>: lightweight behavioural signals written fire-and-forget after <code>save_prd</code> and <code>poc_new</code>; self-compacts above 50 entries.</li>
+<li><strong>Template updates</strong>: <code>plan/SKILL.md</code> and <code>shared/commands/plan.md</code> include the <code>plan_explore</code> refinement step (4b); 7 harness adapter snapshots updated accordingly.</li>
+<li><strong><code>ehai poc run</code> / <code>ehai poc shell</code></strong> (2026-11-19): run a command (default: the dev server) or open a shell inside a POC worktree from anywhere in the repo, with its <code>.env.ehai.local</code> ports loaded and the exit code passed through. <code>ehai_env::read_env_overlay</code> reads the overlay back.</li>
+<li><strong>★ Insights footer</strong> (2026-11-19): every skill (via <code>{{role_block}}</code>), AGENTS.md (<code>{{insights_block}}</code>) and the MCP server instructions tell the agent to end replies with a 2–5 line footer (summary, status, next command, ⚠ warnings). <code>ui::insights</code> renders the same footer for <code>poc new|open|list</code>.</li>
+<li><strong>Key hints in the interactive CLI</strong> (2026-11-19): every select / multiselect / confirm / input prompt shows its keys (↑/↓ move · Space select/unselect · Enter confirm · Esc back).</li>
+<li><strong>No new terminal after install</strong> (2026-11-19): <code>self install</code> links the binary into the first writable dir already on PATH (<code>~/.local/bin</code>, <code>~/bin</code>, <code>/opt/homebrew/bin</code>, <code>/usr/local/bin</code>; <code>EHAI_LINK_DIRS</code> overrides), never clobbering others' files; otherwise it prints the one line to paste. <code>install.ps1</code> updates the session <code>$env:Path</code>. <code>uninstall</code> removes links that point into <code>~/.ehai</code>.</li>
+</ul>
+<h2 id="next-m9-hardening-and-release">Next — M9: Hardening and release</h2>
+<h2 id="open-questions">Open questions</h2>
+<ul>
+<li><strong>D1 (repo visibility) — resolved 2026-11-18:</strong> stays public.</li>
+<li><strong>D2 (signing key) — resolved 2026-11-18:</strong> real keypair generated, <code>MINISIGN_KEY</code> secret added, public half already matched the embedded constant.</li>
+<li><strong>D3 (OAuth app):</strong> still deferred per ADR-0017; <code>gh</code>/<code>GITHUB_TOKEN</code> cover everything <code>ehai-update</code> and <code>install.sh</code> need.</li>
+<li><strong>Claude desktop skills ZIP — resolved 2026-11-18 (ADR-0030):</strong> <code>ehai connect claude-desktop</code> now also generates <code>~/.ehai/adapters/claude-desktop/{brand}-skills.zip</code> with the 5 PM skill <code>.md</code> files; upload via Claude Desktop → Settings → Skills to surface <code>/ehai:plan</code> etc. as discoverable commands. ADR-0022's "prompts are sufficient" held for the half-finished attempt; it no longer applies to the complete implementation.</li>
+<li>The interactive wizard path (cliclack on a real TTY) is exercised manually. Automated tests cover the same logic through the plain/scripted prompter.</li>
+<li><code>install.ps1</code> is untested in this environment (no PowerShell available) — syntax reviewed by hand only; needs a real Windows run before <code>v0.1.0-alpha.1</code>.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.top", "navigation.instant", "navigation.tracking", "toc.follow", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate", "content.action.view"], "search": "../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.a5f9d56c.min.js"></script>
+      
+        <script src="../javascripts/copy-markdown.js"></script>
+      
+    
+  </body>
+</html>

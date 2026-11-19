@@ -1,0 +1,2187 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="AI-SDLC ops engine for any team — plan, track, and prototype from any AI harness">
+      
+      
+      
+        <link rel="canonical" href="https://jagadeeshm007.github.io/ehai/DECISIONS/">
+      
+      
+        <link rel="prev" href="../CONTRIBUTING/">
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="https://raw.githubusercontent.com/jagadeeshm007/ehai/main/docs/assets/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
+    
+    
+      
+        <title>Decisions - ehai</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.57a0d79d.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.fb2fffe2.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../stylesheets/claude.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="deep-purple" data-md-color-accent="deep-orange">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#decisions" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="ehai" class="md-header__button md-logo" aria-label="ehai" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m11.5 20 4.86-9.73H13V4l-5 9.73h3.5zM12 2c2.75 0 5.1 1 7.05 2.95S22 9.25 22 12s-1 5.1-2.95 7.05S14.75 22 12 22s-5.1-1-7.05-2.95S2 14.75 2 12s1-5.1 2.95-7.05S9.25 2 12 2"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            ehai
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Decisions
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/jagadeeshm007/ehai" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jagadeeshm007/ehai
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="ehai" class="md-nav__button md-logo" aria-label="ehai" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m11.5 20 4.86-9.73H13V4l-5 9.73h3.5zM12 2c2.75 0 5.1 1 7.05 2.95S22 9.25 22 12s-1 5.1-2.95 7.05S14.75 22 12 22s-5.1-1-7.05-2.95S2 14.75 2 12s1-5.1 2.95-7.05S9.25 2 12 2"/></svg>
+
+    </a>
+    ehai
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/jagadeeshm007/ehai" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jagadeeshm007/ehai
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/how-it-works/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How it works
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quickstart
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/setup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Setup & Connections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/use-cases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Use Cases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/spec-driven/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    With spec-driven tools
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/compliance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Policy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/skills/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Skills
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/mcp-tools/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MCP Tools
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/config/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Config
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Project
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Project
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CHANGELOG/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CONTRIBUTING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Decisions
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Decisions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0001-release-repository" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0001 — Release repository
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0002-create-crates-when-a-milestone-needs-them" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0002 — Create crates when a milestone needs them
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0003-hand-rolled-layered-config-instead-of-figmentconfig-rs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0003 — Hand-rolled layered config instead of figment/config-rs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0004-prefer-stdlib-over-small-dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0004 — Prefer stdlib over small dependencies
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0005-doc-only-changes-mirror-workflow-ci-skipyml" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0005 — Doc-only changes: mirror workflow (ci-skip.yml)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0006-terminal-ui-kit-cliclack-behind-a-prompter-trait" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0006 — Terminal UI kit: cliclack behind a Prompter trait
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0007-minimum-supported-os-versions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0007 — Minimum supported OS versions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0008-ehai_home-override" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0008 — EHAI_HOME override
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0009-release-signing-with-a-password-less-minisign-key" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0009 — Release signing with a password-less minisign key
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0010-verified-external-versions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0010 — Verified external versions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0011-mcp-server-rmcp-310-over-stdio-panic-guard-per-handler" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0011 — MCP server: rmcp 3.10 over stdio, panic guard per handler
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0012-claude-code-adapter-a-local-marketplace-with-one-plugin-that-bundles-the-mcp-server" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0012 — Claude Code adapter: a local marketplace with one plugin that bundles the MCP server
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0013-ehai-init-scope-and-behaviour" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0013 — ehai init scope and behaviour
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0014-when-repo-onboarding-runs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0014 — When repo onboarding runs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0015-external-commands-always-have-a-timeout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0015 — External commands always have a timeout
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0016-self-install-connectdisconnect-one-command-uninstall" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0016 — self install, connect/disconnect, one-command uninstall
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0017-tracker-github-projects-v2-via-hand-written-graphql" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0017 — Tracker: GitHub Projects v2 via hand-written GraphQL
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0018-item-type-field-is-work-type-schema-errors-are-per-field" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0018 — Item type field is Work type; schema errors are per field
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0019-updates-omit-unchanged-fields-explicit-null-clears-on-github" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0019 — Updates omit unchanged fields (explicit null clears on GitHub)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0020-compliance-guard-confidence-levels-kinds-only-reporting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0020 — Compliance guard: confidence levels, kinds-only reporting
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0021-pm-flow-the-harness-writes-the-engine-shapes-checks-and-syncs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0021 — PM flow: the harness writes, the engine shapes, checks and syncs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0022-claude-desktop-config-entry-mcp-prompts-not-skills" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0022 — Claude desktop: config entry + MCP prompts, not skills
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0023-fixes-from-the-first-live-end-to-end-run-aisdlc-demo-project-2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0023 — Fixes from the first live end-to-end run (aisdlc-demo → project #2)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0024-roles-and-team-admin-status-gates-at-read-time-never-gates-actions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0024 — Roles and team: admin status gates at read time, never gates actions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0025-env-provisioning-not-tracked-over-gitignored-skip-over-fail" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0025 — Env provisioning: "not tracked" over "gitignored", skip over fail
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0026-m7-harness-adapter-config-paths-verified-2026-11-17" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0026 — M7 harness adapter config paths (verified 2026-11-17)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0027-closing-the-m6-sandbox-gap-keeping-adr-0022s-desktop-decision" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0027 — Closing the M6 sandbox gap; keeping ADR-0022's desktop decision
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0028-self-update-untestable-by-design-where-it-matters-so-test-around-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0028 — Self-update: untestable by design where it matters, so test around it
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0029-first-push-cargo-deny-findings-from-the-real-ci-run" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0029 — First push: cargo-deny findings from the real CI run
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0030-claude-desktop-skills-zip-shipped-supersedes-adr-0027s-revert-note" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0030 — Claude Desktop skills ZIP (shipped, supersedes ADR-0027's revert note)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0031-plan_explore-lite-loop-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0031 — plan_explore lite loop design
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0032-mit-license" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0032 — MIT license
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0033-domain-profile-compliance-guard" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0033 — Domain profile compliance guard
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0034-mkdocs-material-for-github-pages-docs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0034 — MkDocs Material for GitHub Pages docs
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0001-release-repository" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0001 — Release repository
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0002-create-crates-when-a-milestone-needs-them" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0002 — Create crates when a milestone needs them
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0003-hand-rolled-layered-config-instead-of-figmentconfig-rs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0003 — Hand-rolled layered config instead of figment/config-rs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0004-prefer-stdlib-over-small-dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0004 — Prefer stdlib over small dependencies
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0005-doc-only-changes-mirror-workflow-ci-skipyml" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0005 — Doc-only changes: mirror workflow (ci-skip.yml)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0006-terminal-ui-kit-cliclack-behind-a-prompter-trait" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0006 — Terminal UI kit: cliclack behind a Prompter trait
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0007-minimum-supported-os-versions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0007 — Minimum supported OS versions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0008-ehai_home-override" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0008 — EHAI_HOME override
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0009-release-signing-with-a-password-less-minisign-key" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0009 — Release signing with a password-less minisign key
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0010-verified-external-versions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0010 — Verified external versions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0011-mcp-server-rmcp-310-over-stdio-panic-guard-per-handler" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0011 — MCP server: rmcp 3.10 over stdio, panic guard per handler
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0012-claude-code-adapter-a-local-marketplace-with-one-plugin-that-bundles-the-mcp-server" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0012 — Claude Code adapter: a local marketplace with one plugin that bundles the MCP server
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0013-ehai-init-scope-and-behaviour" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0013 — ehai init scope and behaviour
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0014-when-repo-onboarding-runs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0014 — When repo onboarding runs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0015-external-commands-always-have-a-timeout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0015 — External commands always have a timeout
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0016-self-install-connectdisconnect-one-command-uninstall" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0016 — self install, connect/disconnect, one-command uninstall
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0017-tracker-github-projects-v2-via-hand-written-graphql" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0017 — Tracker: GitHub Projects v2 via hand-written GraphQL
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0018-item-type-field-is-work-type-schema-errors-are-per-field" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0018 — Item type field is Work type; schema errors are per field
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0019-updates-omit-unchanged-fields-explicit-null-clears-on-github" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0019 — Updates omit unchanged fields (explicit null clears on GitHub)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0020-compliance-guard-confidence-levels-kinds-only-reporting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0020 — Compliance guard: confidence levels, kinds-only reporting
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0021-pm-flow-the-harness-writes-the-engine-shapes-checks-and-syncs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0021 — PM flow: the harness writes, the engine shapes, checks and syncs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0022-claude-desktop-config-entry-mcp-prompts-not-skills" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0022 — Claude desktop: config entry + MCP prompts, not skills
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0023-fixes-from-the-first-live-end-to-end-run-aisdlc-demo-project-2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0023 — Fixes from the first live end-to-end run (aisdlc-demo → project #2)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0024-roles-and-team-admin-status-gates-at-read-time-never-gates-actions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0024 — Roles and team: admin status gates at read time, never gates actions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0025-env-provisioning-not-tracked-over-gitignored-skip-over-fail" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0025 — Env provisioning: "not tracked" over "gitignored", skip over fail
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0026-m7-harness-adapter-config-paths-verified-2026-11-17" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0026 — M7 harness adapter config paths (verified 2026-11-17)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0027-closing-the-m6-sandbox-gap-keeping-adr-0022s-desktop-decision" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0027 — Closing the M6 sandbox gap; keeping ADR-0022's desktop decision
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0028-self-update-untestable-by-design-where-it-matters-so-test-around-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0028 — Self-update: untestable by design where it matters, so test around it
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0029-first-push-cargo-deny-findings-from-the-real-ci-run" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0029 — First push: cargo-deny findings from the real CI run
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0030-claude-desktop-skills-zip-shipped-supersedes-adr-0027s-revert-note" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0030 — Claude Desktop skills ZIP (shipped, supersedes ADR-0027's revert note)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0031-plan_explore-lite-loop-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0031 — plan_explore lite loop design
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0032-mit-license" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0032 — MIT license
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0033-domain-profile-compliance-guard" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0033 — Domain profile compliance guard
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adr-0034-mkdocs-material-for-github-pages-docs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADR-0034 — MkDocs Material for GitHub Pages docs
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+    
+      
+    
+    <a href="https://github.com/jagadeeshm007/ehai/raw/main/docs/DECISIONS.md" title="View source of this page" class="md-content__button md-icon">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 18c.56 0 1 .44 1 1s-.44 1-1 1-1-.44-1-1 .44-1 1-1m0-3c-2.73 0-5.06 1.66-6 4 .94 2.34 3.27 4 6 4s5.06-1.66 6-4c-.94-2.34-3.27-4-6-4m0 6.5a2.5 2.5 0 0 1-2.5-2.5 2.5 2.5 0 0 1 2.5-2.5 2.5 2.5 0 0 1 2.5 2.5 2.5 2.5 0 0 1-2.5 2.5M9.27 20H6V4h7v5h5v4.07c.7.08 1.36.25 2 .49V8l-6-6H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h4.5a8.2 8.2 0 0 1-1.23-2"/></svg>
+    </a>
+  
+
+
+<h1 id="decisions">Decisions</h1>
+<p>ADR-style log. One entry per non-obvious decision. Newest last.</p>
+<hr />
+<h2 id="adr-0001-release-repository">ADR-0001 — Release repository</h2>
+<p><strong>Date:</strong> 2026-11-17 · <strong>Status:</strong> accepted · <strong>Amended:</strong> 2026-11-18 (public, not private)</p>
+<p>Releases are published to <strong><code>jagadeeshm007/ehai</code></strong>. (Changed from <code>jagadeeshm943/ehai</code> on 2026-11-17, before any release: <code>jagadeeshm007</code> is the account <code>gh</code> is signed into.) The owner/name appears in <code>Cargo.toml</code> (<code>workspace.package.repository</code>) and is used by <code>install/</code> and <code>ehai-update</code> (M8). It can move to an org later; keep it in those few places.</p>
+<p><strong>Amendment (2026-11-18):</strong> the spec's original "private GitHub repo" assumption is dropped — the user explicitly chose to keep the repo <strong>public</strong>. Nothing in the implementation actually required privacy: <code>install.sh</code>/<code>install.ps1</code> and <code>ehai-update</code> already treat <code>gh auth token</code>/<code>GITHUB_TOKEN</code> as optional (used only to avoid unauthenticated API rate limits), never as a hard requirement, so a public repo needs no code change — only the spec's wording (CLAUDE.md §11/§14) and this ADR needed correcting to stop describing a constraint that no longer applies.</p>
+<h2 id="adr-0002-create-crates-when-a-milestone-needs-them">ADR-0002 — Create crates when a milestone needs them</h2>
+<p><strong>Date:</strong> 2026-11-17 · <strong>Status:</strong> accepted</p>
+<p>Spec §4 lists 12 crates. M0 creates only <code>ehai-core</code> and <code>ehai-cli</code>. Each remaining crate is added in the milestone that first puts code in it. Empty crates would add compile time, <code>Cargo.toml</code> noise and churn with nothing to test. The target layout in §4 is unchanged.</p>
+<h2 id="adr-0003-hand-rolled-layered-config-instead-of-figmentconfig-rs">ADR-0003 — Hand-rolled layered config instead of figment/config-rs</h2>
+<p><strong>Date:</strong> 2026-11-17 · <strong>Status:</strong> accepted</p>
+<ul>
+<li>Each layer (global, repo, <code>--config</code>, env, CLI) is read as a raw <code>toml::Table</code>, deep-merged by a ~10-line recursive function (<code>ehai_core::config::deep_merge</code>), and deserialized once.</li>
+<li>This gives exact control over env mapping and migration-per-layer.</li>
+<li>It avoids a dependency whose provider model we'd fight.</li>
+<li><strong>Env mapping:</strong> <code>EHAI_&lt;SECTION&gt;__&lt;KEY&gt;=value</code> maps to <code>section.key</code>. Only known top-level sections are mapped, so <code>EHAI_HOME</code>, <code>EHAI_NAME</code> and <code>EHAI_LIVE_GH</code> never leak into config. Values are parsed as TOML literals (<code>true</code>, <code>42</code>); anything else is a string.</li>
+<li><strong>Forward compatibility:</strong> unknown keys are ignored on load, never rejected. Typed config is never written back. Only <code>migrate_file</code> rewrites a config file, and it works on raw tables, so unknown keys survive on disk.</li>
+</ul>
+<h2 id="adr-0004-prefer-stdlib-over-small-dependencies">ADR-0004 — Prefer stdlib over small dependencies</h2>
+<p><strong>Date:</strong> 2026-11-17 · <strong>Status:</strong> accepted</p>
+<ul>
+<li>File locking uses <code>std::fs::File::lock</code> (stable since 1.89) instead of <code>fs4</code>.</li>
+<li>The home directory comes from <code>std::env::home_dir</code> (behaviour fixed in 1.86) instead of <code>dirs</code>.</li>
+<li>Version metadata is a ~40-line <code>build.rs</code> (git sha, <code>SOURCE_DATE_EPOCH</code>-aware date, target) instead of <code>vergen</code>.</li>
+<li>Hence <strong>MSRV = 1.89</strong>. The toolchain is pinned to <code>stable</code> via <code>rust-toolchain.toml</code>.</li>
+</ul>
+<h2 id="adr-0005-doc-only-changes-mirror-workflow-ci-skipyml">ADR-0005 — Doc-only changes: mirror workflow (<code>ci-skip.yml</code>)</h2>
+<p><strong>Date:</strong> 2026-11-17 · <strong>Status:</strong> accepted</p>
+<ul>
+<li><code>ci.yml</code> triggers only on code <code>paths:</code>.</li>
+<li><code>ci-skip.yml</code> uses the identical list as <code>paths-ignore:</code> and defines jobs with the <strong>same names</strong> that just echo. Required status checks therefore pass on doc-only PRs, and doc-only commits run no real CI.</li>
+<li>We chose this over a <code>dorny/paths-filter</code> gate job because it literally meets "doc-only commits trigger no CI". A gate job would still start the CI workflow.</li>
+<li><strong>Caveat:</strong> a PR that touches both docs and code runs both workflows. The real one is authoritative, so check names only go green when the real jobs pass.</li>
+<li><strong>Rule:</strong> keep the two path lists in sync. Both files say so at the top.</li>
+</ul>
+<h2 id="adr-0006-terminal-ui-kit-cliclack-behind-a-prompter-trait">ADR-0006 — Terminal UI kit: cliclack behind a <code>Prompter</code> trait</h2>
+<p><strong>Date:</strong> 2026-11-17 · <strong>Status:</strong> accepted</p>
+<ul>
+<li>All prompts go through <code>ui::Prompter</code>.</li>
+<li><code>ClackPrompter</code> (cliclack) is used when stdin and stdout are TTYs and <code>--yes</code> is absent. <code>NO_COLOR</code> is honoured by <code>console</code>, the crate under cliclack. A NO_COLOR user on a TTY still gets interactive prompts, so it does not switch to plain mode.</li>
+<li><code>PlainPrompter</code> is used for non-TTY or <code>--yes</code>. It accepts defaults and prints a plain transcript.</li>
+<li>The test fake is <code>PlainPrompter::scripted(answers)</code>, not a third implementation. Snapshots therefore show exactly what a CI user sees.</li>
+<li><code>indicatif</code> and <code>ratatui</code> are deferred until a feature needs them (progress bars and the TUI views, M1+).</li>
+</ul>
+<h2 id="adr-0007-minimum-supported-os-versions">ADR-0007 — Minimum supported OS versions</h2>
+<p><strong>Date:</strong> 2026-11-17 · <strong>Status:</strong> accepted</p>
+<table>
+<thead>
+<tr>
+<th>OS</th>
+<th>Minimum</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>macOS</td>
+<td>12</td>
+<td>Release builds set <code>MACOSX_DEPLOYMENT_TARGET=12.0</code></td>
+</tr>
+<tr>
+<td>Windows</td>
+<td>10 1809</td>
+<td>Needed for ConPTY / modern terminal rendering</td>
+</tr>
+<tr>
+<td>Linux</td>
+<td>kernel 5.13</td>
+<td>Landlock available (sandbox §9A); musl static binaries run on any distro</td>
+</tr>
+</tbody>
+</table>
+<p>Older Linux kernels still run ehai. <code>ehai doctor</code> will report that Landlock is unavailable and fall back to path enforcement (M6).</p>
+<h2 id="adr-0008-ehai_home-override">ADR-0008 — <code>EHAI_HOME</code> override</h2>
+<p><strong>Date:</strong> 2026-11-17 · <strong>Status:</strong> accepted</p>
+<p><code>ehai_home()</code> honours <code>EHAI_HOME</code> before <code>~/.ehai</code>. Every test sets it to a tempdir, so tests never touch the real home directory. It also lets users relocate state.</p>
+<h2 id="adr-0009-release-signing-with-a-password-less-minisign-key">ADR-0009 — Release signing with a password-less minisign key</h2>
+<p><strong>Date:</strong> 2026-11-17 · <strong>Status:</strong> accepted</p>
+<ul>
+<li>CI signs <code>SHA256SUMS</code> with minisign.</li>
+<li>The secret key (<code>minisign -G -W</code>, no password, so CI needs no TTY) is stored as the repo secret <code>MINISIGN_KEY</code>.</li>
+<li>The public key will be embedded in <code>ehai-update</code> (M8).</li>
+<li>The release job fails loudly if the secret is missing.</li>
+</ul>
+<h2 id="adr-0010-verified-external-versions">ADR-0010 — Verified external versions</h2>
+<p><strong>Date:</strong> 2026-11-17 · <strong>Status:</strong> accepted</p>
+<p>Checked against crates.io and GitHub releases on 2026-11-17:
+- Crates: clap 4.6, serde 1.0.229, toml 1.2, schemars 1.2, thiserror 2.0, tracing-subscriber 0.3.23, tracing-appender 0.2.5, cliclack 0.5.7, insta 1.49, proptest 1.12.
+- GitHub Actions: checkout v7, upload-artifact v7, download-artifact v8, rust-cache v2, install-action v2, action-gh-release v3, cargo-deny-action v2.</p>
+<p>Re-check before bumping.</p>
+<h2 id="adr-0011-mcp-server-rmcp-310-over-stdio-panic-guard-per-handler">ADR-0011 — MCP server: rmcp 3.10 over stdio, panic guard per handler</h2>
+<p><strong>Date:</strong> 2026-11-17 · <strong>Status:</strong> accepted</p>
+<ul>
+<li><strong>SDK:</strong> <code>rmcp</code> 3.10, the official Rust SDK, with features <code>server</code>, <code>macros</code> and <code>transport-io</code>. Its default handler accepts every known protocol version (2024-11-05 … 2026-07-28), so older harnesses still negotiate.</li>
+<li><strong>Server lifetime:</strong> <code>ehai mcp</code> serves stdio on a current-thread tokio runtime and exits cleanly when the client closes stdin. There is no daemon.</li>
+<li><strong>Panic guard:</strong> every handler body runs through <code>ehai_mcp::guard</code>, which uses <code>tokio::spawn</code> and converts <code>JoinError::is_panic</code> into a structured error. One bad request can't kill the session.</li>
+<li><strong>Prefs resource URI:</strong> <code>ehai://prefs</code> is fixed. The brand renames the MCP <em>server</em>, never the URIs, because internal identifiers stay <code>ehai</code> (spec §2.4).</li>
+<li><strong>Verified:</strong> real Claude Code 2.1.179 shows <code>plugin:ehai:ehai … ✔ Connected</code> in <code>claude mcp list</code>.</li>
+</ul>
+<h2 id="adr-0012-claude-code-adapter-a-local-marketplace-with-one-plugin-that-bundles-the-mcp-server">ADR-0012 — Claude Code adapter: a local marketplace with one plugin that bundles the MCP server</h2>
+<p><strong>Date:</strong> 2026-11-17 · <strong>Status:</strong> accepted
+<strong>Sources:</strong> code.claude.com/docs/en/plugins-reference, /plugin-marketplaces and /skills, fetched 2026-11-17. Checked against Claude Code CLI 2.1.179.</p>
+<ul>
+<li><strong>Plugin layout:</strong></li>
+<li><code>ehai</code> generates <code>~/.ehai/adapters/claude-code/.claude-plugin/marketplace.json</code>.</li>
+<li>The marketplace (<code>&lt;brand&gt;-local</code>) lists a single plugin (<code>&lt;brand&gt;</code>).</li>
+<li>The plugin holds <code>.mcp.json</code> (pointing at <code>&lt;abs exe&gt; mcp</code>) and <code>skills/&lt;name&gt;/SKILL.md</code>. Skills replace legacy <code>commands/</code>, as the docs recommend.</li>
+<li><strong>Install path:</strong> <code>claude plugin marketplace add &lt;dir&gt;</code>, then <code>claude plugin install &lt;brand&gt;@&lt;brand&gt;-local --scope user</code>.</li>
+<li>We chose this over <code>claude mcp add --scope user</code>: one install registers both the MCP server and the skills, and one <code>marketplace remove</code> reverses both.</li>
+<li>It's idempotent: each step runs only if <code>--json</code> listings show it's missing.</li>
+<li><strong>Plugin versioning:</strong> the docs suggest local-path plugins load in place, but 2.1.179 copies them into a <strong>versioned cache</strong>, and <code>plugin update</code> is a no-op when the version is unchanged. So <code>plugin.json</code> <code>version</code> = <code>&lt;ehai version&gt;+&lt;FNV-1a hash of generated content&gt;</code>. Changed content gets a new version, and install then runs <code>marketplace update</code> + <code>plugin update</code>. This was verified live: changing the role in <code>init</code> refreshed the installed skill.</li>
+<li><strong>Brand rename:</strong> marketplaces whose path is our root but whose name differs are removed before the new one is added.</li>
+<li><strong>Reserved names:</strong> <code>Brand::validate</code> rejects names Claude Code refuses for plugins (<code>claude</code>, <code>claude-*</code>, <code>anthropic-*</code>, <code>cc-plugin-*</code>).</li>
+<li><strong>Test strategy:</strong></li>
+<li>Unit tests use a fake <code>claude</code> shell script, injected via <code>EHAI_CLAUDE_BIN</code>.</li>
+<li>The live check used <code>CLAUDE_CONFIG_DIR=&lt;tmp&gt;</code> so the real user config was never touched.</li>
+<li><code>claude plugin validate</code> passes on both manifests.</li>
+</ul>
+<h2 id="adr-0013-ehai-init-scope-and-behaviour">ADR-0013 — <code>ehai init</code> scope and behaviour</h2>
+<p><strong>Date:</strong> 2026-11-17 · <strong>Status:</strong> accepted</p>
+<ul>
+<li><strong>Questions:</strong> role, harnesses (pre-checked), compliance, sandbox, and repo-profile confirmation. That's ≤ 5, tested.</li>
+<li><strong>Tracker question:</strong> moved to <strong>M2</strong>, where it can list the user's GitHub Projects live. Asking for the tracker kind alone now would be a wasted question.</li>
+<li><strong>No half-applied state:</strong> nothing is written until all answers are in, so cancelling leaves nothing behind. Apply steps are idempotent, so rerunning <code>init</code> resumes.</li>
+<li><strong>Esc vs Ctrl-C:</strong> cliclack reports both as the same <code>Interrupted</code>. A cancel opens "Go back / Quit": Esc then Enter goes back, and a second cancel quits with exit 130 and "Nothing was changed".</li>
+<li><strong>Retry:</strong> a failed apply step offers "Retry?" defaulting to <strong>no</strong>, so <code>--yes</code> and non-TTY runs never loop.</li>
+<li><strong>Flags:</strong> every question has one (<code>--role --harness --compliance --sandbox --no-repo</code>), and a flag skips its question.</li>
+<li><strong>Re-running:</strong> existing config values become the defaults.</li>
+<li><strong>Chosen harnesses</strong> are stored in <code>adapters.enabled</code>. <code>doctor</code> verifies, and <code>adapters regenerate</code> refreshes, only those.</li>
+</ul>
+<h2 id="adr-0014-when-repo-onboarding-runs">ADR-0014 — When repo onboarding runs</h2>
+<p><strong>Date:</strong> 2026-11-17 · <strong>Status:</strong> accepted</p>
+<ul>
+<li><strong>Spec:</strong> says onboarding runs "the first time ehai runs in a new repo (via any command)".</li>
+<li><strong>M1:</strong> it runs from <code>ehai init</code> and <code>ehai repo init</code>.</li>
+<li><code>ehai mcp</code> must never prompt, because stdout is the protocol channel.</li>
+<li><code>doctor</code>, <code>config</code> and <code>adapters</code> are non-interactive.</li>
+<li>The auto-trigger will hook into the interactive commands as they arrive (M3+).</li>
+<li><strong>What it writes:</strong> <code>&lt;repo&gt;/.ehai/profile.toml</code> <code>[detected]</code> is rewritten on each scan. Other tables (team decisions) are preserved.</li>
+<li><strong>Local state:</strong> a <code>.ehai/.gitignore</code> keeps it out of git without editing the repo's own <code>.gitignore</code>.</li>
+<li><strong>Secrets:</strong> env files are recorded by <strong>name only</strong>, never read.</li>
+</ul>
+<h2 id="adr-0015-external-commands-always-have-a-timeout">ADR-0015 — External commands always have a timeout</h2>
+<p><strong>Date:</strong> 2026-11-17 · <strong>Status:</strong> accepted</p>
+<p><code>ehai_core::process::output</code> spawns, drains stdout and stderr on threads (so a full pipe can't deadlock), and kills the process after a timeout. It covers <code>gh</code>, <code>git --version</code> and <code>claude</code> calls (120 s). Retries with backoff will be added for network calls in M2.</p>
+<h2 id="adr-0016-self-install-connectdisconnect-one-command-uninstall">ADR-0016 — <code>self install</code>, <code>connect</code>/<code>disconnect</code>, one-command <code>uninstall</code></h2>
+<p><strong>Date:</strong> 2026-11-17 · <strong>Status:</strong> accepted</p>
+<ul>
+<li><strong><code>ehai self install</code>:</strong></li>
+<li>Copies the running binary to <code>~/.ehai/bin/ehai</code> (copy-then-rename, so it's safe while running).</li>
+<li>Adds the brand alias (<code>EHAI_NAME</code>/<code>brand.name</code>; a symlink on Unix).</li>
+<li>Writes a marked <code># &gt;&gt;&gt; ehai &gt;&gt;&gt;</code> PATH block into the login shell's rc: bash → <code>.bashrc</code>, zsh → <code>.zshrc</code>, fish → <code>conf.d/ehai.fish</code>, otherwise <code>.profile</code>. A <code>.ehai-backup</code> is taken before the first edit.</li>
+<li>Re-points enabled adapters at the installed binary.</li>
+<li>The M8 one-line installer downloads a release and calls this.</li>
+<li>Windows: PATH is set by <code>install.ps1</code> (M8); <code>self install</code> prints the instruction.</li>
+<li><strong>Adapter binary path:</strong> <code>adapter_ctx</code> prefers <code>~/.ehai/bin/ehai</code> over <code>current_exe()</code>. Harnesses then survive <code>cargo clean</code> or a deleted download folder. This was the bug where M1's <code>init</code> pointed Claude Code at <code>target/debug/ehai</code>.</li>
+<li><strong><code>ehai connect &lt;id&gt;…</code> / <code>ehai disconnect &lt;id&gt;… | --all</code>:</strong> friendly aliases for <code>adapters install/remove</code>. They also update <code>adapters.enabled</code>.</li>
+<li><strong><code>ehai uninstall [--yes]</code>:</strong></li>
+<li>Asks first, defaulting to <em>no</em>. A non-TTY run without <code>--yes</code> does nothing.</li>
+<li>Unregisters <strong>every</strong> adapter, not only the enabled ones.</li>
+<li>Strips the PATH blocks from all candidate rc files.</li>
+<li>Deletes only entries ehai owns inside <code>~/.ehai</code>, and refuses if <code>EHAI_HOME</code> is the user's home or has no parent. Unknown files are kept and reported.</li>
+<li>Skips file logging, so it doesn't recreate <code>~/.ehai/logs</code>.</li>
+<li>Repo <code>.ehai/</code> profiles are left alone: they belong to the repo and may be committed.</li>
+<li><strong>Testing:</strong> the rc-file location is passed in explicitly (<code>remove_files(home, user_home)</code>), so tests can never touch the developer's real dotfiles. A sandboxed-<code>HOME</code> lifecycle test proves that install → connect → disconnect → uninstall leaves no traces and restores <code>.bashrc</code> byte-for-byte.</li>
+</ul>
+<h2 id="adr-0017-tracker-github-projects-v2-via-hand-written-graphql">ADR-0017 — Tracker: GitHub Projects v2 via hand-written GraphQL</h2>
+<p><strong>Date:</strong> 2026-11-17 · <strong>Status:</strong> accepted
+<strong>Sources:</strong> GitHub's live GraphQL schema, introspected 2026-11-17 (<code>CreateProjectV2FieldInput</code>, <code>ProjectV2SingleSelectFieldOptionInput</code> with optional <code>id</code>, <code>UpdateProjectV2FieldInput</code>, <code>ProjectV2FieldValue</code>, <code>ProjectV2IterationFieldConfigurationInput</code>).</p>
+<ul>
+<li><strong>Trait:</strong> <code>Tracker</code> uses native <code>async fn</code>-in-trait (<code>-&gt; impl Future + Send</code>) with no <code>async-trait</code> dependency. Adapters are used generically. Linear and Jira are refused with a clear message until their adapters exist.</li>
+<li><strong>Hand-written GraphQL:</strong> 15 documents in <code>github::q</code>, instead of <code>graphql_client</code> (schema download + codegen for that few operations).</li>
+<li><strong>Contract suite:</strong></li>
+<li>One <code>contract()</code> runs against <code>MemoryTracker</code> (the reference) and <code>GithubProjects</code> + <code>FakeGithub</code>, a stateful wiremock GraphQL server behind the <code>fake</code> feature.</li>
+<li>The fake models GitHub dropping a card's value when its option id disappears, so a destructive schema update would fail the tests.</li>
+<li><strong>Work items:</strong></li>
+<li>Issues in the configured repo, added to the project, so they get comments and PR links.</li>
+<li>Without a repo they're project draft items, which have no comments.</li>
+<li><strong><code>ehai-id</code>:</strong> an invisible <code>&lt;!-- ehai-id: … --&gt;</code> body footer.</li>
+<li>The id charset is limited (<code>[A-Za-z0-9._-]</code>, no <code>--</code>), so it can't close the comment.</li>
+<li>A footer followed by user text isn't treated as ours.</li>
+<li><strong><code>ensure_schema</code> is never destructive:</strong></li>
+<li>It creates missing Status/Priority/Size/Type single-selects and an Iteration field (a failure there is only a warning).</li>
+<li>It adds missing options by sending existing options back <strong>with their ids</strong>, which keeps every card's value.</li>
+<li>A same-named non-single-select field is reported, never touched.</li>
+<li><strong>Sync engine</strong> (<code>sync::plan</code> is pure; <code>sync::sync</code> applies it):</li>
+<li>Matches by <code>ehai-id</code> only.</li>
+<li>Status is set only on create; afterwards the board owns it.</li>
+<li>Orphans are reported, never deleted.</li>
+<li>Per-item failures are collected.</li>
+<li>Idempotence is property-tested.</li>
+<li><strong>Reliability:</strong> 30 s timeout per request. Up to 3 attempts with backoff on network errors, 5xx, 429 and secondary rate limits (<code>Retry-After</code> honoured, capped at 30 s). 401 and <code>INSUFFICIENT_SCOPES</code> become actionable auth errors.</li>
+<li><strong>Auth:</strong></li>
+<li>Order is <code>gh auth token</code>, then <code>GITHUB_TOKEN</code>, then <code>GH_TOKEN</code>. The token is read per run and never stored by ehai.</li>
+<li><strong>OAuth device flow and keychain storage are deferred:</strong> device flow needs ehai's own registered OAuth App client id, and borrowing another app's id would be impersonation. Both arrive together once the org registers an app.</li>
+<li>Missing <code>project</code> scope is detected from <code>X-OAuth-Scopes</code>. ehai shows <code>gh auth refresh -s project</code> and never runs it (user decision).</li>
+<li>Fine-grained tokens report no scopes, so ehai just tries.</li>
+<li><strong><code>init</code> tracker question:</strong></li>
+<li>It defaults to <strong>Skip</strong> unless a project is already connected, so <code>init --yes</code> never modifies a GitHub project nobody picked.</li>
+<li>CI uses <code>--tracker-project N</code>, <code>--tracker-create TITLE</code> or <code>--no-tracker</code>.</li>
+<li>It offers the repo's org projects when the user belongs to the org.</li>
+<li>With this question, init asks at most 6 questions ("about 5", spec §14).</li>
+<li><strong>TLS:</strong> reqwest 0.13's default rustls (aws-lc-rs + platform verifier, so corporate TLS proxies work). <code>deny.toml</code> now allows ISC, BSD-3-Clause, MIT-0 and CDLA-Permissive-2.0. No OpenSSL in the tree.</li>
+<li><strong>Tests stay offline:</strong> CLI tests set <code>EHAI_NO_GH=1</code> and point <code>EHAI_GITHUB_API</code> at a fake or a dead port, so they never reach real GitHub. The live test runs only with <code>EHAI_LIVE_GH=1</code> and uses draft items, so no issues land in any repo. It deletes its throwaway project afterwards.</li>
+</ul>
+<h2 id="adr-0018-item-type-field-is-work-type-schema-errors-are-per-field">ADR-0018 — Item type field is <code>Work type</code>; schema errors are per field</h2>
+<p><strong>Date:</strong> 2026-11-17 · <strong>Status:</strong> accepted · <strong>Amends:</strong> ADR-0017</p>
+<ul>
+<li><strong>Found on a real project</strong> (<code>jagadeeshm007</code> #2, "Team planning" template): GitHub refuses to create a field named <code>Type</code> ("Name cannot have a reserved value"); the name is kept for its built-in issue types.</li>
+<li><strong>Field name:</strong> ehai's field is now <strong><code>Work type</code></strong>. An existing <em>single-select</em> <code>Type</code> field is still read and written, so teams that already have one keep using it.</li>
+<li><strong>Per-field errors:</strong> <code>ensure_schema</code> now turns a failure on one field into a warning and carries on with the others. Auth errors still abort. Before this, one bad field stopped the run and left the rest unconfigured.</li>
+<li><strong>Template projects:</strong> they already ship Status (Backlog/Ready/In progress/In review/Done), Priority, Size and Iteration. ehai matches option names case-insensitively, so it only added the missing <code>Todo</code> status and <code>Work type</code>.</li>
+<li><strong>Fake GitHub:</strong> now models reserved field names, and can be made to fail a named field.</li>
+<li><strong>Broken pipes:</strong> <code>ehai … | head</code> used to panic on the closed pipe. A panic hook plus a check in <code>main</code> now make it exit quietly with status 0.</li>
+</ul>
+<h2 id="adr-0019-updates-omit-unchanged-fields-explicit-null-clears-on-github">ADR-0019 — Updates omit unchanged fields (explicit <code>null</code> clears on GitHub)</h2>
+<p><strong>Date:</strong> 2026-11-17 · <strong>Status:</strong> accepted</p>
+<ul>
+<li><strong>Bug:</strong> the first full live run (<code>EHAI_LIVE_GH=1</code>) caught it. A title-only <code>update_item</code> sent <code>body: null</code>, and GitHub treats an explicit <code>null</code> as "clear", so the rename wiped the body and the <code>ehai-id</code> footer. An <em>omitted</em> variable leaves the argument unset.</li>
+<li><strong>Fix:</strong> update mutations now include only the fields being changed.</li>
+<li><strong>Fake GitHub:</strong> now applies the same <code>null</code> vs omitted rule. The contract suite renames by title alone, and it <strong>fails on the old code</strong> and passes on the fix.</li>
+<li><strong>Also confirmed live:</strong></li>
+<li><code>updateProjectV2Field</code> with existing option ids keeps a card's value (In Progress survived adding Backlog and In Review).</li>
+<li><code>Work type</code>/Priority/Size/Iteration creation works.</li>
+<li>The throwaway project is deleted.</li>
+</ul>
+<h2 id="adr-0020-compliance-guard-confidence-levels-kinds-only-reporting">ADR-0020 — Compliance guard: confidence levels, kinds-only reporting</h2>
+<p><strong>Date:</strong> 2026-11-17 · <strong>Status:</strong> accepted</p>
+<ul>
+<li><strong>Built-in detectors</strong> (<code>ehai-guard</code>, regex):</li>
+<li>SSN (with area/group/serial validity checks)</li>
+<li>MRN / medical record number</li>
+<li>DOB (keyword plus date)</li>
+<li>insurance/member/policy id, email, phone, street address</li>
+<li>a <strong>name next to a medical term</strong> heuristic</li>
+<li>Org-specific patterns come from <code>compliance.patterns</code>.</li>
+<li><strong>Confidence levels:</strong></li>
+<li>Structured identifiers are <strong>High</strong>.</li>
+<li>The name heuristic is <strong>Low</strong>: it's surfaced but never auto-redacted, because rewriting phrases like "Book Appointment" in strict mode would corrupt PRDs. A stop-list of UI/story words keeps "Given the patient… Book Appointment" from being flagged.</li>
+<li><strong>Modes:</strong></li>
+<li><code>warn</code> returns findings and lets the user choose redact / keep / cancel.</li>
+<li><code>strict</code> redacts High automatically and reports Low.</li>
+<li><code>off</code> skips checks.</li>
+<li><strong>Values are never reported:</strong> a finding has a kind and a byte span only. Questions, tool output and the audit log name kinds ("mrn ×1, email ×1").</li>
+<li><strong>Audit log:</strong> monthly JSONL files under ehai's home (<code>audit</code> dir), one locked append per write. It records command, target, location, kinds and action.</li>
+<li><strong>Tests:</strong> a property test checks that generated SSN/MRN/email/DOB/phone/member-id samples in random prose are always found and removed by redaction.</li>
+</ul>
+<h2 id="adr-0021-pm-flow-the-harness-writes-the-engine-shapes-checks-and-syncs">ADR-0021 — PM flow: the harness writes, the engine shapes, checks and syncs</h2>
+<p><strong>Date:</strong> 2026-11-17 · <strong>Status:</strong> accepted</p>
+<ul>
+<li><strong>Division of labour:</strong> interviewing, writing and classifying are the harness model's job. <code>ehai-planner</code> gives the output a fixed shape (<code>Prd</code>, <code>Breakdown</code> → <code>Epic</code> → <code>Story</code> → <code>Task</code>, Given/When/Then), validates it and renders it.</li>
+<li>PRD validation: metrics need a number, flows must be Mermaid.</li>
+<li>Breakdown validation: ids unique and valid, dependencies known, no cycles, every story has criteria.</li>
+<li>Outputs: Markdown tables, Mermaid graphs, a self-contained HTML report.</li>
+<li>It also produces <code>sync::Desired</code> items keyed <code>&lt;prd-slug&gt;.&lt;id&gt;</code> (≤ 64 chars).</li>
+<li><strong>Storage:</strong> plans live in <code>~/.ehai/plans/&lt;slug&gt;/</code> (so Claude desktop works without a repo). PRDs are also written to <code>docs/prd/&lt;slug&gt;.md</code> when a repo is known.</li>
+<li><strong>Tools:</strong> <code>save_prd</code>, <code>get_plan</code>, <code>list_plans</code>, <code>save_breakdown</code>, <code>sync_plan</code> (preview by default, <code>apply: true</code> to write), <code>status_report</code> (optional HTML) and <code>triage</code> (duplicate check by content-word Jaccard ≥ 0.35), plus <code>guard_check</code> and <code>ping</code>.</li>
+<li><strong><code>needs_input</code>:</strong> questions use <code>{status:"needs_input", question, header, options[{label,value,description}], multi_select, retry_param}</code>. The harness asks through its own question UI and calls the same tool again with <code>retry_param</code> set to the chosen value. This works in every MCP client; MCP elicitation can be added later without changing tools.</li>
+<li><strong>Schema before sync:</strong> <code>sync_plan</code> runs <code>ensure_schema</code> before writing. The PM-flow test caught that a project without ehai's fields made every later sync show phantom "updates", because the field values couldn't be set.</li>
+<li><strong>Status reports:</strong></li>
+<li>Epics are excluded from counts; their progress is derived from their stories and tasks.</li>
+<li>"Blocked" means started while a dependency is unfinished.</li>
+<li>"Stale" means In Progress/In Review with no change in 14 days (ISO timestamps compare as strings).</li>
+<li>"Risk" means a P0 that hasn't started.</li>
+<li>Linked-PR counts are left for the dev flow (M6).</li>
+</ul>
+<h2 id="adr-0022-claude-desktop-config-entry-mcp-prompts-not-skills">ADR-0022 — Claude desktop: config entry + MCP prompts, not skills</h2>
+<p><strong>Date:</strong> 2026-11-17 · <strong>Status:</strong> accepted
+<strong>Sources (2026-11-17):</strong> support.claude.com "Using Skills in Claude" (custom skills are ZIP uploads in Settings only), Claude desktop MCP setup guides, and the file on this Linux machine (<code>~/.config/Claude/claude_desktop_config.json</code>).</p>
+<ul>
+<li><strong>Config entry:</strong> the adapter edits only <code>mcpServers.&lt;brand&gt;</code>.</li>
+<li>Key order is preserved (<code>serde_json</code> <code>preserve_order</code>; this adds the Zlib-licensed <code>foldhash</code>).</li>
+<li>A <code>.json.ehai-backup</code> is taken before the first edit.</li>
+<li>A file that isn't valid JSON is refused, never overwritten.</li>
+<li>The lock file lives in <code>~/.ehai/adapters/</code>, never in Claude's directory.</li>
+<li>The desktop app needs a full quit and relaunch afterwards; the install message says so.</li>
+<li><strong>Why prompts:</strong> the PM flows reach desktop as <strong>MCP prompts</strong> served by the same server, rendered from the same templates as the Claude Code skills. That gives one source and zero manual steps. ZIP skill export can be added if the team wants skills there too.</li>
+</ul>
+<h2 id="adr-0023-fixes-from-the-first-live-end-to-end-run-aisdlc-demo-project-2">ADR-0023 — Fixes from the first live end-to-end run (aisdlc-demo → project #2)</h2>
+<p><strong>Date:</strong> 2026-11-17 · <strong>Status:</strong> accepted</p>
+<p>The run drove the installed binary's MCP server against real GitHub through steps 0–10. It found:</p>
+<ol>
+<li><strong><code>tracker set</code> saved before verifying.</strong> A mistyped owner was written to config, then failed. Now the field setup (which proves the project exists) runs first, and settings are saved only after it succeeds. A test for a missing project checks that config is untouched.</li>
+<li><strong>Plain TypeScript package without framework dependencies → "no apps".</strong> Left as is for now; app detection is revisited with stack work in M5.</li>
+<li><strong>A rename rewrote every related issue,</strong> because descriptions quoted other items by title. Descriptions now use <code>[[ehai-ref:&lt;id&gt;|&lt;title&gt;]]</code> tokens, resolved to <code>#&lt;number&gt;</code> once issues exist (GitHub renders the live title), or to the title for draft items.</li>
+<li>Sync applies in two passes when it creates items: pass 1 creates them, pass 2 fills in the links. A re-sync is therefore a no-op.</li>
+<li>Verified live: renaming one story updated 1 issue and left 3 untouched.</li>
+<li>The first sync on an older board migrates title references to <code>#n</code> once.</li>
+<li><strong>Enum values serialized as Rust names</strong> (<code>Xs</code>, <code>InProgress</code>), while skills, people and the board say <code>XS</code> / <code>In Progress</code>. An agent sending "XS" was rejected. Status, Priority, Size and Work type now serialize as board labels, parse case- and space-insensitively (old saved plans still load), and advertise their labels in tool schemas.</li>
+</ol>
+<h2 id="adr-0024-roles-and-team-admin-status-gates-at-read-time-never-gates-actions">ADR-0024 — Roles and team: admin status gates at read time, never gates actions</h2>
+<p><strong>Date:</strong> 2026-11-17 · <strong>Status:</strong> accepted
+<strong>Plan:</strong> <code>docs/plans/roles-and-team.md</code> (approved)</p>
+<ul>
+<li><strong>Admin signal:</strong> <code>ProjectV2.viewerCanClose</code> is the only field GitHub exposes that reliably means "this viewer administers this project" — confirmed by live GraphQL introspection against the user's own account. It's checked once, when a project is connected (<code>tracker set</code>/<code>init</code>), and the result is stored as <code>access.project_admin</code> + <code>access.checked</code> (a date, for <code>role</code>'s explanation text).</li>
+<li><strong>Gate at the read site, not the write site:</strong> <code>Config::effective_role()</code> is the single place role gating happens — <code>access.project_admin == Some(true)</code> unlocks the stored <code>role</code>/<code>EHAI_ROLE</code> override; anything else is <code>dev</code>. This means a stored <code>role</code> or env override is never dangerous to keep around: nothing needs to scrub or force-reset it when admin status changes. Losing admin on a refresh (someone else now owns the project) silently drops back to <code>dev</code> with no special-case code.</li>
+<li><strong>No action is permission-gated.</strong> The user was explicit: every ehai action — assign, comment, plan, sync, triage — is available to every role. Role only changes tone, defaults and what a skill leads with (e.g. <code>status</code>'s pm vs. dev framing). The only thing actually gated is <code>role set</code> itself: refused for non-admins, with a clear explanation, because letting a non-admin grant themselves <code>pm</code> would defeat the whole point of tying role to real project control.</li>
+<li><strong>Team = assignable ∪ org members</strong>, merged by login in one combined GraphQL query (<code>@include(if: $hasRepo)</code> makes the repo-assignable-users branch conditional). This is the user's explicit choice over "assignable only" or "org members only" — a repo collaborator who isn't an org member, and an org member who isn't yet a repo collaborator, both need to show up so <code>assign_task</code>/<code>comment_task</code> can resolve them.</li>
+<li><strong>Cache policy:</strong> a day old by default (<code>ehai team --refresh</code> forces it sooner), stored at <code>~/.ehai/cache/team/&lt;owner&gt;-&lt;number&gt;.json</code>. A failed refresh falls back to the stale cache rather than erroring, since a day-old roster is almost always still useful and a transient GitHub/network failure shouldn't block <code>assign_task</code>.</li>
+<li><strong>Draft issues can't be assigned additively.</strong> GitHub's <code>Assignable</code> union (which <code>addAssigneesToAssignable</code>/<code>removeAssigneesToAssignable</code> operate on) doesn't include <code>DraftIssue</code> — only <code>updateProjectV2DraftIssue</code> touches its assignees, and that mutation replaces the whole list. <code>GithubProjects::assign</code>/<code>unassign</code> branch on item kind: Issues use the additive mutations directly; drafts read the current assignee ids first, then write back the merged/filtered list.</li>
+<li><strong>Assignees are set-on-create-only</strong>, mirroring the existing status rule: <code>sync::Desired.assignees</code> only take effect when <code>sync</code> creates an item. A later sync with different planned assignees never overwrites a manual reassignment someone made on the board.</li>
+<li><strong>Verified live</strong> two ways: against the real <code>jagadeeshm007/aisdlc-demo</code> repo + project #2 (re-running <code>tracker set</code> correctly detected and stored admin status, <code>ehai team</code> returned the one real assignable user), and against a disposable throwaway project created and deleted by the existing <code>EHAI_LIVE_GH=1</code> live test (<code>crates/ehai-tracker/tests/live.rs</code>), extended to cover <code>project_admin</code>, <code>team::fetch</code> and an assign/unassign round-trip.</li>
+</ul>
+<h2 id="adr-0025-env-provisioning-not-tracked-over-gitignored-skip-over-fail">ADR-0025 — Env provisioning: "not tracked" over "gitignored", skip over fail</h2>
+<p><strong>Date:</strong> 2026-11-17 · <strong>Status:</strong> accepted</p>
+<ul>
+<li><strong>Discovery test is "not tracked by git", not literally "gitignored".</strong> The spec's step 1 says gitignored config; the implementation instead keeps any pattern-matching file that <code>git ls-files</code> doesn't know about. A freshly created <code>.env</code> that hasn't been committed yet is exactly as safe and useful to copy as one <code>.gitignore</code> already excludes, and checking "not tracked" needs no <code>.gitignore</code> parsing (git already resolves nested, negated and repo-root-relative ignore rules correctly; re-implementing that would be the bug-prone path). The one case this changes from a literal reading: a tracked file that happens to match a pattern is correctly left alone either way, since <code>is_tracked</code> also gates <code>materialize</code>.</li>
+<li><strong>Patterns are a hand-rolled glob-to-regex translator</strong> (<code>*</code> → <code>.*</code>, everything else escaped), not the <code>glob</code> crate: the pattern set is fixed and small (a dozen built-ins plus user globs), and <code>regex</code> is already a workspace dependency. Case-insensitive by construction, since <code>google-services.json</code>-style filenames vary in practice.</li>
+<li><strong>Install failures never fail the sync.</strong> A missing package manager, a missing lockfile, or the install command itself failing all land in <code>Report.skipped</code>, not an <code>Err</code>. Only a step that makes every later step meaningless (discovery, materialising, or port allocation) can fail the whole call — installing dependencies for one app failing must not stop ports from being written or the smoke check from running for the others. Caught by a real bug in review: the first cut returned <code>Option&lt;String&gt;</code> from the install helper and pushed <em>every</em> <code>Some(..)</code> — including "tool not found" — into <code>installed</code>; fixed with a 4-variant <code>InstallOutcome</code> enum and a test that deliberately picks a package manager (<code>yarn</code>) absent from the dev machine.</li>
+<li><strong>Ports are keyed by the worktree's own canonical path</strong>, not a caller-supplied id, so <code>ehai env sync</code> run twice on the same directory is idempotent without the CLI/MCP layer having to invent or persist an id. <code>ehai-poc</code> (M5) can pass its own worktree path the same way once it exists.</li>
+<li><strong>The source checkout to copy from is found via <code>git rev-parse --git-common-dir</code></strong>, not a parameter the user must supply: every worktree of a repo shares one <code>.git</code> dir, and its parent (when the name is literally <code>.git</code>, i.e. not a bare/linked worktree's own gitdir) is the main checkout. Falls back to treating the target as its own source (a safe no-op) when that doesn't resolve, e.g. the target isn't a worktree at all yet.</li>
+<li><strong>Fixture coverage is synthetic, not real installs.</strong> Spec §13 names fixture repos (RN Expo, bare RN, Vite React, Next.js, Go API, FastAPI, pnpm monorepo); each is a handful of files (<code>package.json</code>/<code>go.mod</code>/<code>pyproject.toml</code>, a <code>.env</code>/<code>.env.example</code> pair) sufficient for <code>ehai-stack</code> detection and <code>ehai-env</code> discovery to fire deterministically, with <code>install_deps: false</code> and a trivial <code>exit 0</code> smoke command so "ready" doesn't depend on real toolchains or network access being available wherever the suite runs. The install step itself is exercised separately against whatever package managers are actually absent on the dev machine (<code>yarn</code>, verified via <code>which</code>), not simulated.</li>
+<li><strong>Coverage wasn't measured with <code>cargo-llvm-cov</code></strong> (not installed here) — left as a gap in <code>PROGRESS.md</code> rather than claimed.</li>
+</ul>
+<h2 id="adr-0026-m7-harness-adapter-config-paths-verified-2026-11-17">ADR-0026 — M7 harness adapter config paths (verified 2026-11-17)</h2>
+<p><strong>Date:</strong> 2026-11-17 · <strong>Status:</strong> accepted</p>
+<p>Config paths and formats verified against each harness's official docs before implementation. Sources and locations:</p>
+<table>
+<thead>
+<tr>
+<th>Harness</th>
+<th>Config key</th>
+<th>Config path</th>
+<th>Source (verified 2026-11-17)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Codex CLI</td>
+<td><code>mcp_servers.&lt;brand&gt;</code> TOML section</td>
+<td><code>~/.codex/config.toml</code></td>
+<td>github.com/openai/codex README and source</td>
+</tr>
+<tr>
+<td>Gemini CLI</td>
+<td><code>mcpServers.&lt;brand&gt;</code> JSON</td>
+<td><code>~/.gemini/settings.json</code></td>
+<td>google.com/gemini/cli docs</td>
+</tr>
+<tr>
+<td>Cursor</td>
+<td><code>mcpServers.&lt;brand&gt;</code> JSON</td>
+<td><code>~/.cursor/mcp.json</code></td>
+<td>cursor.com/docs/cmdk/mcp</td>
+</tr>
+<tr>
+<td>OpenCode</td>
+<td><code>mcpServers.&lt;brand&gt;</code> JSON</td>
+<td><code>~/.config/opencode/config.json</code></td>
+<td>opencode.ai docs / GitHub README</td>
+</tr>
+<tr>
+<td>VS Code</td>
+<td><code>servers.&lt;brand&gt;</code> JSON (note: <code>servers</code>, not <code>mcpServers</code>, + <code>type: "stdio"</code> required)</td>
+<td><code>~/.config/Code/User/mcp.json</code> (Linux), <code>~/Library/Application Support/Code/User/mcp.json</code> (macOS), <code>%APPDATA%\Code\User\mcp.json</code> (Windows)</td>
+<td>code.visualstudio.com/docs/copilot/chat/mcp-servers</td>
+</tr>
+<tr>
+<td>Windsurf</td>
+<td><code>mcpServers.&lt;brand&gt;</code> JSON</td>
+<td><code>~/.codeium/windsurf/mcp_server_config.json</code></td>
+<td>codeium.com/windsurf/mcp and Windsurf settings</td>
+</tr>
+<tr>
+<td>AGENTS.md</td>
+<td>marked block <code>&lt;!-- &gt;&gt;&gt; ehai &gt;&gt;&gt; --&gt;</code></td>
+<td><code>~/AGENTS.md</code></td>
+<td>openai.com/index/agents-sdk (universal harness convention)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Supplementary file dirs:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Harness</th>
+<th>File type</th>
+<th>Dir</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Codex CLI</td>
+<td>prompt <code>.md</code></td>
+<td><code>~/.codex/prompts/</code></td>
+</tr>
+<tr>
+<td>Gemini CLI</td>
+<td>command <code>.toml</code></td>
+<td><code>~/.gemini/commands/</code></td>
+</tr>
+<tr>
+<td>Cursor</td>
+<td>rule <code>.mdc</code> (with frontmatter)</td>
+<td><code>~/.cursor/rules/</code></td>
+</tr>
+<tr>
+<td>OpenCode</td>
+<td>prompt <code>.md</code></td>
+<td><code>~/.config/opencode/prompts/</code></td>
+</tr>
+<tr>
+<td>VS Code</td>
+<td>prompt <code>.prompt.md</code></td>
+<td><code>&lt;user-data&gt;/prompts/</code></td>
+</tr>
+<tr>
+<td>Windsurf</td>
+<td>workflow <code>.md</code></td>
+<td><code>~/.codeium/windsurf/workflows/</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Key differences from other adapters:</strong>
+- VS Code is the only harness that uses <code>servers</code> (not <code>mcpServers</code>) and requires <code>"type": "stdio"</code> in every entry.
+- Codex uses TOML with a marked-block strategy (<code># &gt;&gt;&gt; ehai &gt;&gt;&gt;</code> / <code># &lt;&lt;&lt; ehai &lt;&lt;&lt;</code>) rather than JSON key patching.
+- AGENTS.md uses HTML comment markers (<code>&lt;!-- &gt;&gt;&gt; ehai &gt;&gt;&gt; --&gt;</code>) to survive markdown rendering.
+- All five JSON adapters share <code>json_mcp.rs</code> (a 90-line module) to avoid duplicating the read/backup/patch/write pattern.</p>
+<h2 id="adr-0027-closing-the-m6-sandbox-gap-keeping-adr-0022s-desktop-decision">ADR-0027 — Closing the M6 sandbox gap; keeping ADR-0022's desktop decision</h2>
+<p><strong>Date:</strong> 2026-11-17 · <strong>Status:</strong> accepted</p>
+<ul>
+<li><strong>Per-worktree Claude Code sandbox settings</strong> (spec §9A's last bullet, flagged as a known gap at the end of M6): every new POC worktree gets a <code>.claude/settings.local.json</code> written by <code>ehai-poc::write_worktree_sandbox_settings</code> — edits and local dev commands allowed, <code>git push</code>/<code>git reset --hard</code>/checking out the default branch/<code>rm -rf</code> outside the worktree denied. Best-effort and idempotent: a failure to write it never aborts worktree creation, and a second call on the same worktree (e.g. <code>poc iterate</code>) leaves an existing file alone rather than re-writing it.</li>
+<li><strong>The Claude desktop skills-ZIP idea was tried and reverted before landing.</strong> A half-finished attempt (doc comment, <code>zip</code>/<code>ZipWriter</code> imports, an unused <code>PM_SKILLS</code> const — no actual generation code) was found uncommitted in <code>claude_desktop.rs</code>, contradicting the already-settled ADR-0022 ("MCP prompts are sufficient... No ZIP skill package needed", still the live line in <code>PROGRESS.md</code>'s Open Questions). Removed rather than finished: ADR-0022 already covers why prompts are the zero-step route, and nothing had changed to reopen that decision. The <code>zip</code> dependency it pulled into <code>ehai-adapters</code> was removed with it; <code>zip</code> itself stays a real (non-dev) workspace dependency because <code>ehai migration export/import</code> (below) genuinely needs it.</li>
+<li><strong><code>ehai migration export/import</code></strong> bundles <code>config.toml</code>, <code>prefs/user.toml</code> and the local tracker's <code>tracker.json</code> into one ZIP, with a <code>schema_version</code>-tagged <code>metadata.json</code> so a future ehai can refuse an export it doesn't understand instead of silently corrupting config. Harness adapter files are deliberately excluded — they're machine-specific (absolute paths to the binary, OS-specific config locations) and regenerate cheaply via <code>ehai adapters regenerate</code>, so bundling them would just be stale data waiting to cause confusion on the new machine.</li>
+<li><strong><code>plan_explore</code> and the <code>ehai-prefs</code> observation hook are additions beyond the original milestone list</strong>, not spec requirements — a cheap PRD-quality pass and some lightweight behavioural signal capture, both already wired into <code>save_prd</code>/<code>poc_new</code>. Recorded here rather than silently absorbed into "M8" so a later contributor doesn't go looking for them in the spec and come up empty.</li>
+<li><strong>Found and fixed in review:</strong> <code>explore::find_gaps</code>'s single-flow error-handling check had a vacuous first clause (<code>mermaid.contains(|c| matches!(c, 'e'))</code> — true for almost any English sentence, including ones with no actual error handling), which made the real check (<code>contains("error")</code>/<code>"fail"</code>/<code>"fallback"</code>) do nothing whenever the flow text happened to lack the letter 'e' — the one case anyone would've noticed, since it's rare. Neither branch had a test; both do now.</li>
+</ul>
+<h2 id="adr-0028-self-update-untestable-by-design-where-it-matters-so-test-around-it">ADR-0028 — Self-update: untestable by design where it matters, so test around it</h2>
+<p><strong>Date:</strong> 2026-11-18 · <strong>Status:</strong> accepted</p>
+<ul>
+<li><strong><code>self-replace</code> over hand-rolled rename logic.</strong> The spec names it explicitly (§3). Unix can usually just rename over a running executable; Windows can't, and <code>self-replace</code> already contains the (nontrivial, documented in its own crate docs) workaround — copy-and-relaunch-to-delete. Writing that ourselves would be reinventing a correctness-critical wheel for one platform we can't even test from this Linux sandbox.</li>
+<li><strong><code>self_replace::self_replace(new_path)</code> always targets <code>std::env::current_exe()</code> of the calling process — never a path you hand it.</strong> This is the single most important fact shaping the whole crate's test strategy: it means <code>apply</code>/<code>swap_in</code>/<code>rollback</code> can <strong>never</strong> be called from an automated test running as part of the normal <code>cargo test</code>/<code>ehai</code> binary, because doing so would replace the actual test binary (or, if run via <code>assert_cmd</code> against the real <code>ehai</code> CLI, the shared <code>target/debug/ehai</code> build artifact) out from under the test harness. <code>stage()</code> (network, checksum, signature, archive extraction) is therefore split out as the fully unit/integration-tested half; <code>swap_in</code>/<code>rollback</code> are thin, deliberately untested wrappers, documented as such in the module doc so a future contributor doesn't "helpfully" add a test that corrupts their own build.</li>
+<li><strong>The real swap/rollback mechanics are still verified</strong>, not just trusted on faith: a disposable helper binary (<code>src/bin/update_test_harness.rs</code>, <code>swap</code>/<code>rollback</code>/<code>version</code> subcommands) is copied into a tempdir and spawned as its own subprocess. Its <code>current_exe()</code> then correctly points at the tempdir copy, so the test can genuinely exercise <code>self_replace</code> — backup written, swap completes, the result is still a runnable executable, rollback restores the exact original bytes — without the risk applying to anything but a disposable file. This is the "update test simulates a failed post-update doctor, and rollback restores the previous binary" item from milestones.md M8.</li>
+<li><strong>Verifying a signature needs a signature — minisign-verify is verify-only (no signing API), so round-trip tests use a real, throwaway keypair</strong> generated with the actual <code>minisign</code> CLI (happened to be installed in this environment), not a fabricated/hand-written base64 blob pretending to be a valid signature. A fabricated fixture would either fail to parse (useless test) or — worse — silently pass because nothing was actually checked, which is indistinguishable from a real bug at review time. The committed fixtures (<code>verify.rs</code>'s <code>TEST_PUBLIC_KEY</code>/<code>TEST_SUMS</code>/<code>TEST_SIG</code>, and <code>tests/update_flow.rs</code>'s equivalents) are this throwaway key's output, never the production <code>MINISIGN_PUBLIC_KEY</code>.</li>
+<li><strong><code>stage()</code> takes the public key as a parameter instead of reading <code>ehai_core::release::MINISIGN_PUBLIC_KEY</code> directly.</strong> The constant is still the right default for every real caller (<code>ehai update</code>, <code>install.sh</code>'s Rust-side equivalent), but hardcoding it inside <code>stage()</code> would make the function untestable without the real production private key, which no test environment has or should have.</li>
+<li><strong>The post-update check spawns the new binary as a fresh subprocess</strong> (<code>&lt;exe&gt; doctor --post-update</code>), not an in-process call. <code>apply()</code>'s file swap only changes what's on disk — the process that performed the swap is still executing the <em>old</em> code until it exits, so verifying "does the new binary actually work" requires actually starting it.</li>
+<li><strong>The daily background check is a bounded-timeout, best-effort courtesy, not a feature with its own retry/backoff logic.</strong> Any failure — offline, DNS, a slow API, rate limiting — is silently swallowed and the timestamp is still recorded, so a flaky network never turns into a daily nag or a slow command; the user finds out for real the next time they run <code>ehai update</code> on purpose.</li>
+<li><strong>The embedded <code>MINISIGN_PUBLIC_KEY</code> turned out to already be the real one.</strong> The keypair generated during this session (<code>~/.ehai/minisign.pub</code>/<code>.key</code>) is what the user uploaded as the <code>MINISIGN_KEY</code> GitHub Actions secret — same key, so the constant needed no change, only the "this is a placeholder" caveat removing once confirmed.</li>
+</ul>
+<h2 id="adr-0029-first-push-cargo-deny-findings-from-the-real-ci-run">ADR-0029 — First push: cargo-deny findings from the real CI run</h2>
+<p><strong>Date:</strong> 2026-11-18 · <strong>Status:</strong> accepted</p>
+<p>The first real push surfaced three <code>cargo-deny</code> failures <code>cargo build</code>/<code>test</code>/<code>clippy</code> don't check, since none of them are compile errors:</p>
+<ul>
+<li><strong><code>zip</code> 2.6.1 carried two real vulnerabilities</strong> (RUSTSEC-2026-0545: AES authentication-tag bypass; RUSTSEC-2026-0548: <code>ZipStreamReader</code> can extract under local-header names that differ from the central directory). Neither affects how <code>ehai</code> actually uses the crate (no AES-encrypted archives, no <code>ZipStreamReader</code>), but a vulnerable dependency version is still a vulnerable dependency version. Fixed by upgrading to <code>zip</code> 9.x, which also meant adapting <code>archive.rs</code> to <code>ZipFile::name()</code> now returning <code>Result&lt;Cow&lt;str&gt;, ZipError&gt;</code> instead of <code>&amp;str</code> (the crate made entry names fallible — a malformed name can't panic the caller anymore).</li>
+<li><strong>That upgrade's default features pulled in <code>bzip2</code>/<code>zstd</code>/<code>lzma</code> support</strong> <code>ehai</code> never uses (only plain DEFLATE, for both the migration export ZIP and release asset extraction), and with them two new transitive licenses (<code>bzip2-1.0.6</code>, <code>BSD-2-Clause</code>) that weren't yet in <code>deny.toml</code>'s allow-list. Rather than widening the allow-list for license surface we don't need, <code>zip</code> is now pulled with <code>default-features = false, features = ["deflate"]</code> — smaller dependency tree, no new licenses, same functionality.</li>
+<li><strong><code>chrono</code> is unmaintained (RUSTSEC-2026-0543), with "no safe upgrade available" per the advisory itself</strong> — it's transitive, via <code>rmcp</code> (the MCP SDK) and <code>schemars</code> (config JSON schema generation), neither of which we can drop. Added to <code>deny.toml</code>'s <code>[advisories] ignore</code> list with a comment explaining why, which is the mechanism <code>cargo-deny</code> provides for exactly this situation (a real, accepted finding with no available fix, rather than a false positive).</li>
+<li>None of this was caught by the earlier <code>cargo build</code>/<code>test</code>/<code>clippy --workspace</code> runs in this session, because <code>cargo-deny</code> checks advisory databases and license metadata that plain compilation doesn't touch — the gap between "builds and passes tests" and "passes the full CI matrix" is exactly what the first real push is for.</li>
+</ul>
+<p>The second push then surfaced two more, this time from the 3-OS test matrix — this environment is Linux x86_64 only, so cross-platform bugs in tests (not production code) had nowhere to be caught before a real multi-OS run:</p>
+<ul>
+<li><strong><code>ehai-env</code>'s install-skip test assumed <code>yarn</code> specifically was absent from PATH</strong> (true on this dev machine, false on GitHub's hosted runners, which ship Node.js with yarn). Rather than mutate the real <code>PATH</code> env var — which would race every other test in the same binary under <code>cargo test</code>'s default multi-threaded, single-process execution (confirmed by reproducing the exact failure locally) — <code>ehai-env::which()</code> gained an <code>EHAI_ENV_PATH</code> override that only it reads, so the test can force "nothing found" deterministically without touching the <code>PATH</code> that <code>git</code>, <code>sh</code>, and everything else in the same process still needs. (Also confirmed in the same investigation: <code>env::set_var</code> is <em>not</em> an unsafe fn under this workspace's <code>edition = "2021"</code> — that's an edition-2024-only change — so the earlier instinct to wrap it in <code>unsafe{}</code>, which this workspace's <code>unsafe_code = "forbid"</code> lint then rejected, was solving a problem that didn't exist here.)</li>
+<li><strong><code>ehai-update</code>'s fixture tests hardcoded a single target</strong> (<code>x86_64-unknown-linux-musl</code>), so they failed with <code>NoAsset</code> on GitHub's <code>macos-latest</code> runner, which is Apple Silicon (<code>aarch64-apple-darwin</code>). Fixed by signing one <code>SHA256SUMS</code> fixture covering all five targets in the real release matrix (same archive bytes, same hash, one line per target) with the same throwaway test key, so the suite verifies correctly regardless of which OS/arch actually runs it.</li>
+<li><strong>The <code>snapshots</code> CI job's <code>cargo insta test</code> invocation passed <code>--locked</code> where <code>cargo insta test</code> itself doesn't accept it</strong> (it only forwards unrecognised flags placed after <code>--</code> to the underlying <code>cargo test</code>), and its doctest runner rejected <code>--locked</code> even there. Dropped it from this one job — lockfile integrity is already enforced by <code>clippy</code>, <code>test</code> and <code>deny</code>, all of which use it correctly.</li>
+<li><strong>The real root cause of the Windows snapshot mismatch wasn't path rendering — the repo had no <code>.gitattributes</code>.</strong> <code>claude_code.rs</code>'s adapter embeds a content hash (<code>content_hash(&amp;files)</code>, hex-encoded into the generated plugin's <code>version</code> field) computed over the skill <code>.md</code> templates, which are pulled in at compile time via <code>include_str!</code>. Without <code>.gitattributes</code>, GitHub's <code>windows-latest</code> runner's default <code>core.autocrlf=true</code> checks those templates out with CRLF line endings instead of the LF they're committed with, so the hash — and therefore the generated <code>version</code> string's literal text — genuinely differed from the Unix-recorded snapshot. The backslash/CRLF normalization added to the test earlier was real and worth keeping (belt-and-suspenders for path rendering), but it couldn't fix <em>this</em>, since differing hash digits aren't a formatting difference to normalize away. Root-caused by adding <code>.gitattributes</code> (<code>* text=auto eol=lf</code>) so every platform checks out byte-identical content, which is the actual fix — "make the build inputs identical everywhere" beats "patch the test that happened to notice."</li>
+<li><strong><code>ehai init</code> now runs the equivalent of <code>ehai self install</code> as its first apply step</strong>, unconditionally and idempotently, rather than leaving "install to <code>~/.ehai/bin</code> and add to PATH" as a separate manual step the one-line installer happened to chain but a from-source build wouldn't. Two reasons: (1) spec §2.10, "do it for the user" — PATH setup is exactly the kind of thing that shouldn't need a second command; (2) harness adapters are wired via <code>adapter_ctx</code>'s "prefer the installed binary" rule, so running <code>init</code> from a build directory or a download folder without this step would silently point every harness's MCP config at a location that disappears on <code>cargo clean</code> or once the download is deleted.</li>
+</ul>
+<h2 id="adr-0030-claude-desktop-skills-zip-shipped-supersedes-adr-0027s-revert-note">ADR-0030 — Claude Desktop skills ZIP (shipped, supersedes ADR-0027's revert note)</h2>
+<p><strong>Date:</strong> 2026-11-18 · <strong>Status:</strong> accepted</p>
+<p>ADR-0027 recorded that "the Claude desktop skills-ZIP idea was tried and reverted before landing." That was accurate for the uncommitted half-finished attempt found in the working tree at the time. This ADR records the deliberate, complete implementation shipped in this session.</p>
+<p><strong>What changed:</strong> the half-finished attempt had imports, an unused const, and no generation code — it was rightly reverted. The shipped version (<code>claude_desktop.rs</code>) has full generation, install, remove, and four tests (ZIP contains all 5 PM skills, manifest.json present, <code>remove()</code> deletes the ZIP, idempotent install). ADR-0022 ("MCP prompts are sufficient") was the right call when the only alternative was a half-built path; it is no longer the right call now that the path is complete.</p>
+<p><strong>Why bother:</strong> Claude Desktop's native Skills UI surfaces <code>/ehai:plan</code> as a first-class command the PM can discover and invoke without typing anything. MCP prompts still work, but the ZIP makes the PM flow zero-friction on Claude Desktop — no typing required. This directly serves the product goal of letting a non-technical PM complete the full planning flow from Claude Desktop without a terminal.</p>
+<p><strong>What it generates:</strong> <code>~/.ehai/adapters/claude-desktop/{brand}-skills.zip</code> with <code>manifest.json</code> + 5 PM skill <code>.md</code> files (<code>plan</code>, <code>breakdown</code>, <code>sync</code>, <code>status</code>, <code>triage</code>). The same <code>SKILLS</code> array and <code>render()</code> function used by the Claude Code plugin ZIP ensure both ZIPs stay in sync when skill templates change.</p>
+<p><strong>Skills ZIP is re-generated on every <code>install()</code> call</strong> (not only on first install), so updates to skill templates are always picked up without a separate command.</p>
+<h2 id="adr-0031-plan_explore-lite-loop-design">ADR-0031 — <code>plan_explore</code> lite loop design</h2>
+<p><strong>Date:</strong> 2026-11-18 · <strong>Status:</strong> accepted</p>
+<p><strong>Problem:</strong> <code>save_prd</code> accepts any PRD as long as <code>Prd::problems()</code> passes (required fields present), but a valid PRD is not necessarily a complete one. Common gaps — missing measurable metrics, undescribed error flows, no out-of-scope list — only show up when developers start the breakdown and find the requirements don't cover their questions.</p>
+<p><strong>Solution:</strong> a <code>plan_explore</code> MCP tool that runs deterministic gap detection after every <code>save_prd</code> success. The skill template drives a max-3-round loop: call with no answers to get gaps, ask the user the top-2, call again with answers, repeat.</p>
+<p><strong>Gap rules (priority order, capped at 5):</strong>
+1. Zero user flows → "No user flows described"
+2. Single flow with no "error"/"fail"/"fallback" keyword → "No error/edge-case flow"
+3. A metric whose <code>target</code> contains no digit → "Metric needs a measurable number"
+4. A risk whose <code>mitigation</code> is under 15 characters → "Risk has no mitigation"
+5. <code>out_of_scope</code> list is empty → "Nothing listed as out of scope"
+6. Fewer than 2 user personas → "Only one user persona"</p>
+<p><strong>Key design choices:</strong>
+- The loop is enforced by the skill template (max 3 rounds), not by the tool itself. The tool is stateless — it just returns the current gap list and the AI decides when to stop. This keeps the Rust engine simple.
+- The tool is always auto-run after <code>save_prd</code> (no user opt-in). The user only sees the gap questions, not the tool calls.
+- PHI check applies to any answer values before they are written back to the PRD — same <code>self.check()</code> path as <code>save_prd</code>.
+- The <code>observe_interaction</code> call in <code>save_prd</code> records <code>last_plan_complexity</code> (count of risks + flows) so later tool invocations can adapt to the user's planning style over time.</p>
+<h2 id="adr-0032-mit-license">ADR-0032 — MIT license</h2>
+<p><strong>Date:</strong> 2026-11-18 · <strong>Status:</strong> accepted</p>
+<p>ehai is published under the MIT license (copyright JagadeeshMandala, 2026). MIT is the minimum-friction permissive license: downstream users can build on ehai without copyleft concerns, and it matches what the Rust ecosystem majority uses. <code>Cargo.toml</code> updated from <code>UNLICENSED</code> → <code>MIT</code>; <code>LICENSE</code> file added at repo root.</p>
+<h2 id="adr-0033-domain-profile-compliance-guard">ADR-0033 — Domain profile compliance guard</h2>
+<p><strong>Date:</strong> 2026-11-18 · <strong>Status:</strong> accepted</p>
+<p><strong>Problem:</strong> the original guard was built with health-tech PII patterns as the only rule set, which meant the tool's default was inappropriate for most users and exposed health framing to everyone.</p>
+<p><strong>Solution:</strong> a layered domain profile system. <code>Tech</code> is the default and covers universal digital PII (SSN, email, phone, address, DOB). <code>Health</code>, <code>Finance</code>, and <code>Gdpr</code> each add domain-specific patterns on top of <code>Tech</code> — they never replace or remove the base rules. <code>Guard::new(profile, custom)</code> constructs the rule set by starting with <code>tech_rules()</code> and extending; custom patterns are always appended last.</p>
+<p><strong>Key choices:</strong>
+- Additive (not exclusive) profiles avoid accidentally missing basic email/phone detection when a team selects a specialized profile.
+- Finance credit card uses regex + Luhn check to avoid 9-digit false positives (bank numbers, zip codes, etc.).
+- Routing numbers are keyword-anchored to cut false positives from arbitrary 9-digit sequences.
+- GDPR EU passport uses a simplified structural regex; country-specific checksums are not implemented (they add complexity for marginal false-positive reduction).
+- Low-confidence findings (name + medical term, GDPR data-subject heuristic) are surfaced but never auto-redacted in <code>strict</code> mode.
+- MCP API: <code>phi</code> → <code>policy</code>, <code>PhiChoice</code> → <code>SensitiveDataChoice</code> (pre-1.0 break, acceptable).</p>
+<h2 id="adr-0034-mkdocs-material-for-github-pages-docs">ADR-0034 — MkDocs Material for GitHub Pages docs</h2>
+<p><strong>Date:</strong> 2026-11-18 · <strong>Status:</strong> accepted</p>
+<p><strong>Choice:</strong> MkDocs Material, deployed via <code>gh-deploy</code> to <code>gh-pages</code> branch on push. Triggered only on changes to <code>docs/**</code>, <code>mkdocs.yml</code>, or the docs workflow — never on code changes (kept separate from CI).</p>
+<p><strong>Alternatives rejected:</strong>
+- mdBook: Rust-native but weaker navigation, no tabs/admonitions, smaller theme ecosystem.
+- Docusaurus: React build pipeline, heavier dependency footprint, overkill for reference docs at this scale.
+- Mintlify/Docuo: hosted SaaS, adds an external dependency and account requirement.</p>
+<p><strong>Palette:</strong> dark-purple (<code>#6d28d9</code>) primary, coral/orange (<code>#f97316</code>) accent, deep-plum background (<code>#0d0d14</code>), sandy off-white text (<code>#ede8db</code>) — matches Claude's visual identity. Applied via <code>docs/stylesheets/claude.css</code> extra CSS on the Material <code>slate</code> scheme. The <code>docs/overrides/</code> directory is kept empty as a placeholder for future Jinja2 template overrides; MkDocs only uses it if the directory exists and contains files.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.top", "navigation.instant", "navigation.tracking", "toc.follow", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate", "content.action.view"], "search": "../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.a5f9d56c.min.js"></script>
+      
+        <script src="../javascripts/copy-markdown.js"></script>
+      
+    
+  </body>
+</html>

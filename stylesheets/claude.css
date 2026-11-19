@@ -1,0 +1,377 @@
+/* Claude-inspired palette for ehai docs (MkDocs Material slate base) */
+
+[data-md-color-scheme="slate"] {
+  /* Deep plum backgrounds matching Claude's dark canvas */
+  --md-default-bg-color:        #0d0d14;
+  --md-default-bg-color--light: #13131f;
+  --md-default-bg-color--lighter: #1a1a2e;
+  --md-default-bg-color--lightest: #22223a;
+
+  /* Sandy warm text — Claude's signature off-white */
+  --md-default-fg-color:         #ede8db;
+  --md-default-fg-color--light:  #c9c3b6;
+  --md-default-fg-color--lighter: #9e9890;
+  --md-default-fg-color--lightest: #6b6760;
+
+  /* Purple primary — deeper than Material's default deep-purple */
+  --md-primary-fg-color:         #6d28d9;
+  --md-primary-fg-color--light:  #7c3aed;
+  --md-primary-fg-color--dark:   #5b21b6;
+  --md-primary-bg-color:         #ede8db;
+
+  /* Coral/orange accent — Claude's highlight color */
+  --md-accent-fg-color:          #f97316;
+  --md-accent-fg-color--transparent: #f9731620;
+
+  /* Code blocks */
+  --md-code-bg-color:            #13131f;
+  --md-code-fg-color:            #e2ddcc;
+
+  /* Links */
+  --md-typeset-a-color:          #a78bfa;
+
+  /* Admonitions */
+  --md-admonition-bg-color:      #13131f;
+}
+
+/* ─── Header ──────────────────────────────────────────────────────── */
+
+.md-header {
+  background-color: #0d0d14;
+  border-bottom: 1px solid #2a2a40;
+}
+
+/* ─── Nav sidebar ─────────────────────────────────────────────────── */
+
+/* Section labels (Guide, Reference, Project) — uppercase, label style */
+.md-nav--primary .md-nav__item--section > .md-nav__link,
+.md-nav--primary .md-nav__item--section > label.md-nav__link {
+  text-transform: uppercase;
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  font-weight: 800;
+  color: var(--md-default-fg-color--lighter) !important;
+  padding-top: 0.9rem;
+  padding-bottom: 0.25rem;
+  pointer-events: none;
+  cursor: default;
+  border-top: 1px solid rgba(167, 139, 250, 0.15);
+  margin-top: 0.5rem;
+  display: block;
+}
+
+/* Don't put border on the very first section header */
+.md-nav--primary .md-nav__item--section:first-child > .md-nav__link,
+.md-nav--primary .md-nav__item--section:first-of-type > label.md-nav__link {
+  border-top: none;
+  padding-top: 0.4rem;
+  margin-top: 0;
+}
+
+/* Nav links — hover affordance (color shift + slight indent) */
+.md-nav__link {
+  transition: color 0.15s ease, padding-left 0.12s ease;
+  border-radius: 3px;
+}
+
+.md-nav__link:hover:not([aria-current="page"]) {
+  color: var(--md-accent-fg-color) !important;
+  padding-left: 0.25rem;
+}
+
+/* Active link — orange accent with left indicator */
+.md-nav__link--active,
+.md-nav__link[aria-current="page"] {
+  color: #f97316 !important;
+  font-weight: 600;
+  border-left: 2px solid #f97316;
+  padding-left: 0.3rem;
+  margin-left: -2px;
+}
+
+/* Nav site title (top "ehai" branding) */
+.md-nav__title {
+  color: #a78bfa;
+  font-weight: 600;
+}
+
+/* ─── Table of contents (right sidebar) ──────────────────────────── */
+
+/* ToC label */
+.md-nav--secondary .md-nav__title {
+  color: #a78bfa;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+}
+
+/* Prevent long ToC entries from wrapping onto 3+ lines */
+.md-nav--secondary .md-nav__link {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+  display: block;
+}
+
+/* ToC active/hover */
+.md-nav--secondary .md-nav__link:hover {
+  color: var(--md-accent-fg-color) !important;
+}
+
+.md-nav--secondary .md-nav__link--active {
+  color: #a78bfa !important;
+  font-weight: 600;
+  border-left: 2px solid #a78bfa;
+  padding-left: 0.3rem;
+  margin-left: -2px;
+}
+
+/* ─── Tabbed content (install block) ─────────────────────────────── */
+
+/* More breathing room around the whole tabbed block */
+.md-typeset .tabbed-set {
+  margin-top: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Tabs bar: a bit more height and clear active underline */
+.md-typeset .tabbed-labels > label {
+  font-size: 0.82rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  padding: 0.5rem 0.9rem;
+  color: var(--md-default-fg-color--light);
+  transition: color 0.15s ease;
+}
+
+.md-typeset .tabbed-labels > label:hover {
+  color: var(--md-accent-fg-color);
+}
+
+.md-typeset .tabbed-labels > [data-md-state="active"] {
+  color: var(--md-accent-fg-color) !important;
+  border-bottom-color: var(--md-accent-fg-color) !important;
+}
+
+/* Tab panel: internal padding so code block doesn't hug the edge */
+.md-typeset .tabbed-content {
+  border: 1px solid rgba(167, 139, 250, 0.15);
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+}
+
+/* Space between code block and the following paragraph */
+.md-typeset .tabbed-set + p {
+  margin-top: 1.25rem;
+}
+
+/* ─── Code blocks ─────────────────────────────────────────────────── */
+
+/* Inline code */
+.md-typeset code:not(.md-code__content) {
+  background-color: #1a1a2e;
+  color: #c4b5fd;
+  border-radius: 3px;
+  padding: 0.1em 0.3em;
+  font-size: 0.85em;
+}
+
+/* Code block scrollbar — visible but subtle */
+.md-typeset pre > code {
+  scrollbar-width: thin;
+  scrollbar-color: #3d2a7a #13131f;
+}
+
+.md-typeset pre > code::-webkit-scrollbar {
+  height: 5px;
+}
+
+.md-typeset pre > code::-webkit-scrollbar-track {
+  background: #13131f;
+}
+
+.md-typeset pre > code::-webkit-scrollbar-thumb {
+  background: #3d2a7a;
+  border-radius: 3px;
+}
+
+.md-typeset pre > code::-webkit-scrollbar-thumb:hover {
+  background: #6d28d9;
+}
+
+/* Code copy button */
+.md-clipboard {
+  color: #6d28d9;
+}
+
+.md-clipboard:hover {
+  color: #a78bfa;
+}
+
+/* ─── Section separators (hr) ─────────────────────────────────────── */
+
+.md-typeset hr {
+  border: none;
+  border-top: 1px solid rgba(167, 139, 250, 0.2);
+  margin: 2.5rem 0;
+}
+
+/* ─── Content headings ────────────────────────────────────────────── */
+
+/* H2 — section header with subtle left accent */
+.md-typeset h2 {
+  font-weight: 700;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid rgba(167, 139, 250, 0.15);
+  margin-top: 2.5rem;
+}
+
+/* H2 first on page — no extra top margin */
+.md-typeset h2:first-of-type {
+  margin-top: 1.5rem;
+}
+
+/* H3 — subsection headers */
+.md-typeset h3 {
+  font-weight: 600;
+  margin-top: 1.75rem;
+  color: #c4b5fd;
+}
+
+/* H3 containing ONLY a code element — skill name pill style */
+/* e.g. ### `/ehai:plan` renders as <h3><code>/ehai:plan</code></h3> */
+.md-typeset h3 > code:only-child {
+  background: linear-gradient(135deg, #4c1d95, #6d28d9);
+  color: #fff !important;
+  padding: 0.2em 0.65em;
+  border-radius: 6px;
+  font-size: 0.88em;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  box-shadow: 0 1px 4px rgba(109, 40, 217, 0.4);
+  display: inline-block;
+}
+
+/* ─── Tables ──────────────────────────────────────────────────────── */
+
+.md-typeset table th {
+  background-color: #1a1a2e;
+  color: #a78bfa;
+  font-weight: 600;
+}
+
+.md-typeset table tr:nth-child(even) {
+  background-color: rgba(26, 26, 46, 0.4);
+}
+
+.md-typeset table td code {
+  font-size: 0.82em;
+}
+
+/* ─── Admonitions ─────────────────────────────────────────────────── */
+
+.md-typeset .admonition {
+  background-color: #13131f;
+  border-radius: 4px;
+}
+
+.md-typeset .admonition.note,
+.md-typeset .admonition > details {
+  border-color: #6d28d9;
+}
+
+.md-typeset .admonition.tip {
+  border-color: #f97316;
+}
+
+.md-typeset .admonition.warning {
+  border-color: #f59e0b;
+}
+
+/* ─── Feature cards (index page grid) ────────────────────────────── */
+
+.md-typeset .grid.cards > ul > li {
+  background-color: #13131f;
+  border: 1px solid rgba(167, 139, 250, 0.2);
+  border-radius: 8px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.md-typeset .grid.cards > ul > li:hover {
+  border-color: rgba(167, 139, 250, 0.5);
+  box-shadow: 0 2px 12px rgba(109, 40, 217, 0.2);
+}
+
+.md-typeset .grid.cards > ul > li strong:first-child {
+  color: #a78bfa;
+  font-size: 1.0rem;
+  display: block;
+  margin-bottom: 0.4rem;
+}
+
+/* ─── Changelog page ──────────────────────────────────────────────── */
+
+/* Each release block (## version) gets a card-like container */
+.md-typeset h2 + h3,
+.md-typeset h2 + p,
+.md-typeset h2 + ul {
+  margin-top: 0.75rem;
+}
+
+/* Category labels in changelog (### Features, ### Fixes, etc.) */
+.md-typeset h3 {
+  margin-top: 1.5rem;
+}
+
+/* List items in changelog / general: more line height so lines don't crunch */
+.md-typeset ul li,
+.md-typeset ol li {
+  margin-bottom: 0.25rem;
+  line-height: 1.65;
+}
+
+/* ─── Buttons ─────────────────────────────────────────────────────── */
+
+.md-typeset .md-button--primary {
+  background-color: #6d28d9;
+  border-color: #6d28d9;
+  color: #fff !important;
+  font-weight: 600;
+  border-radius: 6px;
+  transition: background-color 0.15s ease;
+}
+
+.md-typeset .md-button--primary:hover {
+  background-color: #7c3aed;
+  border-color: #7c3aed;
+}
+
+.md-typeset .md-button {
+  border-color: rgba(167, 139, 250, 0.4);
+  color: #a78bfa !important;
+  border-radius: 6px;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.md-typeset .md-button:hover {
+  border-color: #a78bfa;
+  color: #c4b5fd !important;
+}
+
+/* "Copy Markdown" page button (javascripts/copy-markdown.js) */
+.md-typeset .ehai-copy-md {
+  width: auto;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.65rem;
+  font-weight: 600;
+  border: 1px solid var(--md-accent-fg-color);
+  border-radius: 0.4rem;
+  color: var(--md-accent-fg-color);
+  cursor: pointer;
+}
+.md-typeset .ehai-copy-md:hover {
+  background: var(--md-accent-fg-color);
+  color: #fff;
+}
