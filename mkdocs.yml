@@ -3,6 +3,7 @@ site_url: https://jagadeeshm007.github.io/ehai/
 site_description: AI-SDLC ops engine for any team — plan, track, and prototype from any AI harness
 repo_url: https://github.com/jagadeeshm007/ehai
 repo_name: jagadeeshm007/ehai
+edit_uri: edit/main/docs/
 docs_dir: docs
 site_dir: site
 
@@ -29,9 +30,13 @@ theme:
     - search.highlight
     - content.code.copy
     - content.code.annotate
+    - content.action.view
 
 extra_css:
   - stylesheets/claude.css
+
+extra_javascript:
+  - javascripts/copy-markdown.js
 
 plugins:
   - search
@@ -57,6 +62,7 @@ markdown_extensions:
 nav:
   - Home: index.md
   - Guide:
+      - How it works: guide/how-it-works.md
       - Quickstart: guide/quickstart.md
       - Setup & Connections: guide/setup.md
       - Use Cases: guide/use-cases.md

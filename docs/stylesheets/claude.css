@@ -359,3 +359,19 @@
   border-color: #a78bfa;
   color: #c4b5fd !important;
 }
+
+/* "Copy Markdown" page button (javascripts/copy-markdown.js) */
+.md-typeset .ehai-copy-md {
+  width: auto;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.65rem;
+  font-weight: 600;
+  border: 1px solid var(--md-accent-fg-color);
+  border-radius: 0.4rem;
+  color: var(--md-accent-fg-color);
+  cursor: pointer;
+}
+.md-typeset .ehai-copy-md:hover {
+  background: var(--md-accent-fg-color);
+  color: #fff;
+}

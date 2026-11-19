@@ -78,5 +78,7 @@ Then run `ehai init` — the wizard auto-detects your harnesses, connects GitHub
 
 ## Next steps
 
+- [How ehai works](guide/how-it-works.md) — the problem, philosophy, architecture and flow diagrams
+
 [Quickstart →](guide/quickstart.md){ .md-button .md-button--primary }
 [Config reference →](reference/config.md){ .md-button }

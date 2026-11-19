@@ -15,6 +15,16 @@ curl -fsSL https://raw.githubusercontent.com/jagadeeshm007/ehai/main/install/ins
 
 ---
 
+## The problem
+
+AI coding assistants made *writing code* fast, but everything around the code is still manual:
+
+- PMs retype requirements from docs and chats into the tracker by hand.
+- Every AI tool (Claude Code, Codex, Cursor, Gemini CLI…) needs its own setup, so a team cannot share one workflow.
+- Developers jump between tracker, terminal and AI chat to start a task, open a PR and move the card.
+- Trying a UI idea risks `main`, and a fresh worktree will not even run (no `.env`, no deps, port clashes).
+- Sensitive data slips into tickets, and the AI asks the same questions every session.
+
 ## Why ehai?
 
 | Without ehai | With ehai |
@@ -24,24 +34,69 @@ curl -fsSL https://raw.githubusercontent.com/jagadeeshm007/ehai/main/install/ins
 | Prototype in a branch that breaks main | `/ehai:poc new "..."` creates an isolated worktree that never touches main |
 | Paste PHI into a tracker comment by accident | Built-in data policy guard blocks it before it lands anywhere |
 | `npm install` fails in every fresh worktree | Auto-provisioned `.env`, deps, and ports on every POC |
+| The AI asks the same questions every time | Preferences are learned, become defaults, and stay editable |
+
+---
+
+## Philosophy
+
+- **One engine, thin adapters** — all logic lives in one Rust binary; each AI harness only gets generated config that calls the same MCP tools.
+- **Main is sacred** — POCs live in separate worktrees and are never merged or pushed unless you ask.
+- **Never break, always run** — atomic updates with automatic rollback, versioned config, additive-only tool schemas, panic-safe server.
+- **Ask, don't guess** — detect what can be detected; ask the rest through the harness's native multiple-choice UI.
+- **Learn and adapt** — observed choices become defaults; explicit statements always win.
+- **Safe by default** — data guard on every write, sandboxed agent work, secrets never sent to the tracker, logs or the LLM.
 
 ---
 
 ## How it works
 
-```
-Your AI harness  ──→  ehai MCP server  ──→  GitHub Projects
- (Claude Code,         (Rust binary,          Linear, Local
-  Codex, Cursor,        stdio transport,       tracker)
-  Gemini CLI…)          ~8ms per call)
-                              │
-                         Git worktrees
-                         Design tokens
-                         Data policy guard
-                         Preference store
+```mermaid
+flowchart LR
+  pm["👩‍💼 PM"]:::user --> cd["Claude Desktop"]:::harness
+  pm --> cc["Claude Code"]:::harness
+  dev["👨‍💻 Developer"]:::user --> cc
+  dev --> oth["Codex · Cursor · Gemini CLI<br/>OpenCode · VS Code · Windsurf"]:::harness
+  cd & cc & oth -- "MCP over stdio" --> mcp["⚙️ ehai engine<br/>one static Rust binary"]:::engine
+  mcp --> plan["Planner<br/>PRD · breakdown · sync"]:::engine
+  mcp --> poc["POC engine<br/>worktrees · env · design tokens"]:::engine
+  mcp --> prefs[("💾 Preferences")]:::store
+  mcp --> guard["🛡️ Data guard"]:::guard
+  plan --> gh["GitHub Projects"]:::ext
+  poc --> git["git worktrees"]:::ext
+  classDef user fill:#f97316,stroke:#c2410c,color:#fff
+  classDef harness fill:#2563eb,stroke:#1e40af,color:#fff
+  classDef engine fill:#7c3aed,stroke:#5b21b6,color:#fff
+  classDef ext fill:#16a34a,stroke:#166534,color:#fff
+  classDef store fill:#0891b2,stroke:#155e75,color:#fff
+  classDef guard fill:#dc2626,stroke:#991b1b,color:#fff
 ```
 
-The engine is a single static Rust binary. No Node, Python, or Docker required to run it. Harnesses talk to it via MCP over stdio — the same protocol Claude Desktop uses for all its integrations.
+### The agent loop
+
+When a tool needs a decision, it returns a `needs_input` question instead of guessing. The harness asks it in its own multiple-choice UI and calls the tool again with the answer.
+
+```mermaid
+flowchart LR
+  ask(["👤 Request"]):::user --> h["🤖 Harness loads ehai://prefs<br/>and calls a tool"]:::harness
+  h --> e["⚙️ Engine runs step"]:::engine
+  e --> g{"🛡️ Guard OK and<br/>no decision needed?"}:::guard
+  g -- "yes" --> w["Write to tracker / repo"]:::ext
+  g -- "no" --> q["needs_input → native question"]:::harness
+  q -- "answer via retry_param" --> h
+  w --> l[("💾 Learn preference")]:::store
+  l --> r(["Role-aware reply + next options"]):::user
+  classDef user fill:#f97316,stroke:#c2410c,color:#fff
+  classDef harness fill:#2563eb,stroke:#1e40af,color:#fff
+  classDef engine fill:#7c3aed,stroke:#5b21b6,color:#fff
+  classDef ext fill:#16a34a,stroke:#166534,color:#fff
+  classDef store fill:#0891b2,stroke:#155e75,color:#fff
+  classDef guard fill:#dc2626,stroke:#991b1b,color:#fff
+```
+
+The engine is a single static Rust binary (12 crates, `rmcp` MCP server, GitHub Projects v2 over GraphQL, system `git` for worktrees). No Node, Python, or Docker required to run it.
+
+**Full walkthrough** — the PM flow, POC pipeline, worktree env pipeline, preference learning and safe updates, all with diagrams: [How ehai works](https://jagadeeshm007.github.io/ehai/guide/how-it-works/) ([source](docs/guide/how-it-works.md)).
 
 ---
 
@@ -696,7 +751,8 @@ Full reference: [docs/reference/config.md](https://jagadeeshm007.github.io/ehai/
 
 | Resource | Description |
 |---|---|
-| [jagadeeshm007.github.io/ehai](https://jagadeeshm007.github.io/ehai/) | Full docs site (quickstart, guides, reference) |
+| [jagadeeshm007.github.io/ehai](https://jagadeeshm007.github.io/ehai/) | Full docs site (quickstart, guides, reference). Every page has a **Copy Markdown** button to paste it into an AI agent. |
+| [How ehai works](docs/guide/how-it-works.md) | Problem, philosophy, architecture and flow diagrams |
 | [docs/PROGRESS.md](docs/PROGRESS.md) | Milestone log |
 | [docs/DECISIONS.md](docs/DECISIONS.md) | ADR log |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Dev setup, branch naming, PR process |
